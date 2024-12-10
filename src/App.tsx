@@ -6,12 +6,9 @@ function App() {
   return (
     <>
       Olá Mundo!
-      <Carta/>
-      <Carta/>
-      <Carta/>
-      <Carta/>
-      <Carta/>
-
+      <Carta titulo = "Pegar madeira"/>
+      <Carta titulo = "Pegar pedra"/>
+      <Carta titulo = "Pegar água"/>
     </>
   )
 }
