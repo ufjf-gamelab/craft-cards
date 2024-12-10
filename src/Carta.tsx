@@ -1,7 +1,7 @@
 import "./Carta.css";
 type CartaProps = {titulo:string}
-export default function Carta(props: CartaProps) {
+export default function Carta({titulo}: CartaProps) {
   return <div className="carta">
-    <h1>{props.titulo}</h1>
+    <h1>{titulo}</h1>
     </div>;
 }
