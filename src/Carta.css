@@ -1,0 +1,11 @@
+.carta {
+  border: 2px solid light-dark(black, white);
+  padding: 3mm;
+  height: 88mm;
+  width: 63mm;
+  border-radius: 3mm;
+}
+
+.carta > h1{
+  font-size: 1.5em;
+}

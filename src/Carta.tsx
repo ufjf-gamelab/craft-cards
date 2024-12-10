@@ -1,4 +1,7 @@
-export default function Carta(){
+import "./Carta.css";
 
-  return <div>[Carta]</div>
+export default function Carta() {
+  return <div className="carta">
+    <h1>Carta</h1>
+    </div>;
 }
