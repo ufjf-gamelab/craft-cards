@@ -1,0 +1,16 @@
+.maoDeCartas {
+  padding: 3mm;
+  box-shadow: 1mm 1mm 3mm black;
+  border-radius: 3mm;
+
+  > .cartas {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 3mm;
+
+    > .carta {
+      zoom: 0.6;
+    }
+  }
+}
