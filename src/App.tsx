@@ -2,7 +2,7 @@ import "./App.css";
 import Carta from "./Carta";
 import MaoDeCartas from "./MaoDeCartas";
 
-type CartaType = {
+export type CartaType = {
   id:string;
   titulo:string;
   texto:string;
@@ -22,7 +22,7 @@ function App() {
   return (
     <>
       <MaoDeCartas>
-        {MAO.map((item)=><Carta key={item.id} titulo={item.titulo} texto={item.texto} custo={item.custo}/>)}
+        {MAO.map((item)=><Carta key={item.id} carta = {item}/>)}
       </MaoDeCartas>
     </>
   );

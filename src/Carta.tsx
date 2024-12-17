@@ -1,9 +1,10 @@
+import { CartaType } from "./App";
 import "./Carta.css";
-type CartaProps = {titulo:string, texto:string, custo:number}
-export default function Carta({titulo,texto,custo}: CartaProps) {
+type CartaProps = {carta:CartaType}
+export default function Carta({carta}: CartaProps) {
   return <div className="carta">
-    <h1>{titulo}</h1>
-    <p>{texto}</p>
-    <div className="custo">{custo}</div>
+    <h1>{carta.titulo}</h1>
+    <p>{carta.texto}</p>
+    <div className="custo">{carta.custo}</div>
     </div>;
 }
