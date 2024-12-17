@@ -10,15 +10,10 @@ const MAO:Array<string> = [
 ]
 
 function App() {
-
-  const cartas = MAO.map(function(item){
-    return <Carta key={item} titulo={item}/>;
-  });
-
   return (
     <>
       <MaoDeCartas>
-        {cartas}
+        {MAO.map((item)=><Carta key={item} titulo={item}/>)}
       </MaoDeCartas>
     </>
   );
