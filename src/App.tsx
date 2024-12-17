@@ -11,10 +11,9 @@ const MAO:Array<string> = [
 
 function App() {
 
-  const cartas = [];
-  for(let i = 0; i < MAO.length; i++){
-    cartas.push(<Carta key={MAO[i]} titulo={MAO[i]}/>)
-  }
+  const cartas = MAO.map(function(item){
+    return <Carta key={item} titulo={item}/>;
+  });
 
   return (
     <>
