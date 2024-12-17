@@ -4,7 +4,7 @@ type MaoDeCartasProps = {children:Array<ReactNode>}
 
 export default function MaoDeCartas({children:cartas}: MaoDeCartasProps){
   return <div className="maoDeCartas">
-    <div className="tamanho">X Cartas</div>
+    <div className="tamanho">{cartas.length} Cartas</div>
     <div className="cartas">{cartas}</div>
   </div> 
 
