@@ -1,4 +1,7 @@
 .carta {
+  display: grid;
+  grid-template-rows: 1fr 4fr 1fr;
+
   border: 2px solid light-dark(black, white);
   padding: 3mm;
   height: 88mm;
@@ -8,4 +11,13 @@
 
 .carta > h1{
   font-size: 1.5em;
+}
+
+.carta > p{
+  font-style: italic;
+}
+
+.carta > .custo{
+  color: gold;
+  font-weight: 600;
 }

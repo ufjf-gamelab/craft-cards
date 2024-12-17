@@ -22,7 +22,7 @@ function App() {
   return (
     <>
       <MaoDeCartas>
-        {MAO.map((item)=><Carta key={item.id} titulo={item.titulo}/>)}
+        {MAO.map((item)=><Carta key={item.id} titulo={item.titulo} texto={item.texto} custo={item.custo}/>)}
       </MaoDeCartas>
     </>
   );
