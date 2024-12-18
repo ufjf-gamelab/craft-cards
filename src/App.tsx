@@ -32,16 +32,25 @@ const MAO:Array<CartaType> = [
 
 
 function App() {
-  let [pontos, setPontos] = useState(0);
-  
+  const [pontos, setPontos] = useState(0);
+  const [recursos, setRecursos] = useState(RECURSOS);
+
   function aumentaPonto(){
     setPontos(pontos + 1);
   }
+
+  function diminuiAcao(){
+    const newRecursos = structuredClone(recursos);
+    newRecursos[0].quantidade = newRecursos[0].quantidade -1;
+    setRecursos(newRecursos);
+  }
+
   return (
     <>
       <div>pontos: {pontos}</div>
       <button onClick={aumentaPonto}>Aumenta Ponto</button>
-      <ListaDeRecursos recursos = {RECURSOS}/>
+      <button onClick={diminuiAcao}>Diminui Ação</button>
+      <ListaDeRecursos recursos = {recursos}/>
       <MaoDeCartas>
         {MAO.map((item)=><Carta key={item.id} carta = {item}/>)}
       </MaoDeCartas>
