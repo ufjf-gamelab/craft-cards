@@ -1,19 +1,12 @@
+import { RecursoType } from "./App";
 import "./ListaDeRecursos.css";
 
-export type RecursoType = {
-  nome: string;
-  quantidade: number;
-};
+type RecursosProps = {recursos:Array<RecursoType>}
 
-const RECURSOS: Array<RecursoType> = [
-  { nome: "Ação", quantidade: 1 },
-  { nome: "Madeira", quantidade: 0 },
-];
-
-export default function ListaDeRecursos() {
+export default function ListaDeRecursos({recursos}:RecursosProps) {
   return (
     <dl className="recursos">
-      {RECURSOS.map((r) => (
+      {recursos.map((r) => (
         <div>
           <dt>{r.nome}</dt>
           <dd>{r.quantidade}</dd>

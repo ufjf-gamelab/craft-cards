@@ -11,6 +11,16 @@ export type CartaType = {
   custo:number;
 }
 
+export type RecursoType = {
+  nome: string;
+  quantidade: number;
+};
+
+const RECURSOS: Array<RecursoType> = [
+  { nome: "Ação", quantidade: 1 },
+  { nome: "Madeira", quantidade: 0 },
+];
+
 const MAO:Array<CartaType> = [
   {id:"m1", titulo: "Pegar madeira",texto:"Ganha 1 madeira", custo: 0},
   {id:"a1", titulo: "Pegar água",texto:"Ganha 1 água", custo: 0},
@@ -31,7 +41,7 @@ function App() {
     <>
       <div>pontos: {pontos}</div>
       <button onClick={aumentaPonto}>Aumenta Ponto</button>
-      <ListaDeRecursos/>
+      <ListaDeRecursos recursos = {RECURSOS}/>
       <MaoDeCartas>
         {MAO.map((item)=><Carta key={item.id} carta = {item}/>)}
       </MaoDeCartas>
