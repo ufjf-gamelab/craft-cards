@@ -1,5 +1,6 @@
 import "./App.css";
 import Carta from "./Carta";
+import ListaDeRecursos from "./ListaDeRecursos";
 import MaoDeCartas from "./MaoDeCartas";
 
 export type CartaType = {
@@ -19,8 +20,10 @@ const MAO:Array<CartaType> = [
 ]
 
 function App() {
+
   return (
     <>
+      <ListaDeRecursos/>
       <MaoDeCartas>
         {MAO.map((item)=><Carta key={item.id} carta = {item}/>)}
       </MaoDeCartas>

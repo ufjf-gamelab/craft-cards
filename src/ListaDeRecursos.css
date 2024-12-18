@@ -1,0 +1,14 @@
+.recursos{
+  display: flex;
+  gap: 0.5em;
+}
+
+.recursos > div{
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.recursos > div > dd::before{
+  content: "x";
+}
