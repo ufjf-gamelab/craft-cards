@@ -45,6 +45,10 @@ function App() {
     setRecursos(newRecursos);
   }
 
+  function onCartaClick(carta:CartaType){
+    console.log("carta clicada", carta);
+  }
+
   return (
     <>
       <div>pontos: {pontos}</div>
@@ -52,7 +56,7 @@ function App() {
       <button onClick={diminuiAcao}>Diminui Ação</button>
       <ListaDeRecursos recursos = {recursos}/>
       <MaoDeCartas>
-        {MAO.map((item)=><Carta key={item.id} carta = {item}/>)}
+        {MAO.map((item)=><Carta key={item.id} carta = {item} onCartaClick={()=>{onCartaClick(item);}}/>)}
       </MaoDeCartas>
     </>
   );
