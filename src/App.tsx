@@ -28,7 +28,7 @@ const MAO:Array<CartaType> = [
   {id:"a2", titulo: "Pegar água",texto:"", custo: 0, ganho: [{nome:"água", quantidade: 1}]},
   {id:"p1", titulo: "Pegar pedra",texto:"", custo: 1, ganho: [{nome:"pedra", quantidade: 1}]},
   {id:"b1", titulo: "Pegar amora",texto:"", custo: 2, ganho: [{nome:"amora", quantidade: 1}]},
-  {id:"m2", titulo: "Pegar madeira",texto:"", custo: 0, ganho: [{nome:"madeira", quantidade: 1}]},
+  {id:"m2", titulo: "Pegar madeira",texto:"", custo: 0, ganho: [{nome:"madeira", quantidade: 2}]},
 ]
 
 
@@ -48,6 +48,7 @@ function App() {
 
   function onCartaClick(carta:CartaType){
     console.log("carta clicada", carta);
+    setRecursos([...recursos, ...carta.ganho]);
   }
 
   return (
