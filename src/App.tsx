@@ -9,6 +9,7 @@ export type CartaType = {
   titulo:string;
   texto:string;
   custo:number;
+  ganho:Array<RecursoType>;
 }
 
 export type RecursoType = {
@@ -22,12 +23,12 @@ const RECURSOS: Array<RecursoType> = [
 ];
 
 const MAO:Array<CartaType> = [
-  {id:"m1", titulo: "Pegar madeira",texto:"Ganha 1 madeira", custo: 0},
-  {id:"a1", titulo: "Pegar água",texto:"Ganha 1 água", custo: 0},
-  {id:"a2", titulo: "Pegar água",texto:"Ganha 1 água", custo: 0},
-  {id:"p1", titulo: "Pegar pedra",texto:"Ganha 1 pedra", custo: 1},
-  {id:"b1", titulo: "Pegar amora",texto:"Ganha 1 amora", custo: 2},
-  {id:"m2", titulo: "Pegar madeira",texto:"Ganha 1 madeira", custo: 0},
+  {id:"m1", titulo: "Pegar madeira",texto:"", custo: 0, ganho: [{nome:"madeira", quantidade: 1}]},
+  {id:"a1", titulo: "Pegar água",texto:"", custo: 0, ganho: [{nome:"água", quantidade: 1}]},
+  {id:"a2", titulo: "Pegar água",texto:"", custo: 0, ganho: [{nome:"água", quantidade: 1}]},
+  {id:"p1", titulo: "Pegar pedra",texto:"", custo: 1, ganho: [{nome:"pedra", quantidade: 1}]},
+  {id:"b1", titulo: "Pegar amora",texto:"", custo: 2, ganho: [{nome:"amora", quantidade: 1}]},
+  {id:"m2", titulo: "Pegar madeira",texto:"", custo: 0, ganho: [{nome:"madeira", quantidade: 1}]},
 ]
 
 

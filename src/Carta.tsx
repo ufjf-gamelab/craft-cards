@@ -5,7 +5,10 @@ export default function Carta({carta, onCartaClick}: CartaProps) {
   return (
   <div className="carta" onClick={()=>{onCartaClick();}}>
     <h1>{carta.titulo}</h1>
-    <p>{carta.texto}</p>
+    <section>
+      <p>{carta.texto}</p>
+      {carta.ganho.map((ganho)=><p key={ganho.nome}>{ganho.quantidade>0?"Ganhe": "Pague"} {ganho.quantidade} {ganho.nome}</p>)}
+    </section>
     <div className="custo">{carta.custo}</div>
   </div>
   );
