@@ -108,6 +108,14 @@ function App() {
     }
 
     setRecursos(newRecursos);
+    const index = mao.findIndex(c=>c === carta);
+    const newMao = structuredClone(mao);
+    const newDescarte = structuredClone(descarte);
+
+    newDescarte.push(...newMao.splice(index,1));
+
+    setMao(newMao);
+    setDescarte(newDescarte);
   }
 
   return (
@@ -131,9 +139,7 @@ function App() {
           <Carta
             key={item.id}
             carta={item}
-            onCartaClick={() => {
-              onCartaClick(item);
-            }}
+            onCartaClick={() => {}}
           />
         ))}
       </MaoDeCartas>
