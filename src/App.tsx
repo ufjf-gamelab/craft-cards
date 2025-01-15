@@ -22,6 +22,8 @@ const RECURSOS: Array<RecursoType> = [
   { nome: "madeira", quantidade: 0 },
 ];
 
+const DESCARTE: Array<CartaType> = [];
+
 const MAO: Array<CartaType> = [
   {
     id: "m1",
@@ -74,6 +76,9 @@ function App() {
   const [pontos, setPontos] = useState(0);
   const [recursos, setRecursos] = useState(RECURSOS);
 
+  const [mao, setMao] = useState(MAO);
+  const [descarte, setDescarte] = useState(DESCARTE);
+
   function aumentaPonto() {
     setPontos(pontos + 1);
   }
@@ -112,7 +117,17 @@ function App() {
       <button onClick={diminuiAcao}>Diminui Ação</button>
       <ListaDeRecursos recursos={recursos} />
       <MaoDeCartas>
-        {MAO.map((item) => (
+        {mao.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {
+              onCartaClick(item);
+            }}
+          />
+        ))}
+      </MaoDeCartas><MaoDeCartas>
+        {descarte.map((item) => (
           <Carta
             key={item.id}
             carta={item}
