@@ -28,7 +28,6 @@ export const MAO_INICIAL: Array<CartaType> = [
     custo: 0,
     ganho: [{ nome: "madeira", quantidade: 1 }],
   },
-  /*
   {
     id: "a1",
     titulo: "Pegar água",
@@ -42,7 +41,7 @@ export const MAO_INICIAL: Array<CartaType> = [
     texto: "",
     custo: 2,
     ganho: [{ nome: "amora", quantidade: 1 }],
-  },*/
+  },
 ];
 
 export const BARALHO_INICIAL: Array<CartaType> = [
@@ -52,7 +51,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     texto: "",
     custo: 1,
     ganho: [{ nome: "pedra", quantidade: 1 }],
-  },/*
+  },
   {
     id: "a2",
     titulo: "Beber água",
@@ -114,5 +113,5 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     texto: "",
     custo: 0,
     ganho: [{ nome: "madeira", quantidade: 2 }],
-  },*/
+  },
 ];

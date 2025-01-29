@@ -60,7 +60,7 @@ function App() {
           if(newDescarte.length === 0){
             break;
           }
-          newBaralho.push(...newDescarte.splice(0));
+          newBaralho.push(...shuffleDeck(newDescarte.splice(0)));
         }
       }
       setBaralho(newBaralho);
@@ -110,6 +110,14 @@ function App() {
       </MaoDeCartas>
     </>
   );
+}
+
+function shuffleDeck(array:Array<CartaType>) {
+  for (let i = array.length - 1; i >= 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
 
 export default App;
