@@ -3,7 +3,7 @@ import "./App.css";
 import Carta from "./Carta";
 import ListaDeRecursos from "./ListaDeRecursos";
 import MaoDeCartas from "./MaoDeCartas";
-import {CartaType, DESCARTE_INICIAL, MAO_INICIAL, RECURSOS_INICIAL} from "./data/cartas.ts";
+import {BARALHO_INICIAL, CartaType, DESCARTE_INICIAL, MAO_INICIAL, RECURSOS_INICIAL} from "./data/cartas.ts";
 
 
 
@@ -13,6 +13,7 @@ function App() {
 
   const [mao, setMao] = useState(MAO_INICIAL);
   const [descarte, setDescarte] = useState(DESCARTE_INICIAL);
+  const [baralho, setBaralho] = useState(BARALHO_INICIAL);
 
   function aumentaPonto() {
     setPontos(pontos + 1);
@@ -59,6 +60,7 @@ function App() {
       <button onClick={aumentaPonto}>Aumenta Ponto</button>
       <button onClick={diminuiAcao}>Diminui Ação</button>
       <ListaDeRecursos recursos={recursos} />
+      <h2>Mão</h2>
       <MaoDeCartas>
         {mao.map((item) => (
           <Carta
@@ -69,8 +71,20 @@ function App() {
             }}
           />
         ))}
-      </MaoDeCartas><MaoDeCartas>
+      </MaoDeCartas>
+      <h2>Descarte</h2>
+      <MaoDeCartas>
         {descarte.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {}}
+          />
+        ))}
+      </MaoDeCartas>
+      <h2>Baralho</h2>
+      <MaoDeCartas>
+        {baralho.map((item) => (
           <Carta
             key={item.id}
             carta={item}
