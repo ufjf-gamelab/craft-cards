@@ -3,16 +3,16 @@ import "./App.css";
 import Carta from "./Carta";
 import ListaDeRecursos from "./ListaDeRecursos";
 import MaoDeCartas from "./MaoDeCartas";
-import {CartaType, DESCARTE, MAO, RECURSOS} from "./data/cartas.ts";
+import {CartaType, DESCARTE_INICIAL, MAO_INICIAL, RECURSOS_INICIAL} from "./data/cartas.ts";
 
 
 
 function App() {
   const [pontos, setPontos] = useState(0);
-  const [recursos, setRecursos] = useState(RECURSOS);
+  const [recursos, setRecursos] = useState(RECURSOS_INICIAL);
 
-  const [mao, setMao] = useState(MAO);
-  const [descarte, setDescarte] = useState(DESCARTE);
+  const [mao, setMao] = useState(MAO_INICIAL);
+  const [descarte, setDescarte] = useState(DESCARTE_INICIAL);
 
   function aumentaPonto() {
     setPontos(pontos + 1);
