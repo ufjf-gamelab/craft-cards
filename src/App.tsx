@@ -50,6 +50,22 @@ function App() {
 
     newDescarte.push(...newMao.splice(index,1));
 
+    if(newMao.length === 0){
+      const newBaralho = structuredClone(baralho);
+      while(newMao.length < 3){
+        if(newBaralho.length > 0){
+          newMao.push(newBaralho.pop()!);
+        }
+        else{
+          if(newDescarte.length === 0){
+            break;
+          }
+          newBaralho.push(...newDescarte.splice(0));
+        }
+      }
+      setBaralho(newBaralho);
+    }
+    
     setMao(newMao);
     setDescarte(newDescarte);
   }
