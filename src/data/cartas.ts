@@ -1,3 +1,11 @@
+export type GameType = {
+  pontos: number; 
+  recursos: Array<RecursoType>;
+  mao: Array<CartaType>;
+  descarte: Array<CartaType>;
+  baralho: Array<CartaType>;
+}
+
 export type CartaType = {
   id: string;
   titulo: string;

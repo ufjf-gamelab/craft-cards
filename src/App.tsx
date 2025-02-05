@@ -1,38 +1,23 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import "./App.css";
 import Carta from "./Carta";
 import ListaDeRecursos from "./ListaDeRecursos";
 import MaoDeCartas from "./MaoDeCartas";
-import {BARALHO_INICIAL, CartaType, DESCARTE_INICIAL, GAME_INITIAL, MAO_INICIAL, RECURSOS_INICIAL} from "./data/cartas.ts";
+import {CartaType,GAME_INITIAL} from "./data/cartas.ts";
+import { GameActions, gameReducer } from "./Game.ts";
 
 
 
 function App() {
-  /*
-  const [pontos, setPontos] = useState(0);
-  const [recursos, setRecursos] = useState(RECURSOS_INICIAL);
 
-  const [mao, setMao] = useState(MAO_INICIAL);
-  const [descarte, setDescarte] = useState(DESCARTE_INICIAL);
-  const [baralho, setBaralho] = useState(BARALHO_INICIAL);*/
-
-  const [game,setGame] = useState(GAME_INITIAL);
+  const [game,dispatch] = useReducer(gameReducer, GAME_INITIAL);
 
   function aumentaPonto() {
-    setGame({...game, pontos: game.pontos + 1});
+    dispatch({type: GameActions.AUMENTA_PONTO});
   }
 
   function diminuiAcao() {
-    const newGame = structuredClone(game);
-    newGame.recursos = newGame.recursos.map(r=>{
-      if(r.nome === "ação"){
-        return {...r, quantidade: r.quantidade -1};
-      }
-      else{
-        return r;
-      }
-    });
-    setGame(newGame);
+    dispatch({type: GameActions.DIMINUI_ACAO})
   }
 
   function onCartaClick(carta: CartaType) {
@@ -70,7 +55,7 @@ function App() {
         }
       }
     }
-    setGame(newGame);
+    //setGame(newGame);
   }
 
   return (
