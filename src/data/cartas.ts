@@ -115,3 +115,11 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     ganho: [{ nome: "madeira", quantidade: 2 }],
   },
 ];
+
+export const GAME_INITIAL = {
+  pontos: 0, 
+  recursos: RECURSOS_INICIAL,
+  mao: MAO_INICIAL,
+  descarte: DESCARTE_INICIAL,
+  baralho: BARALHO_INICIAL
+};
