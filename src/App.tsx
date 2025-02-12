@@ -28,6 +28,10 @@ function App() {
     dispatch({type: GameActions.PASSAR_TURNO});
   }
 
+  function onCompraCartaClick(carta: CartaType) {
+    dispatch({type: GameActions.JOGAR_CARTA, carta});
+  }
+
   return (
     <>
       <div>pontos: {game.pontos}</div>
@@ -35,6 +39,18 @@ function App() {
       <button onClick={diminuiAcao}>Diminui Ação</button>
       <button onClick={passarTurno}>Passar Turno</button>
       <ListaDeRecursos recursos={game.recursos} />
+      <h2>Oferta</h2>
+      <MaoDeCartas>
+        {game.oferta.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {
+              onCompraCartaClick(item);
+            }}
+          />
+        ))}
+      </MaoDeCartas>
       <h2>Mão</h2>
       <MaoDeCartas>
         {game.mao.map((item) => (

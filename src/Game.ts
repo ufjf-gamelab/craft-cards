@@ -5,6 +5,12 @@ export enum GameActions {
   DIMINUI_ACAO = "diminui ação",
   JOGAR_CARTA = "jogar carta",
   PASSAR_TURNO = 'passar turno',
+  COMPRAR_CARTA = 'comprar carta',
+}
+
+type ComprarCartaActionType = {
+  type: GameActions.COMPRAR_CARTA;
+  carta: CartaType;
 }
 
 type JogarCartaActionType = {
@@ -24,7 +30,7 @@ type PassarTurnoActionType = {
   type: GameActions.PASSAR_TURNO;
 }
 
-type GameActionType = AumentaPontoActionType | DiminuiAcaoActionType | JogarCartaActionType | PassarTurnoActionType;
+type GameActionType = AumentaPontoActionType | DiminuiAcaoActionType | JogarCartaActionType | PassarTurnoActionType | ComprarCartaActionType;
 
 export function gameReducer(game: GameType, action: GameActionType): GameType {
   switch (action.type) {
@@ -39,12 +45,54 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
 
     case GameActions.PASSAR_TURNO:
       return passarTurnoAction(game, action);
+  
+    case GameActions.COMPRAR_CARTA:
+      return comprarCartaAction(game, action);
 
     default:
       break;
   }
 
   return game;
+}
+
+function comprarCartaAction(game:GameType, action:ComprarCartaActionType){
+  console.log("carta clicada", action.carta);
+    const carta = action.carta;
+    const newGame = structuredClone(game);
+
+    carta.ganho.forEach((ganho) => {
+      const recurso = newGame.recursos.find((r) => r.nome === ganho.nome);
+      if (recurso) {
+        recurso.quantidade += ganho.quantidade;
+      } else {
+        newGame.recursos.push(structuredClone(ganho));
+      }
+    });
+    if (newGame.recursos.some((r) => r.quantidade < 0)) {
+      console.log("Não pode jogar essa carta");
+      return game;
+    }
+
+    const index = newGame.mao.findIndex(c=>c.id === carta.id);
+
+    newGame.descarte.push(...newGame.mao.splice(index,1));
+
+    if(newGame.mao.length === 0){
+      while(newGame.mao.length < 3){
+        if(newGame.baralho.length > 0){
+          newGame.mao.push(newGame.baralho.pop()!);
+        }
+        else{
+          if(newGame.descarte.length === 0){
+            break;
+          }
+          newGame.baralho.push(...shuffleDeck(newGame.descarte.splice(0)));
+        }
+      }
+    }
+
+  return newGame;
 }
 
 function passarTurnoAction(game:GameType, _action:PassarTurnoActionType){
