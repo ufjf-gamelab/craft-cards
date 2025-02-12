@@ -24,11 +24,16 @@ function App() {
     dispatch({type: GameActions.JOGAR_CARTA, carta});
   }
 
+  function passarTurno(){
+    dispatch({type: GameActions.PASSAR_TURNO});
+  }
+
   return (
     <>
       <div>pontos: {game.pontos}</div>
       <button onClick={aumentaPonto}>Aumenta Ponto</button>
       <button onClick={diminuiAcao}>Diminui Ação</button>
+      <button onClick={passarTurno}>Passar Turno</button>
       <ListaDeRecursos recursos={game.recursos} />
       <h2>Mão</h2>
       <MaoDeCartas>

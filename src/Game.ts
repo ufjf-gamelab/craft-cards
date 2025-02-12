@@ -4,6 +4,7 @@ export enum GameActions {
   AUMENTA_PONTO = "aumenta ponto",
   DIMINUI_ACAO = "diminui ação",
   JOGAR_CARTA = "jogar carta",
+  PASSAR_TURNO = 'passar turno',
 }
 
 type JogarCartaActionType = {
@@ -14,10 +15,16 @@ type JogarCartaActionType = {
 type AumentaPontoActionType = {
   type: GameActions.AUMENTA_PONTO;
 }
+
 type DiminuiAcaoActionType = {
   type: GameActions.DIMINUI_ACAO;
 }
-type GameActionType = AumentaPontoActionType | DiminuiAcaoActionType | JogarCartaActionType;
+
+type PassarTurnoActionType = {
+  type: GameActions.PASSAR_TURNO;
+}
+
+type GameActionType = AumentaPontoActionType | DiminuiAcaoActionType | JogarCartaActionType | PassarTurnoActionType;
 
 export function gameReducer(game: GameType, action: GameActionType): GameType {
   switch (action.type) {
@@ -30,11 +37,33 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
     case GameActions.JOGAR_CARTA:
       return jogarCartaAction(game, action);
 
+    case GameActions.PASSAR_TURNO:
+      return passarTurnoAction(game, action);
+
     default:
       break;
   }
 
   return game;
+}
+
+function passarTurnoAction(game:GameType, _action:PassarTurnoActionType){
+    const newGame = structuredClone(game);
+
+    newGame.descarte.push(...newGame.mao.splice(0));
+
+    while(newGame.mao.length < 3){
+      if(newGame.baralho.length > 0){
+        newGame.mao.push(newGame.baralho.pop()!);
+      }
+      else{
+        if(newGame.descarte.length === 0){
+          break;
+        }
+        newGame.baralho.push(...shuffleDeck(newGame.descarte.splice(0)));
+      }
+    }
+  return newGame;
 }
 
 function aumentaPontoAction(game:GameType, _action:AumentaPontoActionType) {
