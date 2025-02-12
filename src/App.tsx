@@ -17,45 +17,11 @@ function App() {
   }
 
   function diminuiAcao() {
-    dispatch({type: GameActions.DIMINUI_ACAO})
+    dispatch({type: GameActions.DIMINUI_ACAO});
   }
 
   function onCartaClick(carta: CartaType) {
-    console.log("carta clicada", carta);
-
-    const newGame = structuredClone(game);
-
-    carta.ganho.forEach((ganho) => {
-      const recurso = newGame.recursos.find((r) => r.nome === ganho.nome);
-      if (recurso) {
-        recurso.quantidade += ganho.quantidade;
-      } else {
-        newGame.recursos.push(structuredClone(ganho));
-      }
-    });
-    if (newGame.recursos.some((r) => r.quantidade < 0)) {
-      console.log("Não pode jogar essa carta");
-      return;
-    }
-
-    const index = newGame.mao.findIndex(c=>c === carta);
-
-    newGame.descarte.push(...newGame.mao.splice(index,1));
-
-    if(newGame.mao.length === 0){
-      while(newGame.mao.length < 3){
-        if(newGame.baralho.length > 0){
-          newGame.mao.push(newGame.baralho.pop()!);
-        }
-        else{
-          if(newGame.descarte.length === 0){
-            break;
-          }
-          newGame.baralho.push(...shuffleDeck(newGame.descarte.splice(0)));
-        }
-      }
-    }
-    //setGame(newGame);
+    dispatch({type: GameActions.JOGAR_CARTA, carta});
   }
 
   return (
@@ -98,14 +64,6 @@ function App() {
       </MaoDeCartas>
     </>
   );
-}
-
-function shuffleDeck(array:Array<CartaType>) {
-  for (let i = array.length - 1; i >= 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
 }
 
 export default App;
