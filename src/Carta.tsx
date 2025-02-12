@@ -1,4 +1,4 @@
-import { CartaType } from "./App";
+import { CartaType } from "./data/cartas.ts";
 import "./Carta.css";
 type CartaProps = { carta: CartaType; onCartaClick: () => void };
 export default function Carta({ carta, onCartaClick }: CartaProps) {
