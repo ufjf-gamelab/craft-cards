@@ -86,6 +86,17 @@ function App() {
           />
         ))}
       </ListaDeCartas>
+      <h2>Em Jogo</h2>
+      <ListaDeCartas>
+        {game.emJogo.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {
+            }}
+          />
+        ))}
+      </ListaDeCartas>
       <h2>Descarte</h2>
       <ListaDeCartas>
         {game.descarte.map((item) => (

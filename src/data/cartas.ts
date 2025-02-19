@@ -2,6 +2,7 @@ export type GameType = {
   pontos: number; 
   recursos: Array<RecursoType>;
   mao: Array<CartaType>;
+  emJogo: Array<CartaType>;
   descarte: Array<CartaType>;
   baralho: Array<CartaType>;
   oferta: Array<CartaType>;
@@ -134,6 +135,7 @@ export const GAME_INITIAL = {
   pontos: 0, 
   recursos: RECURSOS_INICIAL,
   mao: MAO_INICIAL,
+  emJogo: [],
   descarte: DESCARTE_INICIAL,
   baralho: BARALHO_INICIAL,
   oferta: [],

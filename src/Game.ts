@@ -125,6 +125,7 @@ function passarTurnoAction(game: GameType, _action: PassarTurnoActionType) {
   const newGame = structuredClone(game);
 
   newGame.descarte.push(...newGame.mao.splice(0));
+  newGame.descarte.push(...newGame.emJogo.splice(0));
 
   reporMao(newGame);
 
@@ -167,9 +168,7 @@ function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
 
   const index = newGame.mao.findIndex((c) => c.id === carta.id);
 
-  newGame.descarte.push(...newGame.mao.splice(index, 1));
-
-  reporMao(newGame);
+  newGame.emJogo.push(...newGame.mao.splice(index, 1));
 
   return newGame;
 }
@@ -192,3 +191,4 @@ export function setupNewGame(game: GameType){
   reporMao(newGame);
   return newGame;
 }
+
