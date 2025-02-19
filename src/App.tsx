@@ -29,7 +29,7 @@ function App() {
   }
 
   function onCompraCartaClick(carta: CartaType) {
-    dispatch({type: GameActions.JOGAR_CARTA, carta});
+    dispatch({type: GameActions.COMPRAR_CARTA, carta});
   }
 
   return (

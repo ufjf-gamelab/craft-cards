@@ -4,33 +4,38 @@ export enum GameActions {
   AUMENTA_PONTO = "aumenta ponto",
   DIMINUI_ACAO = "diminui ação",
   JOGAR_CARTA = "jogar carta",
-  PASSAR_TURNO = 'passar turno',
-  COMPRAR_CARTA = 'comprar carta',
+  PASSAR_TURNO = "passar turno",
+  COMPRAR_CARTA = "comprar carta",
 }
 
 type ComprarCartaActionType = {
   type: GameActions.COMPRAR_CARTA;
   carta: CartaType;
-}
+};
 
 type JogarCartaActionType = {
   type: GameActions.JOGAR_CARTA;
   carta: CartaType;
-}
+};
 
 type AumentaPontoActionType = {
   type: GameActions.AUMENTA_PONTO;
-}
+};
 
 type DiminuiAcaoActionType = {
   type: GameActions.DIMINUI_ACAO;
-}
+};
 
 type PassarTurnoActionType = {
   type: GameActions.PASSAR_TURNO;
-}
+};
 
-type GameActionType = AumentaPontoActionType | DiminuiAcaoActionType | JogarCartaActionType | PassarTurnoActionType | ComprarCartaActionType;
+type GameActionType =
+  | AumentaPontoActionType
+  | DiminuiAcaoActionType
+  | JogarCartaActionType
+  | PassarTurnoActionType
+  | ComprarCartaActionType;
 
 export function gameReducer(game: GameType, action: GameActionType): GameType {
   switch (action.type) {
@@ -45,7 +50,7 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
 
     case GameActions.PASSAR_TURNO:
       return passarTurnoAction(game, action);
-  
+
     case GameActions.COMPRAR_CARTA:
       return comprarCartaAction(game, action);
 
@@ -56,69 +61,65 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
   return game;
 }
 
-function comprarCartaAction(game:GameType, action:ComprarCartaActionType){
+function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
   console.log("carta clicada", action.carta);
-    const carta = action.carta;
-    const newGame = structuredClone(game);
+  const carta = action.carta;
+  const newGame = structuredClone(game);
 
-    carta.ganho.forEach((ganho) => {
-      const recurso = newGame.recursos.find((r) => r.nome === ganho.nome);
-      if (recurso) {
-        recurso.quantidade += ganho.quantidade;
-      } else {
-        newGame.recursos.push(structuredClone(ganho));
-      }
-    });
-    if (newGame.recursos.some((r) => r.quantidade < 0)) {
+  carta.custo.forEach((custo) => {
+    const recurso = newGame.recursos.find((r) => r.nome === custo.nome);
+    if (recurso) {
+      recurso.quantidade -= custo.quantidade;
+    } else {
+      newGame.recursos.push(structuredClone(custo));
       console.log("Não pode jogar essa carta");
       return game;
     }
+  });
+  if (newGame.recursos.some((r) => r.quantidade < 0)) {
+    console.log("Não pode jogar essa carta");
+    return game;
+  }
 
-    const index = newGame.mao.findIndex(c=>c.id === carta.id);
+  const index = newGame.oferta.findIndex((c) => c.id === carta.id);
 
-    newGame.descarte.push(...newGame.mao.splice(index,1));
+  newGame.descarte.push(...newGame.oferta.splice(index, 1));
 
-    if(newGame.mao.length === 0){
-      while(newGame.mao.length < 3){
-        if(newGame.baralho.length > 0){
-          newGame.mao.push(newGame.baralho.pop()!);
-        }
-        else{
-          if(newGame.descarte.length === 0){
-            break;
-          }
-          newGame.baralho.push(...shuffleDeck(newGame.descarte.splice(0)));
-        }
-      }
-    }
+  reporMao(newGame);
 
   return newGame;
 }
 
-function passarTurnoAction(game:GameType, _action:PassarTurnoActionType){
-    const newGame = structuredClone(game);
-
-    newGame.descarte.push(...newGame.mao.splice(0));
-
-    while(newGame.mao.length < 3){
-      if(newGame.baralho.length > 0){
+function reporMao(newGame: GameType) {
+  if (newGame.mao.length === 0) {
+    while (newGame.mao.length < 3) {
+      if (newGame.baralho.length > 0) {
         newGame.mao.push(newGame.baralho.pop()!);
-      }
-      else{
-        if(newGame.descarte.length === 0){
+      } else {
+        if (newGame.descarte.length === 0) {
           break;
         }
         newGame.baralho.push(...shuffleDeck(newGame.descarte.splice(0)));
       }
     }
+  }
+}
+
+function passarTurnoAction(game: GameType, _action: PassarTurnoActionType) {
+  const newGame = structuredClone(game);
+
+  newGame.descarte.push(...newGame.mao.splice(0));
+
+  reporMao(newGame);
+
   return newGame;
 }
 
-function aumentaPontoAction(game:GameType, _action:AumentaPontoActionType) {
+function aumentaPontoAction(game: GameType, _action: AumentaPontoActionType) {
   return { ...game, pontos: game.pontos + 1 };
 }
 
-function diminuiAcaoAction(game:GameType, _action:DiminuiAcaoActionType) {
+function diminuiAcaoAction(game: GameType, _action: DiminuiAcaoActionType) {
   const newGame = structuredClone(game);
   newGame.recursos = newGame.recursos.map((r) => {
     if (r.nome === "ação") {
@@ -130,49 +131,37 @@ function diminuiAcaoAction(game:GameType, _action:DiminuiAcaoActionType) {
   return newGame;
 }
 
-function jogarCartaAction(game:GameType, action:JogarCartaActionType){
+function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
   console.log("carta clicada", action.carta);
-    const carta = action.carta;
-    const newGame = structuredClone(game);
+  const carta = action.carta;
+  const newGame = structuredClone(game);
 
-    carta.ganho.forEach((ganho) => {
-      const recurso = newGame.recursos.find((r) => r.nome === ganho.nome);
-      if (recurso) {
-        recurso.quantidade += ganho.quantidade;
-      } else {
-        newGame.recursos.push(structuredClone(ganho));
-      }
-    });
-    if (newGame.recursos.some((r) => r.quantidade < 0)) {
-      console.log("Não pode jogar essa carta");
-      return game;
+  carta.ganho.forEach((ganho) => {
+    const recurso = newGame.recursos.find((r) => r.nome === ganho.nome);
+    if (recurso) {
+      recurso.quantidade += ganho.quantidade;
+    } else {
+      newGame.recursos.push(structuredClone(ganho));
     }
+  });
+  if (newGame.recursos.some((r) => r.quantidade < 0)) {
+    console.log("Não pode jogar essa carta");
+    return game;
+  }
 
-    const index = newGame.mao.findIndex(c=>c.id === carta.id);
+  const index = newGame.mao.findIndex((c) => c.id === carta.id);
 
-    newGame.descarte.push(...newGame.mao.splice(index,1));
+  newGame.descarte.push(...newGame.mao.splice(index, 1));
 
-    if(newGame.mao.length === 0){
-      while(newGame.mao.length < 3){
-        if(newGame.baralho.length > 0){
-          newGame.mao.push(newGame.baralho.pop()!);
-        }
-        else{
-          if(newGame.descarte.length === 0){
-            break;
-          }
-          newGame.baralho.push(...shuffleDeck(newGame.descarte.splice(0)));
-        }
-      }
-    }
+  reporMao(newGame);
 
   return newGame;
 }
 
-function shuffleDeck(array:Array<CartaType>) {
+function shuffleDeck(array: Array<CartaType>) {
   for (let i = array.length - 1; i >= 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
 }
