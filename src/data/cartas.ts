@@ -5,6 +5,8 @@ export type GameType = {
   descarte: Array<CartaType>;
   baralho: Array<CartaType>;
   oferta: Array<CartaType>;
+  baralhoDaOferta: Array<CartaType>;
+  descarteDaOferta: Array<CartaType>;
 }
 
 export type CartaType = {
@@ -30,6 +32,10 @@ export const DESCARTE_INICIAL: Array<CartaType> = [];
 
 
 export const MAO_INICIAL: Array<CartaType> = [
+  
+];
+
+export const BARALHO_INICIAL: Array<CartaType> = [
   {
     id: "m1",
     titulo: "Pegar madeira",
@@ -51,9 +57,6 @@ export const MAO_INICIAL: Array<CartaType> = [
     custo: [],
     ganho: [{ nome: "amora", quantidade: 1 }],
   },
-];
-
-export const BARALHO_INICIAL: Array<CartaType> = [
   {
     id: "p1",
     titulo: "Pegar pedra",
@@ -79,7 +82,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     ganho: [{ nome: "madeira", quantidade: 2 }],
   },
 ];
-export const OFERTA_INICIAL: Array<CartaType> = [
+export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
   {
     id: "m3",
     titulo: "Machado de Madeira",
@@ -133,5 +136,7 @@ export const GAME_INITIAL = {
   mao: MAO_INICIAL,
   descarte: DESCARTE_INICIAL,
   baralho: BARALHO_INICIAL,
-  oferta: OFERTA_INICIAL
+  oferta: [],
+  baralhoDaOferta: BARALHO_OFERTA_INICIAL,
+  descarteDaOferta: []
 };

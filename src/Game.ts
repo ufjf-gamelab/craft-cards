@@ -86,21 +86,37 @@ function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
   newGame.descarte.push(...newGame.oferta.splice(index, 1));
 
   reporMao(newGame);
+  reporOferta(newGame);
 
   return newGame;
 }
 
-function reporMao(newGame: GameType) {
-  if (newGame.mao.length === 0) {
-    while (newGame.mao.length < 3) {
-      if (newGame.baralho.length > 0) {
-        newGame.mao.push(newGame.baralho.pop()!);
+function reporMao(game: GameType) {
+  if (game.mao.length === 0) {
+    while (game.mao.length < 3) {
+      if (game.baralho.length > 0) {
+        game.mao.push(game.baralho.pop()!);
       } else {
-        if (newGame.descarte.length === 0) {
+        if (game.descarte.length === 0) {
           break;
         }
-        newGame.baralho.push(...shuffleDeck(newGame.descarte.splice(0)));
+        game.baralho.push(...shuffleDeck(game.descarte.splice(0)));
       }
+    }
+  }
+}
+
+function reporOferta(game: GameType) {
+  while (game.oferta.length < 4) {
+    if (game.baralhoDaOferta.length > 0) {
+      game.oferta.push(game.baralhoDaOferta.pop()!);
+    } else {
+      if (game.descarteDaOferta.length === 0) {
+        break;
+      }
+      game.baralhoDaOferta.push(
+        ...shuffleDeck(game.descarteDaOferta.splice(0))
+      );
     }
   }
 }
@@ -164,4 +180,15 @@ function shuffleDeck(array: Array<CartaType>) {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+
+export function setupNewGame(game: GameType){
+  const newGame = structuredClone(game);
+
+  shuffleDeck(newGame.baralhoDaOferta);
+  shuffleDeck(newGame.baralho);
+
+  reporOferta(newGame);
+  reporMao(newGame);
+  return newGame;
 }

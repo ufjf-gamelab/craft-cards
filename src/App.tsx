@@ -4,13 +4,13 @@ import Carta from "./Carta";
 import ListaDeRecursos from "./ListaDeRecursos";
 import ListaDeCartas from "./ListaDeCartas.tsx";
 import {CartaType,GAME_INITIAL} from "./data/cartas.ts";
-import { GameActions, gameReducer } from "./Game.ts";
+import { GameActions, gameReducer, setupNewGame } from "./Game.ts";
 
 
 
 function App() {
 
-  const [game,dispatch] = useReducer(gameReducer, GAME_INITIAL);
+  const [game,dispatch] = useReducer(gameReducer, GAME_INITIAL, setupNewGame);
 
   function aumentaPonto() {
     dispatch({type: GameActions.AUMENTA_PONTO});
@@ -39,6 +39,17 @@ function App() {
       <button onClick={diminuiAcao}>Diminui Ação</button>
       <button onClick={passarTurno}>Passar Turno</button>
       <ListaDeRecursos recursos={game.recursos} />
+      <h2>Baralho da Oferta</h2>
+      <ListaDeCartas>
+        {game.baralhoDaOferta.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {
+            }}
+          />
+        ))}
+      </ListaDeCartas>
       <h2>Oferta</h2>
       <ListaDeCartas>
         {game.oferta.map((item) => (
@@ -47,6 +58,18 @@ function App() {
             carta={item}
             onCartaClick={() => {
               onCompraCartaClick(item);
+            }}
+          />
+        ))}
+      </ListaDeCartas>
+      <h2>Descarte da Oferta</h2>
+      <ListaDeCartas>
+        {game.descarteDaOferta.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {
+              
             }}
           />
         ))}
