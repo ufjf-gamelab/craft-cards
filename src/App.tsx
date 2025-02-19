@@ -2,7 +2,7 @@ import { useReducer } from "react";
 import "./App.css";
 import Carta from "./Carta";
 import ListaDeRecursos from "./ListaDeRecursos";
-import MaoDeCartas from "./MaoDeCartas";
+import ListaDeCartas from "./ListaDeCartas.tsx";
 import {CartaType,GAME_INITIAL} from "./data/cartas.ts";
 import { GameActions, gameReducer } from "./Game.ts";
 
@@ -40,7 +40,7 @@ function App() {
       <button onClick={passarTurno}>Passar Turno</button>
       <ListaDeRecursos recursos={game.recursos} />
       <h2>Oferta</h2>
-      <MaoDeCartas>
+      <ListaDeCartas>
         {game.oferta.map((item) => (
           <Carta
             key={item.id}
@@ -50,9 +50,9 @@ function App() {
             }}
           />
         ))}
-      </MaoDeCartas>
+      </ListaDeCartas>
       <h2>Mão</h2>
-      <MaoDeCartas>
+      <ListaDeCartas>
         {game.mao.map((item) => (
           <Carta
             key={item.id}
@@ -62,9 +62,9 @@ function App() {
             }}
           />
         ))}
-      </MaoDeCartas>
+      </ListaDeCartas>
       <h2>Descarte</h2>
-      <MaoDeCartas>
+      <ListaDeCartas>
         {game.descarte.map((item) => (
           <Carta
             key={item.id}
@@ -72,9 +72,9 @@ function App() {
             onCartaClick={() => {}}
           />
         ))}
-      </MaoDeCartas>
+      </ListaDeCartas>
       <h2>Baralho</h2>
-      <MaoDeCartas>
+      <ListaDeCartas>
         {game.baralho.map((item) => (
           <Carta
             key={item.id}
@@ -82,7 +82,7 @@ function App() {
             onCartaClick={() => {}}
           />
         ))}
-      </MaoDeCartas>
+      </ListaDeCartas>
     </>
   );
 }
