@@ -1,4 +1,4 @@
-import { CartaType } from "./App";
+import { CartaType } from "./data/cartas.ts";
 import "./Carta.css";
 type CartaProps = { carta: CartaType; onCartaClick: () => void };
 export default function Carta({ carta, onCartaClick }: CartaProps) {
@@ -19,7 +19,12 @@ export default function Carta({ carta, onCartaClick }: CartaProps) {
           </p>
         ))}
       </section>
-      <div className="custo">{carta.custo}</div>
+      <div className="custo">{carta.custo.map((ganho) => (
+          <p key={ganho.nome}>
+            {ganho.quantidade > 0 ? "Ganhe" : "Pague"} {ganho.quantidade}{" "}
+            {ganho.nome}
+          </p>
+        ))}</div>
     </div>
   );
 }

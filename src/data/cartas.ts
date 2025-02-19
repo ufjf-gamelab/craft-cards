@@ -1,8 +1,19 @@
+export type GameType = {
+  pontos: number; 
+  recursos: Array<RecursoType>;
+  mao: Array<CartaType>;
+  descarte: Array<CartaType>;
+  baralho: Array<CartaType>;
+  oferta: Array<CartaType>;
+  baralhoDaOferta: Array<CartaType>;
+  descarteDaOferta: Array<CartaType>;
+}
+
 export type CartaType = {
   id: string;
   titulo: string;
   texto: string;
-  custo: number;
+  custo: Array<RecursoType>;
   ganho: Array<RecursoType>;
 };
 
@@ -21,42 +32,43 @@ export const DESCARTE_INICIAL: Array<CartaType> = [];
 
 
 export const MAO_INICIAL: Array<CartaType> = [
+  
+];
+
+export const BARALHO_INICIAL: Array<CartaType> = [
   {
     id: "m1",
     titulo: "Pegar madeira",
     texto: "",
-    custo: 0,
+    custo: [],
     ganho: [{ nome: "madeira", quantidade: 1 }],
   },
   {
     id: "a1",
     titulo: "Pegar água",
     texto: "",
-    custo: 0,
+    custo: [],
     ganho: [{ nome: "água", quantidade: 1 }],
   },
   {
     id: "b1",
     titulo: "Pegar amora",
     texto: "",
-    custo: 2,
+    custo: [],
     ganho: [{ nome: "amora", quantidade: 1 }],
   },
-];
-
-export const BARALHO_INICIAL: Array<CartaType> = [
   {
     id: "p1",
     titulo: "Pegar pedra",
     texto: "",
-    custo: 1,
+    custo: [],
     ganho: [{ nome: "pedra", quantidade: 1 }],
   },
   {
     id: "a2",
     titulo: "Beber água",
     texto: "",
-    custo: 0,
+    custo: [],
     ganho: [
       { nome: "água", quantidade: -1 },
       { nome: "ação", quantidade: 1 },
@@ -66,28 +78,30 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     id: "m2",
     titulo: "Pegar madeira",
     texto: "",
-    custo: 0,
+    custo: [],
     ganho: [{ nome: "madeira", quantidade: 2 }],
   },
+];
+export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
   {
     id: "m3",
-    titulo: "Pegar madeira",
+    titulo: "Machado de Madeira",
     texto: "",
-    custo: 0,
-    ganho: [{ nome: "madeira", quantidade: 1 }],
+    custo: [{ nome: "madeira", quantidade: -2 }],
+    ganho: [{ nome: "madeira", quantidade: 3 }],
   },
   {
     id: "a3",
     titulo: "Pegar água",
     texto: "",
-    custo: 0,
+    custo: [],
     ganho: [{ nome: "água", quantidade: 1 }],
   },
   {
     id: "a4",
     titulo: "Beber água",
     texto: "",
-    custo: 0,
+    custo: [],
     ganho: [
       { nome: "água", quantidade: -1 },
       { nome: "ação", quantidade: 1 },
@@ -97,21 +111,32 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     id: "p2",
     titulo: "Pegar pedra",
     texto: "",
-    custo: 1,
+    custo: [],
     ganho: [{ nome: "pedra", quantidade: 1 }],
   },
   {
     id: "b2",
     titulo: "Pegar amora",
     texto: "",
-    custo: 2,
+    custo: [],
     ganho: [{ nome: "amora", quantidade: 1 }],
   },
   {
     id: "m4",
     titulo: "Pegar madeira",
     texto: "",
-    custo: 0,
+    custo: [],
     ganho: [{ nome: "madeira", quantidade: 2 }],
   },
 ];
+
+export const GAME_INITIAL = {
+  pontos: 0, 
+  recursos: RECURSOS_INICIAL,
+  mao: MAO_INICIAL,
+  descarte: DESCARTE_INICIAL,
+  baralho: BARALHO_INICIAL,
+  oferta: [],
+  baralhoDaOferta: BARALHO_OFERTA_INICIAL,
+  descarteDaOferta: []
+};

@@ -1,84 +1,82 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import "./App.css";
 import Carta from "./Carta";
 import ListaDeRecursos from "./ListaDeRecursos";
-import MaoDeCartas from "./MaoDeCartas";
-import {BARALHO_INICIAL, CartaType, DESCARTE_INICIAL, MAO_INICIAL, RECURSOS_INICIAL} from "./data/cartas.ts";
+import ListaDeCartas from "./ListaDeCartas.tsx";
+import {CartaType,GAME_INITIAL} from "./data/cartas.ts";
+import { GameActions, gameReducer, setupNewGame } from "./Game.ts";
 
 
 
 function App() {
-  const [pontos, setPontos] = useState(0);
-  const [recursos, setRecursos] = useState(RECURSOS_INICIAL);
 
-  const [mao, setMao] = useState(MAO_INICIAL);
-  const [descarte, setDescarte] = useState(DESCARTE_INICIAL);
-  const [baralho, setBaralho] = useState(BARALHO_INICIAL);
+  const [game,dispatch] = useReducer(gameReducer, GAME_INITIAL, setupNewGame);
 
   function aumentaPonto() {
-    setPontos(pontos + 1);
+    dispatch({type: GameActions.AUMENTA_PONTO});
   }
 
   function diminuiAcao() {
-    const newRecursos = structuredClone(recursos);
-    newRecursos[0].quantidade = newRecursos[0].quantidade - 1;
-    setRecursos(newRecursos);
+    dispatch({type: GameActions.DIMINUI_ACAO});
   }
 
   function onCartaClick(carta: CartaType) {
-    console.log("carta clicada", carta);
+    dispatch({type: GameActions.JOGAR_CARTA, carta});
+  }
 
-    const newRecursos = structuredClone(recursos);
+  function passarTurno(){
+    dispatch({type: GameActions.PASSAR_TURNO});
+  }
 
-    carta.ganho.forEach((ganho) => {
-      const recurso = newRecursos.find((r) => r.nome === ganho.nome);
-      if (recurso) {
-        recurso.quantidade += ganho.quantidade;
-      } else {
-        newRecursos.push(structuredClone(ganho));
-      }
-    });
-    if (newRecursos.some((r) => r.quantidade < 0)) {
-      console.log("Não pode jogar essa carta");
-      return;
-    }
-
-    setRecursos(newRecursos);
-    const index = mao.findIndex(c=>c === carta);
-    const newMao = structuredClone(mao);
-    const newDescarte = structuredClone(descarte);
-
-    newDescarte.push(...newMao.splice(index,1));
-
-    if(newMao.length === 0){
-      const newBaralho = structuredClone(baralho);
-      while(newMao.length < 3){
-        if(newBaralho.length > 0){
-          newMao.push(newBaralho.pop()!);
-        }
-        else{
-          if(newDescarte.length === 0){
-            break;
-          }
-          newBaralho.push(...shuffleDeck(newDescarte.splice(0)));
-        }
-      }
-      setBaralho(newBaralho);
-    }
-    
-    setMao(newMao);
-    setDescarte(newDescarte);
+  function onCompraCartaClick(carta: CartaType) {
+    dispatch({type: GameActions.COMPRAR_CARTA, carta});
   }
 
   return (
     <>
-      <div>pontos: {pontos}</div>
+      <div>pontos: {game.pontos}</div>
       <button onClick={aumentaPonto}>Aumenta Ponto</button>
       <button onClick={diminuiAcao}>Diminui Ação</button>
-      <ListaDeRecursos recursos={recursos} />
+      <button onClick={passarTurno}>Passar Turno</button>
+      <ListaDeRecursos recursos={game.recursos} />
+      <h2>Baralho da Oferta</h2>
+      <ListaDeCartas>
+        {game.baralhoDaOferta.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {
+            }}
+          />
+        ))}
+      </ListaDeCartas>
+      <h2>Oferta</h2>
+      <ListaDeCartas>
+        {game.oferta.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {
+              onCompraCartaClick(item);
+            }}
+          />
+        ))}
+      </ListaDeCartas>
+      <h2>Descarte da Oferta</h2>
+      <ListaDeCartas>
+        {game.descarteDaOferta.map((item) => (
+          <Carta
+            key={item.id}
+            carta={item}
+            onCartaClick={() => {
+              
+            }}
+          />
+        ))}
+      </ListaDeCartas>
       <h2>Mão</h2>
-      <MaoDeCartas>
-        {mao.map((item) => (
+      <ListaDeCartas>
+        {game.mao.map((item) => (
           <Carta
             key={item.id}
             carta={item}
@@ -87,37 +85,29 @@ function App() {
             }}
           />
         ))}
-      </MaoDeCartas>
+      </ListaDeCartas>
       <h2>Descarte</h2>
-      <MaoDeCartas>
-        {descarte.map((item) => (
+      <ListaDeCartas>
+        {game.descarte.map((item) => (
           <Carta
             key={item.id}
             carta={item}
             onCartaClick={() => {}}
           />
         ))}
-      </MaoDeCartas>
+      </ListaDeCartas>
       <h2>Baralho</h2>
-      <MaoDeCartas>
-        {baralho.map((item) => (
+      <ListaDeCartas>
+        {game.baralho.map((item) => (
           <Carta
             key={item.id}
             carta={item}
             onCartaClick={() => {}}
           />
         ))}
-      </MaoDeCartas>
+      </ListaDeCartas>
     </>
   );
-}
-
-function shuffleDeck(array:Array<CartaType>) {
-  for (let i = array.length - 1; i >= 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
 }
 
 export default App;

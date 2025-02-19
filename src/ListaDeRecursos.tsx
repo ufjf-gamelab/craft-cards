@@ -1,4 +1,4 @@
-import { RecursoType } from "./App";
+import { RecursoType } from "./data/cartas.ts";
 import "./ListaDeRecursos.css";
 
 type RecursosProps = { recursos: Array<RecursoType> };
