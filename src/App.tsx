@@ -34,6 +34,10 @@ function App() {
     dispatch({type: GameActions.COMPRAR_CARTA, carta});
   }
 
+  function onDescarteClick(){
+    console.log('teste');
+  }
+
   return (
     <>
       <div>pontos: {game.pontos}</div>
@@ -45,7 +49,7 @@ function App() {
       <h2>Baralho da Oferta</h2>
       <div className="baralho-container">
         <Baralho cartas={game.baralhoDaOferta}/>
-        <Descarte cartas={game.descarteDaOferta}/>
+        <Descarte onDescarteClick={onDescarteClick} cartas={game.descarteDaOferta}/>
       </div>
 
       <h2>Oferta</h2>
@@ -98,7 +102,7 @@ function App() {
       <h2>Baralho</h2>
       <div className="baralho-container">
         <Baralho cartas={game.baralho}/>
-        <Descarte cartas={game.descarte}/>
+        <Descarte onDescarteClick={onDescarteClick} cartas={game.descarte}/>
       </div>
     </>
   );
