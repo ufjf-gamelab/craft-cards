@@ -6,6 +6,7 @@ import ListaDeCartas from "./ListaDeCartas.tsx";
 import {CartaType,GAME_INITIAL} from "./data/cartas.ts";
 import { GameActions, gameReducer, setupNewGame } from "./Game.ts";
 import Baralho from "./Baralho.tsx";
+import Descarte from "./Descarte.tsx";
 
 
 
@@ -40,8 +41,13 @@ function App() {
       <button onClick={diminuiAcao}>Diminui Ação</button>
       <button onClick={passarTurno}>Passar Turno</button>
       <ListaDeRecursos recursos={game.recursos} />
+      
       <h2>Baralho da Oferta</h2>
-      <Baralho cartas={game.baralhoDaOferta}/>
+      <div className="baralho-container">
+        <Baralho cartas={game.baralhoDaOferta}/>
+        <Descarte cartas={game.descarteDaOferta}/>
+      </div>
+
       <h2>Oferta</h2>
       <ListaDeCartas>
         {game.oferta.map((item) => (
@@ -89,26 +95,11 @@ function App() {
           />
         ))}
       </ListaDeCartas>
-      <h2>Descarte</h2>
-      <ListaDeCartas>
-        {game.descarte.map((item) => (
-          <Carta
-            key={item.id}
-            carta={item}
-            onCartaClick={() => {}}
-          />
-        ))}
-      </ListaDeCartas>
       <h2>Baralho</h2>
-      <ListaDeCartas>
-        {game.baralho.map((item) => (
-          <Carta
-            key={item.id}
-            carta={item}
-            onCartaClick={() => {}}
-          />
-        ))}
-      </ListaDeCartas>
+      <div className="baralho-container">
+        <Baralho cartas={game.baralho}/>
+        <Descarte cartas={game.descarte}/>
+      </div>
     </>
   );
 }
