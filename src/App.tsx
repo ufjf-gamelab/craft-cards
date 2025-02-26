@@ -5,6 +5,7 @@ import ListaDeRecursos from "./ListaDeRecursos";
 import ListaDeCartas from "./ListaDeCartas.tsx";
 import {CartaType,GAME_INITIAL} from "./data/cartas.ts";
 import { GameActions, gameReducer, setupNewGame } from "./Game.ts";
+import Baralho from "./Baralho.tsx";
 
 
 
@@ -40,16 +41,7 @@ function App() {
       <button onClick={passarTurno}>Passar Turno</button>
       <ListaDeRecursos recursos={game.recursos} />
       <h2>Baralho da Oferta</h2>
-      <ListaDeCartas>
-        {game.baralhoDaOferta.map((item) => (
-          <Carta
-            key={item.id}
-            carta={item}
-            onCartaClick={() => {
-            }}
-          />
-        ))}
-      </ListaDeCartas>
+      <Baralho cartas={game.baralhoDaOferta}/>
       <h2>Oferta</h2>
       <ListaDeCartas>
         {game.oferta.map((item) => (
