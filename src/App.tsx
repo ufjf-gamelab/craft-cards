@@ -1,21 +1,23 @@
-import { useReducer } from "react";
 import "./App.css";
 import Carta from "./Carta";
 import ListaDeRecursos from "./ListaDeRecursos";
 import ListaDeCartas from "./ListaDeCartas.tsx";
-import { CartaType, GAME_INITIAL } from "./data/cartas.ts";
+import { CartaType } from "./data/cartas.ts";
 import {
   GameActions,
   GameDispatchContext,
-  gameReducer,
-  GameReducerContext,
-  setupNewGame,
+  GameReducerContext
 } from "./Game.ts";
 import Baralho from "./Baralho.tsx";
 import Descarte from "./Descarte.tsx";
+import { useContext } from "react";
 
 function App() {
-  const [game, dispatch] = useReducer(gameReducer, GAME_INITIAL, setupNewGame);
+  const game = useContext(GameReducerContext)!;
+  const dispatch = useContext(GameDispatchContext)!;
+  if(game === null || dispatch === null){
+    return <p>Carregando...</p>
+  }
 
   function aumentaPonto() {
     dispatch({ type: GameActions.AUMENTA_PONTO });
@@ -42,8 +44,7 @@ function App() {
   }
 
   return (
-    <GameReducerContext.Provider value={game}>
-      <GameDispatchContext.Provider value={dispatch}>
+    <>
         <div>pontos: {game.pontos}</div>
         <button onClick={aumentaPonto}>Aumenta Ponto</button>
         <button onClick={diminuiAcao}>Diminui Ação</button>
@@ -100,8 +101,7 @@ function App() {
           <Baralho cartas={game.baralho} />
           <Descarte onDescarteClick={onDescarteClick} cartas={game.descarte} />
         </div>
-      </GameDispatchContext.Provider>
-    </GameReducerContext.Provider>
+      </>
   );
 }
 
