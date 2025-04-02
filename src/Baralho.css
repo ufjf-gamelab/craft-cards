@@ -1,0 +1,15 @@
+.baralho {
+  display: grid;
+  place-items: center;
+  border: 2px solid light-dark(black, white);
+  padding: 3mm;
+  height: 88mm;
+  width: 63mm;
+  border-radius: 3mm;
+}
+
+.baralho > h1{
+  margin: 0;
+  padding: 0;
+  font-size: 1.5em;
+}
