@@ -11,6 +11,7 @@ import {
 import Baralho from "./Baralho.tsx";
 import Descarte from "./Descarte.tsx";
 import { useContext } from "react";
+import Oferta from "./Oferta.tsx";
 
 function App() {
   const game = useContext(GameReducerContext)!;
@@ -35,10 +36,6 @@ function App() {
     dispatch({ type: GameActions.PASSAR_TURNO });
   }
 
-  function onCompraCartaClick(carta: CartaType) {
-    dispatch({ type: GameActions.COMPRAR_CARTA, carta });
-  }
-
   function onDescarteClick() {
     console.log("teste");
   }
@@ -50,34 +47,7 @@ function App() {
         <button onClick={diminuiAcao}>Diminui Ação</button>
         <button onClick={passarTurno}>Passar Turno</button>
         <ListaDeRecursos recursos={game.recursos} />
-
-        <h2>Baralho da Oferta</h2>
-        <div className="baralho-container">
-          <Baralho cartas={game.baralhoDaOferta} />
-          <Descarte
-            onDescarteClick={onDescarteClick}
-            cartas={game.descarteDaOferta}
-          />
-        </div>
-
-        <h2>Oferta</h2>
-        <ListaDeCartas>
-          {game.oferta.map((item) => (
-            <Carta
-              key={item.id}
-              carta={item}
-              onCartaClick={() => {
-                onCompraCartaClick(item);
-              }}
-            />
-          ))}
-        </ListaDeCartas>
-        <h2>Descarte da Oferta</h2>
-        <ListaDeCartas>
-          {game.descarteDaOferta.map((item) => (
-            <Carta key={item.id} carta={item} onCartaClick={() => {}} />
-          ))}
-        </ListaDeCartas>
+        <Oferta/>
         <h2>Mão</h2>
         <ListaDeCartas>
           {game.mao.map((item) => (
