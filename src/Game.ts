@@ -1,4 +1,8 @@
+import { createContext, Dispatch } from "react";
 import { CartaType, GameType } from "./data/cartas";
+
+export const GameReducerContext = createContext<GameType|null>(null);
+export const GameDispatchContext = createContext<Dispatch<GameActionType>|null>(null);
 
 export enum GameActions {
   AUMENTA_PONTO = "aumenta ponto",
