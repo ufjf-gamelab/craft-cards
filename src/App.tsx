@@ -5,7 +5,7 @@ import {
   GameDispatchContext,
   GameReducerContext
 } from "./Game.ts";
-import { useContext } from "react";
+import { useContext, useRef } from "react";
 import Oferta from "./Oferta.tsx";
 import Jogador from "./Jogador.tsx";
 
@@ -24,16 +24,18 @@ function App() {
     dispatch({ type: GameActions.DIMINUI_ACAO });
   }
 
+  const passarRef = useRef<HTMLButtonElement>(null);
   function passarTurno() {
     dispatch({ type: GameActions.PASSAR_TURNO });
+    console.log(passarRef.current?.getBoundingClientRect());
   }
-
+  
   return (
     <>
         <div>pontos: {game.pontos}</div>
         <button onClick={aumentaPonto}>Aumenta Ponto</button>
         <button onClick={diminuiAcao}>Diminui Ação</button>
-        <button onClick={passarTurno}>Passar Turno</button>
+        <button onClick={passarTurno} ref = {passarRef}>Passar Turno</button>
         <ListaDeRecursos recursos={game.recursos} />
         <Oferta/>
         <Jogador/>
