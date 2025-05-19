@@ -21,6 +21,7 @@ export default function Oferta() {
       <div className="baralho-container">
         <Baralho cartas={game.baralhoDaOferta} />
         <Descarte
+          onCardRender={()=>{}}
           onDescarteClick={onDescarteClick}
           cartas={game.descarteDaOferta}
         />
@@ -30,6 +31,7 @@ export default function Oferta() {
       <ListaDeCartas>
         {game.oferta.map((item) => (
           <Carta
+          onCardRender={()=>{}}
             key={item.id}
             carta={item}
             onCartaClick={() => {
@@ -41,7 +43,9 @@ export default function Oferta() {
       <h2>Descarte da Oferta</h2>
       <ListaDeCartas>
         {game.descarteDaOferta.map((item) => (
-          <Carta key={item.id} carta={item} onCartaClick={() => {}} />
+          <Carta 
+          onCardRender={()=>{}}
+          key={item.id} carta={item} onCartaClick={() => {}} />
         ))}
       </ListaDeCartas>
     </>
