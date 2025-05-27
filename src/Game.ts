@@ -153,7 +153,6 @@ function diminuiAcaoAction(game: GameType, _action: DiminuiAcaoActionType) {
 }
 
 function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
-  console.log("carta clicada", action.carta);
   const carta = action.carta;
   const newGame = structuredClone(game);
 

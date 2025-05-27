@@ -21,3 +21,10 @@
   color: gold;
   font-weight: 600;
 }
+
+.carta.movida {
+  border-color: red;
+  zoom: 0.6;
+  z-index: 1000;
+  position: absolute;
+}
