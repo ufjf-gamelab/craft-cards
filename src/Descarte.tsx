@@ -6,10 +6,9 @@ import Carta from "./Carta";
 type DescarteProps = {
   cartas: Array<CartaType>;
   onDescarteClick: () => void;
-  onCardRender: (id: string, rect: DOMRect) => void;
 };
 
-export default function Descarte({ cartas, onDescarteClick, onCardRender }: DescarteProps) {
+export default function Descarte({ cartas, onDescarteClick }: DescarteProps) {
   const [aberto, setAberto] = useState(false);
   return (
     <div
@@ -23,9 +22,7 @@ export default function Descarte({ cartas, onDescarteClick, onCardRender }: Desc
       <dialog open={aberto}>
         <ListaDeCartas>
           {cartas.map((item) => (
-            <Carta
-            onCardRender={onCardRender} 
-            key={item.id} carta={item} onCartaClick={() => {}} />
+            <Carta key={item.id} carta={item} onCartaClick={() => {}} />
           ))}
         </ListaDeCartas>
       </dialog>
