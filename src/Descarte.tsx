@@ -12,20 +12,17 @@ export default function Descarte({ cartas, onDescarteClick }: DescarteProps) {
   const [aberto, setAberto] = useState(false);
   return (
     <div
-      className="descarte"
+      className={`descarte ${aberto ? "aberto" : ""}`}
       onClick={() => {
         setAberto(!aberto);
         onDescarteClick();
       }}
     >
-      <h1>{cartas.length} cartas</h1>
-      <dialog open={aberto}>
         <ListaDeCartas>
           {cartas.map((item) => (
             <Carta key={item.id} carta={item} onCartaClick={() => {}} />
           ))}
         </ListaDeCartas>
-      </dialog>
     </div>
   );
 }
