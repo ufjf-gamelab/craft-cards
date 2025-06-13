@@ -1,7 +1,10 @@
 .listaDeCartas {
-  padding: 3mm;
   box-shadow: 1mm 1mm 3mm black;
   border-radius: 3mm;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 150px;
 
 }
 
@@ -13,4 +16,21 @@
 
 .listaDeCartas > .cartas > .carta {
       zoom: 0.6;
+}
+
+.cartas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.carta {
+  transform: scale(0.8);
+  transform-origin: center;
+  transition: transform 0.2s;
+}
+
+.carta:hover {
+  transform: scale(0.85);
 }
