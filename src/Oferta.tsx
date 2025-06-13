@@ -17,33 +17,38 @@ export default function Oferta() {
   }
   return (
     <>
-      <h2>Baralho da Oferta</h2>
-      <div className="baralho-container">
-        <Baralho cartas={game.baralhoDaOferta} />
-        <Descarte
-          onDescarteClick={onDescarteClick}
-          cartas={game.descarteDaOferta}
-        />
-      </div>
-
-      <h2>Oferta</h2>
-      <ListaDeCartas>
-        {game.oferta.map((item) => (
-          <Carta
-            key={item.id}
-            carta={item}
-            onCartaClick={() => {
-              onCompraCartaClick(item);
-            }}
+      <div className="lista-de-cartas-container">
+        <h2>Baralho da Oferta</h2>
+        <div className="baralho-container">
+          <Baralho cartas={game.baralhoDaOferta} />
+          <Descarte
+            onDescarteClick={onDescarteClick}
+            cartas={game.descarteDaOferta}
           />
-        ))}
-      </ListaDeCartas>
-      <h2>Descarte da Oferta</h2>
-      <ListaDeCartas>
-        {game.descarteDaOferta.map((item) => (
-          <Carta key={item.id} carta={item} onCartaClick={() => {}} />
-        ))}
-      </ListaDeCartas>
+        </div>
+      </div>
+      <div className="lista-de-cartas-container">
+        <h2>Oferta</h2>
+        <ListaDeCartas>
+          {game.oferta.map((item) => (
+            <Carta
+              key={item.id}
+              carta={item}
+              onCartaClick={() => {
+                onCompraCartaClick(item);
+              }}
+            />
+          ))}
+        </ListaDeCartas>
+      </div>
+      <div className="lista-de-cartas-container">
+        <h2>Descarte da Oferta</h2>
+        <ListaDeCartas>
+          {game.descarteDaOferta.map((item) => (
+            <Carta key={item.id} carta={item} onCartaClick={() => {}} />
+          ))}
+        </ListaDeCartas>
+      </div>
     </>
   );
 }

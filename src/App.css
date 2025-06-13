@@ -4,6 +4,10 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.5;
+  color: #f0f0f0;
+  background-color: #1a1a2e;
 }
 
 .logo {
@@ -52,3 +56,132 @@
   zoom: 0.6;
   box-shadow: 0.5em 0.5em 0 white;
 }
+
+.game-app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.game-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.game-status {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.status-item {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.recursos {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.recursos div {
+  display: flex;
+  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.3rem 0.8rem;
+  border-radius: 1rem;
+}
+
+.game-controls {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.control-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #4a4a8a;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-button.primary {
+  background: #646cff;
+}
+
+/* Área do Jogo */
+.game-board {
+  display: grid;
+  grid-template-rows: 1fr 1.5fr 1fr;
+  gap: 1rem;
+  height: 100%;
+}
+
+.game-row {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Estilos Específicos para Cada Área */
+.top-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 1rem;
+}
+
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 1rem;
+}
+
+/* Componentes Específicos */
+.baralho-container {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.listaDeCartas {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 150px;
+}
+
+.cartas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.carta {
+  transform: scale(0.8);
+  transform-origin: center;
+  transition: transform 0.2s;
+}
+
+.carta:hover {
+  transform: scale(0.85);
+}
+
+/* Títulos */
+h2, h3 {
+  margin: 0.5rem 0;
+  color: #e2e8f0;
+  font-size: 1.2rem;
+}
+
