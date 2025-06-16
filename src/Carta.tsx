@@ -39,12 +39,12 @@ export default function Carta({
     <AnimatePresence>
       <motion.div
         layoutId={carta.id}
-        initial={{ scale: 1.2 }}
+        initial={{ scale: 1.0 }}
         animate={{ scale: 1.0 }}
-        exit={{ scale: 1.2 }}
+        exit={{ scale: 1.0 }}
         transition={{
           duration: 1.0,
-          scale: { type: "tween", visualDuration: 5, bounce: 0.5 },
+          scale: { type: "inertia", visualDuration: 5},
         }}
         className={`carta ${facedown && "facedown"}`}
         onClick={() => {
