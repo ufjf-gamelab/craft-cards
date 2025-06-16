@@ -13,7 +13,7 @@ export default function Carta({ carta, onCartaClick }: CartaProps) {
         exit={{ scale: 1.2 }}
         transition={{
           duration: 1.0,
-          scale: { type: "spring", visualDuration: 0.4, bounce: 0.5 },
+          scale: { type: "tween", visualDuration: 5, bounce: 0.5 },
         }}
         className="carta"
         onClick={() => {

@@ -4,9 +4,11 @@
 
   border: 2px solid light-dark(black, white);
   padding: 3mm;
-  height: 88mm;
-  width: 63mm;
+  width: 10em;
   border-radius: 3mm;
+
+  aspect-ratio: 63 / 88;
+  overflow: visible;
 }
 
 .carta > h1{
