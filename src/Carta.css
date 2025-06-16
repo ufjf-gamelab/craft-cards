@@ -9,6 +9,8 @@
 
   aspect-ratio: 63 / 88;
   overflow: visible;
+  background-color: black;
+  color: white;
 }
 
 .carta > h1{
@@ -22,4 +24,9 @@
 .carta > .custo{
   color: gold;
   font-weight: 600;
+}
+
+.carta.facedown, .facedown .carta{
+  background-color: white;
+  color: black;
 }

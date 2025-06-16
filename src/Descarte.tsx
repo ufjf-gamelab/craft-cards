@@ -18,7 +18,7 @@ export default function Descarte({ cartas, onDescarteClick }: DescarteProps) {
         onDescarteClick();
       }}
     >
-        <ListaDeCartas>
+        <ListaDeCartas closed>
           {cartas.map((item) => (
             <Carta key={item.id} carta={item} onCartaClick={() => {}} />
           ))}

@@ -9,9 +9,9 @@ type BaralhoProps = {
 export default function Baralho({ cartas }: BaralhoProps) {
   return (
     <div className="baralho">
-      <ListaDeCartas fechado>
+      <ListaDeCartas closed facedown>
         {cartas.map((item) => (
-          <Carta key={item.id} carta={item} onCartaClick={() => {}} />
+          <Carta key={item.id} carta={item} onCartaClick={() => {}} facedown />
         ))}
       </ListaDeCartas>
     </div>
