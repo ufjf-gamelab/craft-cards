@@ -4,9 +4,13 @@
 
   border: 2px solid light-dark(black, white);
   padding: 3mm;
-  height: 88mm;
-  width: 63mm;
+  width: 10em;
   border-radius: 3mm;
+
+  aspect-ratio: 63 / 88;
+  overflow: visible;
+  background-color: black;
+  color: white;
 }
 
 .carta > h1{
@@ -20,4 +24,9 @@
 .carta > .custo{
   color: gold;
   font-weight: 600;
+}
+
+.carta.facedown, .facedown .carta{
+  background-color: white;
+  color: black;
 }

@@ -17,3 +17,9 @@
 .descarte .carta:hover {
   zoom: 1.2;
 }
+
+.aberto .listaDeCartas .cartas{
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}

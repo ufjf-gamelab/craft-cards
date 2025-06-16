@@ -41,6 +41,14 @@ type GameActionType =
   | PassarTurnoActionType
   | ComprarCartaActionType;
 
+//TODO: função para armazenar historico de ações
+export function logAction(action: GameActionType, state: GameType) {
+  console.log(`Ação: ${action.type}`, action);
+  console.log("Estado atual:", state);
+  // Aqui você pode adicionar lógica para armazenar o histórico de ações
+  // por exemplo, em um array ou enviando para um servidor
+}
+
 export function gameReducer(game: GameType, action: GameActionType): GameType {
   switch (action.type) {
     case GameActions.AUMENTA_PONTO:
