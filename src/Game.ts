@@ -1,8 +1,9 @@
 import { createContext, Dispatch } from "react";
-import { CartaType, GameType } from "./data/cartas";
+import { CartaType, GameHistoryType, GameType } from "./data/cartas";
 
-export const GameReducerContext = createContext<GameType|null>(null);
-export const GameDispatchContext = createContext<Dispatch<GameActionType>|null>(null);
+export const GameReducerContext = createContext<GameType | null>(null);
+export const GameDispatchContext =
+  createContext<Dispatch<GameActionType> | null>(null);
 
 export enum GameActions {
   AUMENTA_PONTO = "aumenta ponto",
@@ -41,12 +42,28 @@ type GameActionType =
   | PassarTurnoActionType
   | ComprarCartaActionType;
 
-//TODO: função para armazenar historico de ações
-export function logAction(action: GameActionType, state: GameType) {
-  console.log(`Ação: ${action.type}`, action);
-  console.log("Estado atual:", state);
-  // Aqui você pode adicionar lógica para armazenar o histórico de ações
-  // por exemplo, em um array ou enviando para um servidor
+export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
+  return (state: GameType, action: GameActionType): GameType => {
+    const estadoAntigo = structuredClone(state); //salva o estado antes de fazer a ação
+    const novoEstado = reducer(state, action);
+    const acao = action.type;
+
+    // Cria registro se o estado mudou
+    if (estadoAntigo !== novoEstado) {
+      const gameHistory: GameHistoryType = {
+        acao: acao,
+        estadoAntigo: estadoAntigo,
+        estadoNovo: novoEstado,
+      };
+
+      // Adiciona o registro ao histórico do jogo
+      return {
+        ...novoEstado,
+        historico: [...(novoEstado.historico || []), gameHistory],
+      };
+    }
+    return novoEstado;
+  };
 }
 
 export function gameReducer(game: GameType, action: GameActionType): GameType {
@@ -193,7 +210,7 @@ function shuffleDeck(array: Array<CartaType>) {
   return array;
 }
 
-export function setupNewGame(game: GameType){
+export function setupNewGame(game: GameType) {
   const newGame = structuredClone(game);
 
   shuffleDeck(newGame.baralhoDaOferta);
@@ -201,6 +218,10 @@ export function setupNewGame(game: GameType){
 
   reporOferta(newGame);
   reporMao(newGame);
-  return newGame;
+
+  return {
+    ...newGame,
+    historico: []
+  };
 }
 

@@ -1,3 +1,11 @@
+import { GameActions } from "../Game";
+
+export type GameHistoryType = {
+  acao: GameActions;
+  estadoAntigo: GameType;
+  estadoNovo: GameType;
+}
+
 export type GameType = {
   pontos: number; 
   recursos: Array<RecursoType>;
@@ -8,6 +16,7 @@ export type GameType = {
   oferta: Array<CartaType>;
   baralhoDaOferta: Array<CartaType>;
   descarteDaOferta: Array<CartaType>;
+  historico?: Array<GameHistoryType>;
 }
 
 export type CartaType = {
