@@ -7,6 +7,7 @@ import {
 } from "./Game.ts";
 import { useContext } from "react";
 import Oferta from "./Oferta.tsx";
+import Historico from "./Historico.tsx";
 import Jogador from "./Jogador.tsx";
 
 function App() {
@@ -50,6 +51,7 @@ function App() {
             <Jogador />
           </div>
         </div>
+        <Historico />
       </div>
     </>
   );
