@@ -2,8 +2,7 @@ import { GameActions } from "../Game";
 
 export type GameHistoryType = {
   acao: GameActions;
-  estadoAntigo: GameType;
-  estadoNovo: GameType;
+  recursos: Array<RecursoType>;
 }
 
 export type GameType = {

@@ -48,12 +48,14 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
     const novoEstado = reducer(state, action);
     const acao = action.type;
 
-    // Cria registro se o estado mudou
-    if (estadoAntigo !== novoEstado) {
+    // Cria registro se os recursos mudaram
+    if (JSON.stringify(estadoAntigo.recursos) !== JSON.stringify(novoEstado.recursos)) {
       const gameHistory: GameHistoryType = {
         acao: acao,
-        estadoAntigo: estadoAntigo,
-        estadoNovo: novoEstado,
+        recursos: novoEstado.recursos.map((recurso) => ({
+          nome: recurso.nome,
+          quantidade: recurso.quantidade,
+        })),
       };
 
       // Adiciona o registro ao histórico do jogo
