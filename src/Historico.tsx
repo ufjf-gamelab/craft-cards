@@ -1,32 +1,100 @@
 import { useContext } from "react";
 import { GameReducerContext } from "./Game";
 import "./Historico.css";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+const RESOURCE_COLORS: Record<string, string> = {
+  ação: "#FF5733",
+  madeira: "#8B4513",
+  água: "#1E90FF",
+  amora: "#9370DB",
+  pedra: "#808080",
+};
 
 export default function Historico() {
   const game = useContext(GameReducerContext);
 
+  // Prepara os dados para o gráfico
+  const chartData = game?.historico?.map((entry, index) => {
+    const dataPoint: any = {
+      name: `${entry.acao} ${index + 1}`,
+      acao: entry.acao,
+    };
+
+    // Adiciona cada recurso como uma propriedade no ponto de dados
+    entry.recursos.forEach((recurso) => {
+      dataPoint[recurso.nome] = recurso.quantidade;
+    });
+
+    return dataPoint;
+  });
+
+  // Obtém todos os tipos de recursos únicos
+  const resourceTypes = Array.from(
+    new Set(
+      game?.historico?.flatMap(entry => 
+        entry.recursos.map(recurso => recurso.nome)
+      ) || []
+    )
+  );
+
   return (
     <div className="historico-container">
-      <h3>Histórico de Ações</h3>
-      <ul className="historico-list">
-        {game?.historico?.map((entry, index) => (
-          <li key={index} className="historico-item">
-            <div className="acao-info">Ação: {entry.acao}</div>
-            {entry.estadoAntigo && (
-              <div className="estado-info">
-                <span className="estado-label">Estado Antes: </span>
-                {JSON.stringify(entry.estadoAntigo)}
-              </div>
-            )}
-            {entry.estadoNovo && (
-              <div className="estado-info">
-                <span className="estado-label">Estado Depois: </span>
-                {JSON.stringify(entry.estadoNovo)}
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+      <h3>Histórico de Recursos</h3>
+      <div className="grafico-container">
+        <ResponsiveContainer>
+          <LineChart
+            data={chartData}
+            margin={{
+              top: 5,
+              right: 30,
+              left: 20,
+              bottom: 5,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="name" 
+              label={{ 
+                value: "Tipos de Ação", 
+                position: "insideBottomRight", 
+                offset: -20 
+              }} 
+            />
+            <YAxis 
+              label={{ 
+                value: "Quantidade", 
+                angle: -90, 
+                position: "insideLeft" 
+              }} 
+            />
+            <Tooltip 
+              formatter={(value, name) => [`${value}`, name]}
+            />
+            <Legend />
+            {resourceTypes.map((tipo) => (
+              <Line
+                key={tipo}
+                type="monotone"
+                dataKey={tipo}
+                stroke={RESOURCE_COLORS[tipo] || "#8884d8"}
+                strokeWidth={2}
+                activeDot={{ r: 6 }}
+                connectNulls
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
