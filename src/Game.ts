@@ -184,6 +184,28 @@ function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
   const carta = action.carta;
   const newGame = structuredClone(game);
 
+  //verificação de recursos para os custos
+  const temRecursos = carta.custo.every((custo) => {
+    const recurso = newGame.recursos.find((r) => r.nome === custo.nome);
+    return recurso ? recurso.quantidade >= custo.quantidade : false;
+  });
+
+  if(!temRecursos) {
+    console.log("Não pode jogar essa carta");
+    return game;
+  }
+
+  //Aplicar custos
+  carta.custo.forEach((custo) => {
+    const recurso = newGame.recursos.find((r) => r.nome === custo.nome);
+    if (recurso) {
+      recurso.quantidade -= custo.quantidade;
+    } else {
+      newGame.recursos.push(structuredClone(custo));
+    }
+  });
+
+  //aplicar ganhos
   carta.ganho.forEach((ganho) => {
     const recurso = newGame.recursos.find((r) => r.nome === ganho.nome);
     if (recurso) {
@@ -192,10 +214,6 @@ function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
       newGame.recursos.push(structuredClone(ganho));
     }
   });
-  if (newGame.recursos.some((r) => r.quantidade < 0)) {
-    console.log("Não pode jogar essa carta");
-    return game;
-  }
 
   const index = newGame.mao.findIndex((c) => c.id === carta.id);
 

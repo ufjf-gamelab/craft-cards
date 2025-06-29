@@ -14,10 +14,14 @@ import {
 
 const RESOURCE_COLORS: Record<string, string> = {
   ação: "#FF5733",
-  madeira: "#8B4513",
+  "madeira bruta": "#8B4513",
   água: "#1E90FF",
   amora: "#9370DB",
-  pedra: "#808080",
+  "pedra bruta": "#808080",
+  tabua: "#D2B48C",
+  "pedra polida": "#B0B0B0",
+  picareta: "#696969",
+  machado: "#C0C0C0",
 };
 
 export default function Historico() {
