@@ -53,7 +53,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     ganho: [{ nome: "água", quantidade: 1 }],
   },
   {
-    id: "b1",
+    id: "pa1",
     titulo: "Pegar amora",
     texto: "",
     custo: [],
@@ -81,7 +81,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     ganho: [{ nome: "água", quantidade: 2 }],
   },
   {
-    id: "b3",
+    id: "pa3",
     titulo: "Pegar amora",
     texto: "",
     custo: [],
@@ -97,7 +97,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
 
   //consumir para ganhar ação
   {
-    id: "a2",
+    id: "b2",
     titulo: "Beber água",
     texto: "",
     custo: [{ nome: "água", quantidade: 1 }],
@@ -105,7 +105,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
   },
 
   {
-    id: "c1",
+    id: "c2",
     titulo: "Comer amora",
     texto: "",
     custo: [{ nome: "amora", quantidade: 1 }],
@@ -121,7 +121,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     ganho: [{ nome: "tabua", quantidade: 1 }],
   },
   {
-    id: "p2",
+    id: "pb1",
     titulo: "Pedreira básica",
     texto: "",
     custo: [{ nome: "pedra bruta", quantidade: 2 }],
@@ -152,14 +152,14 @@ export const BARALHO_INICIAL: Array<CartaType> = [
 ];
 export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
   {
-    id: "a3",
+    id: "a2",
     titulo: "Pegar água",
     texto: "",
     custo: [],
     ganho: [{ nome: "água", quantidade: 1 }],
   },
   {
-    id: "a4",
+    id: "b1",
     titulo: "Beber água",
     texto: "",
     custo: [{ nome: "água", quantidade: 1 }],
@@ -180,14 +180,14 @@ export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
     ganho: [{ nome: "pedra bruta", quantidade: 1 }],
   },
   {
-    id: "b2",
+    id: "pa2",
     titulo: "Pegar amora",
     texto: "",
     custo: [],
     ganho: [{ nome: "amora", quantidade: 1 }],
   },
   {
-    id: "m4",
+    id: "m3",
     titulo: "Pegar madeira",
     texto: "",
     custo: [],
