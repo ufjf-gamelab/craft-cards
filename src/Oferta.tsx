@@ -5,7 +5,6 @@ import Descarte from "./Descarte";
 import { GameActions, GameDispatchContext, GameReducerContext } from "./Game";
 import { CartaType } from "./data/cartas";
 import ListaDeCartas from "./ListaDeCartas";
-import ResourceGraphD3 from "./ResourceGraph";
 import ResourceGraph from "./ResourceGraph";
 
 export default function Oferta() {

@@ -4,6 +4,7 @@ import * as d3 from "d3";
 import { GameReducerContext } from "./Game.ts";
 import { Paper, Typography, Box } from "@mui/material";
 import LegendaGrafo from "./LegendaGrafo.tsx";
+import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
 interface NodeAttributes {
   id: string;
@@ -25,12 +26,12 @@ interface LinkAttributes {
 
 export const NODE_COLORS = {
   resource: "#4CAF50",
-  card: "#2196F3"
+  card: "#2196F3",
 };
 
 export const LINK_COLORS = {
   gain: "#4CAF50",
-  cost: "#F44336"
+  cost: "#F44336",
 };
 
 const ResourceGraphD3: React.FC = () => {
@@ -65,29 +66,31 @@ const ResourceGraphD3: React.FC = () => {
     // Criação do grafo:
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
     const allCards = [
-      ...game.mao,
-      ...game.emJogo,
-      ...game.descarte,
-      ...game.baralho,
-      ...game.oferta,
-      ...game.baralhoDaOferta,
-      ...game.descarteDaOferta,
+      // ...game.mao,
+      // ...game.emJogo,
+      // ...game.descarte,
+      // ...game.baralho,
+      // ...game.oferta,
+      // ...game.baralhoDaOferta,
+      // ...game.descarteDaOferta,
+      ...BARALHO_INICIAL,
+      ...BARALHO_OFERTA_INICIAL,
     ];
 
-    // Adiciona nós de RECURSO
-    game.recursos.forEach(recurso => {
-      graph.addNode(recurso.nome, {
-        id: recurso.nome,
-        label: recurso.nome,
-        type: "resource",
-        quantity: recurso.quantidade,
-        size: Math.log(recurso.quantidade + 1) * 5 + 10,
-        color: NODE_COLORS.resource,
-      });
-    });
+    // // Adiciona nós de RECURSO
+    // game.recursos.forEach(recurso => {
+    //   graph.addNode(recurso.nome, {
+    //     id: recurso.nome,
+    //     label: recurso.nome,
+    //     type: "resource",
+    //     quantity: recurso.quantidade,
+    //     size: Math.log(recurso.quantidade + 1) * 5 + 10,
+    //     color: NODE_COLORS.resource,
+    //   });
+    // });
 
     // Adiciona nós de CARTAS
-    allCards.forEach(carta => {
+    allCards.forEach((carta) => {
       const cardId = `card_${carta.id}`;
       graph.addNode(cardId, {
         id: cardId,
@@ -97,8 +100,36 @@ const ResourceGraphD3: React.FC = () => {
         color: NODE_COLORS.card,
       });
 
-      // Adiciona arcos de GANHO
-      carta.ganho.forEach(ganho => {
+      carta.ganho.forEach((ganho) => {
+        if (!graph.hasNode(ganho.nome)) {
+          graph.addNode(ganho.nome, {
+            id: ganho.nome,
+            label: ganho.nome,
+            type: "resource",
+            quantity: ganho.quantidade,
+            size: Math.log(ganho.quantidade + 1) * 5 + 10,
+            color: NODE_COLORS.resource,
+          });
+        }
+      });
+
+      carta.custo.forEach((custo) => {
+        if (!graph.hasNode(custo.nome)) {
+          graph.addNode(custo.nome, {
+            id: custo.nome,
+            label: custo.nome,
+            type: "resource",
+            quantity: custo.quantidade,
+            size: Math.log(custo.quantidade + 1) * 5 + 10,
+            color: NODE_COLORS.resource,
+          });
+        }
+      });
+    });
+    // Adiciona arcos de GANHO
+    allCards.forEach((carta) => {
+      const cardId = `card_${carta.id}`;
+      carta.ganho.forEach((ganho) => {
         if (graph.hasNode(ganho.nome)) {
           graph.addDirectedEdge(cardId, ganho.nome, {
             source: cardId,
@@ -110,7 +141,7 @@ const ResourceGraphD3: React.FC = () => {
       });
 
       // Adiciona arcos de CUSTO
-      carta.custo.forEach(custo => {
+      carta.custo.forEach((custo) => {
         if (graph.hasNode(custo.nome)) {
           graph.addDirectedEdge(custo.nome, cardId, {
             source: custo.nome,
@@ -123,29 +154,33 @@ const ResourceGraphD3: React.FC = () => {
     });
 
     // Dados para serem utilizados no D3
-    const nodes = graph.mapNodes(node => graph.getNodeAttributes(node));
-    const links = graph.mapEdges(edge => graph.getEdgeAttributes(edge));
+    const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
+    const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
     // Visualização D3:
     const { width, height } = dimensions;
-    const svg = d3.select(svgRef.current)
+    const svg = d3
+      .select(svgRef.current)
       .attr("width", width)
       .attr("height", height);
 
-    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+    const zoomBehavior = d3
+      .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
       .on("zoom", (event) => g.attr("transform", event.transform));
 
     svg.call(zoomBehavior);
 
     const g = svg.append("g");
-    
+
     // Cria a simulação e armazena no Ref
-    simulationRef.current = d3.forceSimulation(nodes)
+    simulationRef.current = d3
+      .forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-200))
       .force(
         "link",
-        d3.forceLink(links)
+        d3
+          .forceLink(links)
           .id((d: any) => d.id)
           .distance(80)
       )
@@ -154,8 +189,9 @@ const ResourceGraphD3: React.FC = () => {
       .velocityDecay(0.4);
 
     const defs = svg.append("defs");
-    Object.values(LINK_COLORS).forEach(color => {
-      defs.append("marker")
+    Object.values(LINK_COLORS).forEach((color) => {
+      defs
+        .append("marker")
         .attr("id", `arrowhead-${color.replace("#", "")}`)
         .attr("viewBox", "0 -5 10 10")
         .attr("refX", 15)
@@ -168,56 +204,69 @@ const ResourceGraphD3: React.FC = () => {
         .attr("fill", color);
     });
 
-    const link = g.append("g")
+    const link = g
+      .append("g")
       .selectAll("line")
       .data(links)
-      .enter().append("line")
-      .attr("stroke", d => d.color)
+      .enter()
+      .append("line")
+      .attr("stroke", (d) => d.color)
       .attr("stroke-width", 2)
-      .attr("marker-end", d => `url(#arrowhead-${d.color.replace("#", "")}`);
+      .attr("marker-end", (d) => `url(#arrowhead-${d.color.replace("#", "")}`);
 
-    const node = g.append("g")
+    const node = g
+      .append("g")
       .selectAll("g")
       .data(nodes)
-      .enter().append("g")
-      .call(d3.drag<SVGGElement, NodeAttributes>()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended));
+      .enter()
+      .append("g")
+      .call(
+        d3
+          .drag<SVGGElement, NodeAttributes>()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended)
+      );
 
-    node.append("circle")
-      .attr("r", d => d.size)
-      .attr("fill", d => d.color)
+    node
+      .append("circle")
+      .attr("r", (d) => d.size)
+      .attr("fill", (d) => d.color)
       .attr("stroke", "#fff")
       .attr("stroke-width", 2);
 
-    node.append("text")
-      .text(d => d.type === "resource" ? `${d.label} (${d.quantity})` : d.label)
-      .attr("dy", d => d.size + 15)
+    node
+      .append("text")
+      .text((d) =>
+        d.type === "resource" ? `${d.label} (${d.quantity})` : d.label
+      )
+      .attr("dy", (d) => d.size + 15)
       .attr("text-anchor", "middle")
       .attr("fill", "#333")
       .style("font-size", "10px");
 
-    const linkLabels = g.append("g")
+    const linkLabels = g
+      .append("g")
       .selectAll("text")
       .data(links)
-      .enter().append("text")
+      .enter()
+      .append("text")
       .attr("font-size", 10)
-      .attr("fill", d => d.color)
-      .text(d => d.label);
+      .attr("fill", (d) => d.color)
+      .text((d) => d.label);
 
     simulationRef.current.on("tick", () => {
       link
-        .attr("x1", d => (d.source as any).x)
-        .attr("y1", d => (d.source as any).y)
-        .attr("x2", d => (d.target as any).x)
-        .attr("y2", d => (d.target as any).y);
+        .attr("x1", (d) => (d.source as any).x)
+        .attr("y1", (d) => (d.source as any).y)
+        .attr("x2", (d) => (d.target as any).x)
+        .attr("y2", (d) => (d.target as any).y);
 
-      node.attr("transform", d => `translate(${d.x},${d.y})`);
+      node.attr("transform", (d) => `translate(${d.x},${d.y})`);
 
       linkLabels
-        .attr("x", d => ((d.source as any).x + (d.target as any).x) / 2)
-        .attr("y", d => ((d.source as any).y + (d.target as any).y) / 2);
+        .attr("x", (d) => ((d.source as any).x + (d.target as any).x) / 2)
+        .attr("y", (d) => ((d.source as any).y + (d.target as any).y) / 2);
     });
 
     // Drag:
@@ -264,7 +313,10 @@ const ResourceGraphD3: React.FC = () => {
 
       g.transition()
         .duration(1000)
-        .attr("transform", `translate(${translate[0]},${translate[1]}) scale(${scale})`);
+        .attr(
+          "transform",
+          `translate(${translate[0]},${translate[1]}) scale(${scale})`
+        );
     };
 
     const timer = setTimeout(adjustZoom, 1500);
@@ -275,7 +327,7 @@ const ResourceGraphD3: React.FC = () => {
       }
       clearTimeout(timer);
     };
-  }, [game, dimensions]);
+  }, [dimensions]);
 
   if (!game) {
     return (
@@ -297,11 +349,18 @@ const ResourceGraphD3: React.FC = () => {
 };
 
 // Função auxiliar para calcular o Bounding Box do Grafo
-const getGraphBounds = (nodes: NodeAttributes[], width: number, height: number) => {
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+const getGraphBounds = (
+  nodes: NodeAttributes[],
+  width: number,
+  height: number
+) => {
+  let minX = Infinity,
+    maxX = -Infinity,
+    minY = Infinity,
+    maxY = -Infinity;
   let hasValidNodes = false;
 
-  nodes.forEach(d => {
+  nodes.forEach((d) => {
     if (d.x === undefined || d.y === undefined || isNaN(d.x) || isNaN(d.y)) {
       d.x = width / 2;
       d.y = height / 2;
@@ -323,7 +382,7 @@ const getGraphBounds = (nodes: NodeAttributes[], width: number, height: number) 
     minX: minX - padding,
     maxX: maxX + padding,
     minY: minY - padding,
-    maxY: maxY + padding
+    maxY: maxY + padding,
   };
 };
 
