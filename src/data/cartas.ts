@@ -16,6 +16,7 @@ export type GameType = {
   baralhoDaOferta: Array<CartaType>;
   descarteDaOferta: Array<CartaType>;
   historico?: Array<GameHistoryType>;
+  showPetriNet: boolean;
 };
 
 export type CartaType = {

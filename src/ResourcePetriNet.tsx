@@ -1,16 +1,15 @@
-import React, { useContext, useRef, useState } from "react";
-import { MultiDirectedGraph } from "graphology";
+import React, { useContext, useRef } from "react";
+import { MultiDirectedGraph } from "graphology"; //grafo com multiarcos
 import * as d3 from "d3";
 import { GameReducerContext } from "./Game.ts";
 import { Paper, Typography, Box } from "@mui/material";
-import LegendaGrafo from "./LegendaGrafo.tsx";
 import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
 interface NodeAttributes {
   id: string;
   label: string;
-  type: "resource" | "card";
-  quantity?: number;
+  type: "place" | "transition";
+  tokens?: number;
   size: number;
   color: string;
   x?: number;
@@ -20,122 +19,118 @@ interface NodeAttributes {
 interface LinkAttributes {
   source: string;
   target: string;
-  label: string;
+  weight: number;
   color: string;
 }
 
 export const NODE_COLORS = {
-  resource: "#4CAF50",
-  card: "#2196F3",
+  place: "#4CAF50",    // Verde para lugares (recursos)
+  transition: "#2196F3", // Azul para transições (cartas)
 };
 
 export const LINK_COLORS = {
-  gain: "#4CAF50",
-  cost: "#F44336",
+  input: "#F44336",    // Vermelho para arcos de entrada (custos)
+  output: "#4CAF50",   // Verde para arcos de saída (ganhos)
 };
 
-const ResourceGraph: React.FC = () => {
+const ResourcePetriNet: React.FC = () => {
   const game = useContext(GameReducerContext);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [graphInitialized, setGraphInitialized] = useState(false);
+  const initializedRef = useRef(false);
 
-  if (!game) {
-    return (
-      <Paper sx={{ p: 2, textAlign: "center" }}>
-        <Typography>Carregando análise de recursos...</Typography>
-      </Paper>
-    );
-  }
+  // Função para atualizar os tokens baseado no estado do jogo
+  const updateTokens = () => {
+    if (!game || !initializedRef.current || !svgRef.current) return;
+    
+    const svg = d3.select(svgRef.current);
+    svg.selectAll(".token-count")
+      .text((d: any) => {
+        const resource = game.recursos.find(r => r.nome === d.label);
+        return resource?.quantidade || 0;
+      });
+  };
 
-  // Função para inicializar o gráfico
-  const initializeGraph = () => {
-    if (!svgRef.current || !containerRef.current || graphInitialized) return;
-
+  // Inicialização do grafo - mesma abordagem do grafo simples
+  if (!initializedRef.current && svgRef.current && containerRef.current) {
+    initializedRef.current = true;
+    
     const container = containerRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
+    const svg = d3.select(svgRef.current);
 
-    // Limpa qualquer conteúdo anterior
-    d3.select(svgRef.current).selectAll("*").remove();
+    // Limpa o SVG e configura dimensões
+    svg.selectAll("*").remove();
+    svg.attr("width", width).attr("height", height);
 
-    // Criação do grafo
+    // Criação do grafo estático
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
     const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
-    // Adiciona nós de CARTAS e RECURSOS
+    // 1. Adiciona todas as transições (cartas)
     allCards.forEach((carta) => {
-      const cardId = `card_${carta.id}`;
-      graph.addNode(cardId, {
-        id: cardId,
+      const transitionId = `transition_${carta.id}`;
+      graph.addNode(transitionId, {
+        id: transitionId,
         label: carta.titulo,
-        type: "card",
-        size: 8,
-        color: NODE_COLORS.card,
-      });
-
-      carta.ganho.forEach((ganho) => {
-        if (!graph.hasNode(ganho.nome)) {
-          graph.addNode(ganho.nome, {
-            id: ganho.nome,
-            label: ganho.nome,
-            type: "resource",
-            quantity: ganho.quantidade,
-            size: Math.log(ganho.quantidade + 1) * 5 + 10,
-            color: NODE_COLORS.resource,
-          });
-        }
-      });
-
-      carta.custo.forEach((custo) => {
-        if (!graph.hasNode(custo.nome)) {
-          graph.addNode(custo.nome, {
-            id: custo.nome,
-            label: custo.nome,
-            type: "resource",
-            quantity: custo.quantidade,
-            size: Math.log(custo.quantidade + 1) * 5 + 10,
-            color: NODE_COLORS.resource,
-          });
-        }
+        type: "transition",
+        size: 10,
+        color: NODE_COLORS.transition,
       });
     });
 
-    // Adiciona arcos de GANHO e CUSTO
+    // 2. Adiciona todos os lugares (recursos)
+    const allResources = new Set<string>();
+    allCards.forEach(carta => {
+      [...carta.ganho, ...carta.custo].forEach(recurso => {
+        allResources.add(recurso.nome);
+      });
+    });
+
+    allResources.forEach(nome => {
+      graph.addNode(`place_${nome}`, {
+        id: `place_${nome}`,
+        label: nome,
+        type: "place",
+        tokens: game?.recursos.find(r => r.nome === nome)?.quantidade || 0, //adiciona tokens
+        size: 15,
+        color: NODE_COLORS.place,
+      });
+    });
+
+    // 3. Adiciona todos os arcos
     allCards.forEach((carta) => {
-      const cardId = `card_${carta.id}`;
-      carta.ganho.forEach((ganho) => {
-        if (graph.hasNode(ganho.nome)) {
-          graph.addDirectedEdge(cardId, ganho.nome, {
-            source: cardId,
-            target: ganho.nome,
-            label: `+${ganho.quantidade}`,
-            color: LINK_COLORS.gain,
-          });
-        }
-      });
-
+      const transitionId = `transition_${carta.id}`;
+      
+      // Arcos de entrada (custos)
       carta.custo.forEach((custo) => {
-        if (graph.hasNode(custo.nome)) {
-          graph.addDirectedEdge(custo.nome, cardId, {
-            source: custo.nome,
-            target: cardId,
-            label: `-${custo.quantidade}`,
-            color: LINK_COLORS.cost,
-          });
-        }
+        const placeId = `place_${custo.nome}`;
+        graph.addDirectedEdge(placeId, transitionId, {
+          source: placeId,
+          target: transitionId,
+          weight: custo.quantidade, //tokens consumidos
+          color: LINK_COLORS.input,
+        });
+      });
+      
+      // Arcos de saída (ganhos)
+      carta.ganho.forEach((ganho) => {
+        const placeId = `place_${ganho.nome}`;
+        graph.addDirectedEdge(transitionId, placeId, {
+          source: transitionId,
+          target: placeId,
+          weight: ganho.quantidade, //tokens produzidos
+          color: LINK_COLORS.output,
+        });
       });
     });
 
-    // Dados para D3
+    // Converte para formato D3
     const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
     const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
-    // Configuração do SVG
-    const svg = d3.select(svgRef.current)
-      .attr("width", width)
-      .attr("height", height);
-
+    // Configuração do zoom
     const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
       .on("zoom", (event) => g.attr("transform", event.transform));
@@ -144,15 +139,15 @@ const ResourceGraph: React.FC = () => {
 
     const g = svg.append("g");
 
-    // Cria a simulação
+    // Cria a simulação de força
     const simulation = d3.forceSimulation(nodes)
-      .force("charge", d3.forceManyBody().strength(-200))
-      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(80))
+      .force("charge", d3.forceManyBody().strength(-100))
+      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(90))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .alphaDecay(0.05)
       .velocityDecay(0.4);
 
-    // Configuração dos marcadores de seta
+    // Adiciona marcadores de seta
     const defs = svg.append("defs");
     Object.values(LINK_COLORS).forEach((color) => {
       defs.append("marker")
@@ -168,7 +163,7 @@ const ResourceGraph: React.FC = () => {
         .attr("fill", color);
     });
 
-    // Desenha as linhas de conexão
+    // Desenha os links (arcos)
     const link = g.append("g")
       .selectAll("line")
       .data(links)
@@ -178,7 +173,7 @@ const ResourceGraph: React.FC = () => {
       .attr("stroke-width", 2)
       .attr("marker-end", (d) => `url(#arrowhead-${d.color.replace("#", "")}`);
 
-    // Desenha os nós
+    // Desenha os nós (lugares e transições)
     const node = g.append("g")
       .selectAll("g")
       .data(nodes)
@@ -191,20 +186,57 @@ const ResourceGraph: React.FC = () => {
           .on("end", dragended)
       );
 
-    node.append("circle")
-      .attr("r", (d) => d.size)
-      .attr("fill", (d) => d.color)
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 2);
+    // Renderização dos nós
+    node.each(function(d) {
+      const nodeGroup = d3.select(this);
+      
+      if (d.type === "place") {
+        // Círculo para lugares
+        nodeGroup.append("circle")
+          .attr("r", d.size)
+          .attr("fill", d.color)
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+        
+        // Contador de tokens
+        nodeGroup.append("text")
+          .attr("class", "token-count")
+          .attr("dy", 4)
+          .attr("text-anchor", "middle")
+          .attr("fill", "#fff")
+          .style("font-weight", "bold")
+          .text(d.tokens || 0);
+          
+        // Rótulo do lugar
+        nodeGroup.append("text")
+          .attr("dy", d.size + 15)
+          .attr("text-anchor", "middle")
+          .attr("fill", "#333")
+          .style("font-size", "10px")
+          .text(d.label);
+      } else {
+        // Retângulo para transições
+        nodeGroup.append("rect")
+          .attr("width", d.size * 1.5)
+          .attr("height", d.size)
+          .attr("x", -d.size * 0.75)
+          .attr("y", -d.size * 0.5)
+          .attr("rx", 2)
+          .attr("fill", d.color)
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+          
+        // Rótulo da transição
+        nodeGroup.append("text")
+          .attr("dy", d.size + 15)
+          .attr("text-anchor", "middle")
+          .attr("fill", "#333")
+          .style("font-size", "10px")
+          .text(d.label);
+      }
+    });
 
-    node.append("text")
-      .text((d) => d.type === "resource" ? `${d.label} (${d.quantity})` : d.label)
-      .attr("dy", (d) => d.size + 15)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#333")
-      .style("font-size", "10px");
-
-    // Rótulos das conexões
+    // Rótulos dos arcos
     const linkLabels = g.append("g")
       .selectAll("text")
       .data(links)
@@ -212,7 +244,7 @@ const ResourceGraph: React.FC = () => {
       .append("text")
       .attr("font-size", 10)
       .attr("fill", (d) => d.color)
-      .text((d) => d.label);
+      .text((d) => d.weight);
 
     // Atualização da simulação
     simulation.on("tick", () => {
@@ -247,7 +279,7 @@ const ResourceGraph: React.FC = () => {
       d.fy = null;
     }
 
-    // Ajusta o zoom para caber no container
+    // Ajuste inicial do zoom
     const adjustZoom = () => {
       const bounds = getGraphBounds(nodes, width, height);
       if (!bounds) return;
@@ -276,26 +308,29 @@ const ResourceGraph: React.FC = () => {
     };
 
     setTimeout(adjustZoom, 1500);
-    setGraphInitialized(true);
-  };
+  }
 
-  // Chama a inicialização do gráfico quando o container estiver montado
-  React.useLayoutEffect(() => {
-    initializeGraph();
-  }, []);
+  // Atualiza os tokens quando o jogo muda
+  updateTokens();
+
+  if (!game) {
+    return (
+      <Paper sx={{ p: 2, textAlign: "center" }}>
+        <Typography>Carregando rede de Petri...</Typography>
+      </Paper>
+    );
+  }
 
   return (
     <Paper sx={{ height: "600px", minWidth: "800px", position: "relative" }}>
       <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
         <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
       </Box>
-
-      <LegendaGrafo />
     </Paper>
   );
 };
 
-// Função auxiliar para calcular o Bounding Box do Grafo
+// Função auxiliar para calcular os limites do grafo
 const getGraphBounds = (
   nodes: NodeAttributes[],
   width: number,
@@ -323,7 +358,6 @@ const getGraphBounds = (
 
   if (!hasValidNodes) return null;
 
-  // Add padding
   const padding = 50;
   return {
     minX: minX - padding,
@@ -333,4 +367,4 @@ const getGraphBounds = (
   };
 };
 
-export default ResourceGraph;
+export default ResourcePetriNet;

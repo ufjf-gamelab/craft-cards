@@ -5,7 +5,8 @@ import Descarte from "./Descarte";
 import { GameActions, GameDispatchContext, GameReducerContext } from "./Game";
 import { CartaType } from "./data/cartas";
 import ListaDeCartas from "./ListaDeCartas";
-import ResourceGraph from "./ResourceGraph";
+// import ResourceGraph from "./ResourceGraph";
+// import ResourcePetriNet from "./ResourcePetriNet";
 
 export default function Oferta() {
   const game = useContext(GameReducerContext)!;
@@ -42,9 +43,9 @@ export default function Oferta() {
           ))}
         </ListaDeCartas>
       </div>
-      <div className="lista-de-cartas-container">
+      {/* <div className="lista-de-cartas-container">
         <ResourceGraph></ResourceGraph>
-      </div>
+      </div> */}
     </>
   );
 }

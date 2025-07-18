@@ -9,6 +9,7 @@ import { useContext } from "react";
 import Oferta from "./Oferta.tsx";
 import Historico from "./Historico.tsx";
 import Jogador from "./Jogador.tsx";
+import ResourcePetriNet from "./ResourcePetriNet";
 
 function App() {
   const game = useContext(GameReducerContext)!;
@@ -29,6 +30,10 @@ function App() {
     dispatch({ type: GameActions.PASSAR_TURNO });
   }
 
+  function togglePetriNet() {
+    dispatch({ type: GameActions.TOGGLE_PETRI_NET });
+  }
+
   return (
     <>
       <div className="game-app">
@@ -38,20 +43,48 @@ function App() {
             <ListaDeRecursos recursos={game.recursos} />
           </div>
           <div className="game-controls">
-            <button className="control-button" onClick={aumentaPonto}>Aumenta Ponto</button>
-            <button className="control-button" onClick={diminuiAcao}>Diminui Ação</button>
-            <button className="control-button primary" onClick={passarTurno}>Passar Turno</button>
+            <button className="control-button" onClick={aumentaPonto}>
+              Aumenta Ponto
+            </button>
+            <button className="control-button" onClick={diminuiAcao}>
+              Diminui Ação
+            </button>
+            <button className="control-button" onClick={togglePetriNet}>
+              {game.showPetriNet ? "Ocultar Análises" : "Mostrar Análises"}
+            </button>
+            <button className="control-button primary" onClick={passarTurno}>
+              Passar Turno
+            </button>
           </div>
         </div>
-        <div className="game-board">
-          <div className="game-row top-row">
-            <Oferta />
+
+        <div className="main-content">
+          {/* Área do Jogo - Sempre visível */}
+          <div className="game-area">
+            <div className="game-board">
+              <div className="game-row top-row">
+                <Oferta />
+              </div>
+              <div className="game-row bottom-row">
+                <Jogador />
+              </div>
+            </div>
           </div>
-          <div className="game-row bottom-row">
-            <Jogador />
+
+          {/* Área de Análises - Independente */}
+          <div
+            className={`analises-area ${game.showPetriNet ? "visible" : ""}`}
+          >
+            <div className="analises-container">
+              <div className="petri-net-container">
+                <ResourcePetriNet />
+              </div>
+              <div className="historico-container">
+                <Historico />
+              </div>
+            </div>
           </div>
         </div>
-        <Historico />
       </div>
     </>
   );
