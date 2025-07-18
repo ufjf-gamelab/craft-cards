@@ -217,10 +217,10 @@ const ResourcePetriNet: React.FC = () => {
       } else {
         // Retângulo para transições
         nodeGroup.append("rect")
-          .attr("width", d.size * 1.5)
-          .attr("height", d.size)
-          .attr("x", -d.size * 0.75)
-          .attr("y", -d.size * 0.5)
+          .attr("width", d.size * 0.5)
+          .attr("height", d.size * 4)
+          .attr("x", -d.size * 0.25)
+          .attr("y", -d.size *2)
           .attr("rx", 2)
           .attr("fill", d.color)
           .attr("stroke", "#fff")
