@@ -45,8 +45,8 @@ export default function Historico() {
   // Obtém todos os tipos de recursos únicos
   const resourceTypes = Array.from(
     new Set(
-      game?.historico?.flatMap(entry => 
-        entry.recursos.map(recurso => recurso.nome)
+      game?.historico?.flatMap((entry) =>
+        entry.recursos.map((recurso) => recurso.nome)
       ) || []
     )
   );
@@ -66,23 +66,30 @@ export default function Historico() {
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="name" 
-              label={{ 
-                value: "Tipos de Ação", 
-                position: "insideBottomRight", 
-                offset: -20 
-              }} 
+            <XAxis
+              dataKey="name"
+              label={{
+                value: "Tipos de Ação",
+                position: "insideBottomRight",
+                offset: -20,
+              }}
             />
-            <YAxis 
-              label={{ 
-                value: "Quantidade", 
-                angle: -90, 
-                position: "insideLeft" 
-              }} 
+            <YAxis
+              label={{
+                value: "Quantidade",
+                angle: -90,
+                position: "insideLeft",
+              }}
             />
-            <Tooltip 
+            <Tooltip
               formatter={(value, name) => [`${value}`, name]}
+              contentStyle={{
+                backgroundColor: "#333", // Cor de fundo escura
+                borderColor: "#666", // Cor da borda
+                color: "#fff", // Cor do texto
+                borderRadius: "5px", // Borda arredondada
+                padding: "10px", // Espaçamento interno
+              }}
             />
             <Legend />
             {resourceTypes.map((tipo) => (

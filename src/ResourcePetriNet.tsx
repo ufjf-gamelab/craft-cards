@@ -211,7 +211,7 @@ const ResourcePetriNet: React.FC = () => {
         nodeGroup.append("text")
           .attr("dy", d.size + 15)
           .attr("text-anchor", "middle")
-          .attr("fill", "#333")
+          .attr("fill", "#fff")
           .style("font-size", "10px")
           .text(d.label);
       } else {
@@ -230,7 +230,7 @@ const ResourcePetriNet: React.FC = () => {
         nodeGroup.append("text")
           .attr("dy", d.size + 15)
           .attr("text-anchor", "middle")
-          .attr("fill", "#333")
+          .attr("fill", "#fff")
           .style("font-size", "10px")
           .text(d.label);
       }
@@ -322,7 +322,7 @@ const ResourcePetriNet: React.FC = () => {
   }
 
   return (
-    <Paper sx={{ height: "600px", minWidth: "800px", position: "relative" }}>
+    <Paper sx={{ height: "600px", minWidth: "800px", position: "relative", backgroundColor: "#363636ff", borderRadius: "10px", boxShadow: "0 2px 10px rgba(0, 0, 0, 0.837)"}}>
       <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
         <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
       </Box>
