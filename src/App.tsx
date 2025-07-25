@@ -10,6 +10,7 @@ import Oferta from "./Oferta.tsx";
 import Historico from "./Historico.tsx";
 import Jogador from "./Jogador.tsx";
 import ResourcePetriNet from "./ResourcePetriNet";
+import React from "react";
 
 function App() {
   const game = useContext(GameReducerContext)!;
@@ -33,6 +34,16 @@ function App() {
   function togglePetriNet() {
     dispatch({ type: GameActions.TOGGLE_PETRI_NET });
   }
+
+  // Calcula as cartas jogáveis no componente pai
+  const playableCards = React.useMemo(() => {
+    return [...game.mao, ...game.oferta].filter(card => {
+      return card.custo.every(cost => {
+        const resource = game.recursos.find(r => r.nome === cost.nome);
+        return resource && resource.quantidade >= cost.quantidade;
+      });
+    });
+  }, [game.recursos, game.mao, game.oferta]);
 
   return (
     <>
@@ -77,7 +88,10 @@ function App() {
           >
             <div className="analises-container">
               <div className="petri-net-container">
-                <ResourcePetriNet />
+                <ResourcePetriNet 
+                  recursos={game.recursos} 
+                  playableCards={playableCards} 
+                />
               </div>
               <div className="historico-container">
                 <Historico />

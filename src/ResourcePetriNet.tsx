@@ -1,11 +1,10 @@
-import React, { useContext, useRef } from "react";
-import { MultiDirectedGraph } from "graphology"; //grafo com multiarcos
+import React, { useRef } from "react";
+import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
-import { GameReducerContext } from "./Game.ts";
-import { Paper, Typography, Box } from "@mui/material";
+import { Paper, Box } from "@mui/material";
 import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
-interface NodeAttributes {
+type NodeAttributes = {
   id: string;
   label: string;
   type: "place" | "transition";
@@ -14,18 +13,24 @@ interface NodeAttributes {
   color: string;
   x?: number;
   y?: number;
-}
+};
 
-interface LinkAttributes {
+type LinkAttributes = {
   source: string;
   target: string;
   weight: number;
   color: string;
-}
+};
+
+type ResourcePetriNetProps = {
+  recursos: Array<{ nome: string; quantidade: number }>;
+  playableCards: Array<{ id: string }>;
+};
 
 export const NODE_COLORS = {
   place: "#4CAF50",    // Verde para lugares (recursos)
   transition: "#2196F3", // Azul para transições (cartas)
+  activeTransition: "#FFC107", //Laranja para transições que podem ser ativas
 };
 
 export const LINK_COLORS = {
@@ -33,25 +38,39 @@ export const LINK_COLORS = {
   output: "#4CAF50",   // Verde para arcos de saída (ganhos)
 };
 
-const ResourcePetriNet: React.FC = () => {
-  const game = useContext(GameReducerContext);
+const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableCards }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
-  // Função para atualizar os tokens baseado no estado do jogo
-  const updateTokens = () => {
-    if (!game || !initializedRef.current || !svgRef.current) return;
+  // Funções para atualizar o grafo
+  const updateGraph = () => {
+    if (!initializedRef.current || !svgRef.current) return;
     
     const svg = d3.select(svgRef.current);
     svg.selectAll(".token-count")
       .text((d: any) => {
-        const resource = game.recursos.find(r => r.nome === d.label);
+        const resource = recursos.find(r => r.nome === d.label);
         return resource?.quantidade || 0;
+      });
+      updateTransitionColors();
+  };
+
+  const updateTransitionColors = () => {
+    if (!initializedRef.current || !svgRef.current) return;
+    
+    const svg = d3.select(svgRef.current);
+    svg.selectAll(".transition-node")
+      .attr("fill", (d: any) => {
+        if (d.type !== "transition") return d.color;
+        const cardId = d.id.replace("transition_", "");
+        return playableCards.some(card => card.id === cardId)
+          ? NODE_COLORS.activeTransition
+          : NODE_COLORS.transition;
       });
   };
 
-  // Inicialização do grafo - mesma abordagem do grafo simples
+  // Inicialização do grafo (executada apenas uma vez)
   if (!initializedRef.current && svgRef.current && containerRef.current) {
     initializedRef.current = true;
     
@@ -93,7 +112,7 @@ const ResourcePetriNet: React.FC = () => {
         id: `place_${nome}`,
         label: nome,
         type: "place",
-        tokens: game?.recursos.find(r => r.nome === nome)?.quantidade || 0, //adiciona tokens
+        tokens: recursos.find(r => r.nome === nome)?.quantidade || 0, //adiciona tokens
         size: 15,
         color: NODE_COLORS.place,
       });
@@ -173,7 +192,7 @@ const ResourcePetriNet: React.FC = () => {
       .attr("stroke-width", 2)
       .attr("marker-end", (d) => `url(#arrowhead-${d.color.replace("#", "")}`);
 
-    // Desenha os nós (lugares e transições)
+    // Desenha os nós (lugares e transições) com classes específicas para atualização
     const node = g.append("g")
       .selectAll("g")
       .data(nodes)
@@ -217,6 +236,7 @@ const ResourcePetriNet: React.FC = () => {
       } else {
         // Retângulo para transições
         nodeGroup.append("rect")
+          .attr("class", "transition-node") // Classe para seleção
           .attr("width", d.size * 0.5)
           .attr("height", d.size * 4)
           .attr("x", -d.size * 0.25)
@@ -308,19 +328,11 @@ const ResourcePetriNet: React.FC = () => {
     };
 
     setTimeout(adjustZoom, 1500);
+    updateGraph();
   }
 
   // Atualiza os tokens quando o jogo muda
-  updateTokens();
-
-  if (!game) {
-    return (
-      <Paper sx={{ p: 2, textAlign: "center" }}>
-        <Typography>Carregando rede de Petri...</Typography>
-      </Paper>
-    );
-  }
-
+  updateGraph();
   return (
     <Paper sx={{ height: "600px", minWidth: "800px", position: "relative", backgroundColor: "#363636ff", borderRadius: "10px", boxShadow: "0 2px 10px rgba(0, 0, 0, 0.837)"}}>
       <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
