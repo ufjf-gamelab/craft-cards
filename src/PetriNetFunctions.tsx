@@ -42,6 +42,7 @@ export const renderPlaceNode = (
   d: NodeAttributes,
   tokenCount: number
 ) => {
+  // Círculo principal do lugar
   nodeGroup
     .append("circle")
     .attr("r", d.size)
@@ -49,6 +50,7 @@ export const renderPlaceNode = (
     .attr("stroke", "#fff")
     .attr("stroke-width", 2);
 
+  // Texto com contagem de tokens (sempre visível)
   nodeGroup
     .append("text")
     .attr("class", "token-count")
@@ -58,37 +60,86 @@ export const renderPlaceNode = (
     .style("font-weight", "bold")
     .text(tokenCount);
 
-  const maxVisibleTokens = 5;
   const tokenRadius = 3;
+  const centerRadius = d.size * 0.5; // Raio para posicionar tokens
 
   if (tokenCount > 0) {
-    const tokensToShow = Math.min(tokenCount, maxVisibleTokens);
-    const angleStep = (2 * Math.PI) / tokensToShow;
-
-    for (let i = 0; i < tokensToShow; i++) {
-      const angle = i * angleStep;
-      const x = Math.cos(angle) * (d.size * 0.5);
-      const y = Math.sin(angle) * (d.size * 0.5);
-
-      nodeGroup
-        .append("circle")
-        .attr("class", "token")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", tokenRadius)
-        .attr("fill", "#fff");
-    }
-
-    if (tokenCount > maxVisibleTokens) {
-      nodeGroup
+    if (tokenCount <= 4) {
+      // 1-4 tokens: mostra individualmente
+      const angleStep = (2 * Math.PI) / tokenCount;
+      for (let i = 0; i < tokenCount; i++) {
+        const angle = i * angleStep;
+        const x = Math.cos(angle) * centerRadius;
+        const y = Math.sin(angle) * centerRadius;
+        
+        nodeGroup
+          .append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", tokenRadius)
+          .attr("fill", "#fff")
+          .attr("stroke", "#333")
+          .attr("stroke-width", 1);
+      }
+    } else {
+      // 5+ tokens: sistema de grupos
+      const fullGroups = Math.floor(tokenCount / 5);
+      const remainingTokens = tokenCount % 5;
+      
+      // Bola central principal (sempre visível para 5+ tokens)
+      const centerToken = nodeGroup
         .append("circle")
         .attr("cx", 0)
         .attr("cy", 0)
         .attr("r", tokenRadius * 1.5)
-        .attr("fill", "#fff");
+        .attr("fill", "#fff")
+        .attr("stroke", "#333")
+        .attr("stroke-width", 1);
+      
+      // Estilo especial para múltiplos de 5
+      if (fullGroups >= 2) {
+        centerToken
+          .attr("fill", fullGroups >= 3 ? "#ffeb3b" : "#4caf50") // Amarelo para 15+, verde para 10-14
+          .attr("stroke-width", 2)
+          .attr("stroke", "#000");
+        
+        // Adiciona um pequeno texto indicando quantos grupos de 5
+        if (fullGroups >= 3) {
+          nodeGroup
+            .append("text")
+            .attr("dy", 0)
+            .attr("text-anchor", "middle")
+            .attr("fill", "#000")
+            .style("font-size", "8px")
+            .style("font-weight", "bold")
+            .text(`${fullGroups}x5`);
+        }
+      }
+      
+      // Tokens restantes (1-4) - mostrados ao redor
+      if (remainingTokens > 0) {
+        const angleStep = (2 * Math.PI) / remainingTokens;
+        const orbitRadius = centerRadius * 0.7; // Raio menor para as bolinhas extras
+        
+        for (let i = 0; i < remainingTokens; i++) {
+          const angle = i * angleStep;
+          const x = Math.cos(angle) * orbitRadius;
+          const y = Math.sin(angle) * orbitRadius;
+          
+          nodeGroup
+            .append("circle")
+            .attr("cx", x)
+            .attr("cy", y)
+            .attr("r", tokenRadius)
+            .attr("fill", "#fff")
+            .attr("stroke", "#333")
+            .attr("stroke-width", 1);
+        }
+      }
     }
   }
 
+  // Rótulo do nó
   nodeGroup
     .append("text")
     .attr("dy", d.size + 15)
