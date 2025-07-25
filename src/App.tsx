@@ -37,7 +37,7 @@ function App() {
 
   // Calcula as cartas jogáveis no componente pai
   const playableCards = React.useMemo(() => {
-    return [...game.mao, ...game.oferta].filter(card => {
+    return [...game.mao].filter(card => {
       return card.custo.every(cost => {
         const resource = game.recursos.find(r => r.nome === cost.nome);
         return resource && resource.quantidade >= cost.quantidade;
