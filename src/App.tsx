@@ -12,6 +12,7 @@ import Jogador from "./Jogador.tsx";
 import ResourcePetriNet from "./ResourcePetriNet";
 import React from "react";
 import ResourceGraph from "./ResourceGraph.tsx";
+import GraphMetrics, { calculateMetrics } from "./GraphMetrics.tsx";
 
 function App() {
   const game = useContext(GameReducerContext)!;
@@ -44,7 +45,7 @@ function App() {
   function toggleHistorico() {
     dispatch({ type: GameActions.TOGGLE_HISTORICO });
   }
-
+  
   const playableCards = React.useMemo(() => {
     return [...game.mao].filter(card => {
       return card.custo.every(cost => {
@@ -96,16 +97,28 @@ function App() {
             </div>
           </div>
 
-          <div className={`analises-area ${game.showPetriNet ? "visible" : ""}`}>
+          <div
+            className={`analises-area ${game.showPetriNet ? "visible" : ""}`}
+          >
             <div className="analises-container">
               <div className="petri-net-container">
                 {game.showGraph ? (
-                  <ResourceGraph />
-                ) : (
-                  <ResourcePetriNet 
-                    recursos={game.recursos} 
-                    playableCards={playableCards} 
+                  <ResourceGraph
+                    onGraphCreated={(graph) =>
+                      dispatch({
+                        type: GameActions.SET_GRAPH,
+                        payload: graph,
+                      })
+                    }
                   />
+                ) : (
+                  <ResourcePetriNet
+                    recursos={game.recursos}
+                    playableCards={playableCards}
+                  />
+                )}
+                {game.showGraph && game.resourceGraph && (
+                  <GraphMetrics graph={game.resourceGraph} />
                 )}
               </div>
             </div>
@@ -115,8 +128,8 @@ function App() {
         {game.showHistorico && (
           <div className="historico-popup">
             <div className="historico-popup-content">
-              <button 
-                className="historico-close-button" 
+              <button
+                className="historico-close-button"
                 onClick={toggleHistorico}
               >
                 ×

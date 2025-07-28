@@ -1,5 +1,6 @@
 import { createContext, Dispatch } from "react";
 import { CartaType, GameHistoryType, GameType } from "./data/cartas";
+import { MultiDirectedGraph } from "graphology";
 
 export const GameReducerContext = createContext<GameType | null>(null);
 export const GameDispatchContext =
@@ -14,6 +15,7 @@ export enum GameActions {
   TOGGLE_PETRI_NET = "toggle petri net",
   TOGGLE_GRAPH = "toggle graph",
   TOGGLE_HISTORICO = "toggle historico",
+  SET_GRAPH = "set graph",
 }
 
 type ComprarCartaActionType = {
@@ -50,6 +52,11 @@ type ToggleHistoricoActionType = {
   type: GameActions.TOGGLE_HISTORICO;
 };
 
+type SetGraphActionType = {
+  type: GameActions.SET_GRAPH;
+  payload: MultiDirectedGraph;
+};
+
 type GameActionType =
   | AumentaPontoActionType
   | DiminuiAcaoActionType
@@ -58,6 +65,8 @@ type GameActionType =
   | ComprarCartaActionType
   | TogglePetriNetActionType
   | ToggleGraphActionType
+  | ToggleHistoricoActionType
+  | SetGraphActionType
   | ToggleHistoricoActionType;
 
 export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
@@ -67,7 +76,10 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
     const acao = action.type;
 
     // Cria registro se os recursos mudaram
-    if (JSON.stringify(estadoAntigo.recursos) !== JSON.stringify(novoEstado.recursos)) {
+    if (
+      JSON.stringify(estadoAntigo.recursos) !==
+      JSON.stringify(novoEstado.recursos)
+    ) {
       const gameHistory: GameHistoryType = {
         acao: acao,
         recursos: novoEstado.recursos.map((recurso) => ({
@@ -106,19 +118,25 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
     case GameActions.TOGGLE_PETRI_NET:
       return {
         ...game,
-        showPetriNet: !game.showPetriNet
+        showPetriNet: !game.showPetriNet,
       };
-    
+
     case GameActions.TOGGLE_GRAPH:
       return {
         ...game,
-        showGraph: !game.showGraph
+        showGraph: !game.showGraph,
       };
-    
+
     case GameActions.TOGGLE_HISTORICO:
       return {
         ...game,
-        showHistorico: !game.showHistorico
+        showHistorico: !game.showHistorico,
+      };
+
+    case GameActions.SET_GRAPH:
+      return {
+        ...game,
+        resourceGraph: action.payload,
       };
 
     default:
@@ -226,7 +244,7 @@ function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
     return recurso ? recurso.quantidade >= custo.quantidade : false;
   });
 
-  if(!temRecursos) {
+  if (!temRecursos) {
     console.log("Não pode jogar essa carta");
     return game;
   }
@@ -283,4 +301,3 @@ export function setupNewGame(game: GameType) {
     showHistorico: false,
   };
 }
-

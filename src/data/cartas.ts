@@ -1,3 +1,4 @@
+import { MultiDirectedGraph } from "graphology";
 import { GameActions } from "../Game";
 
 export type GameHistoryType = {
@@ -19,6 +20,7 @@ export type GameType = {
   showPetriNet: boolean;
   showGraph: boolean;
   showHistorico?: boolean;
+  resourceGraph?: MultiDirectedGraph;
 };
 
 export type CartaType = {

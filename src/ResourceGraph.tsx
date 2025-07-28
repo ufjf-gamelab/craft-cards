@@ -6,6 +6,10 @@ import { Paper, Typography, Box } from "@mui/material";
 import LegendaGrafo from "./LegendaGrafo.tsx";
 import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
+type ResourceGraphProps = {
+  onGraphCreated?: (graph: MultiDirectedGraph) => void;
+}
+
 interface NodeAttributes {
   id: string;
   label: string;
@@ -34,7 +38,7 @@ export const LINK_COLORS = {
   cost: "#F44336",
 };
 
-const ResourceGraph: React.FC = () => {
+const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
   const game = useContext(GameReducerContext);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -277,6 +281,12 @@ const ResourceGraph: React.FC = () => {
 
     setTimeout(adjustZoom, 1500);
     setGraphInitialized(true);
+
+    // Call the callback if provided
+    if (onGraphCreated) {
+      onGraphCreated(graph);
+    }
+    
   };
 
   // Chama a inicialização do gráfico quando o container estiver montado
@@ -285,13 +295,14 @@ const ResourceGraph: React.FC = () => {
   }, []);
 
   return (
-    <Paper sx={{ height: "600px", minWidth: "800px", position: "relative" }}>
-      <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
-        <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
-      </Box>
-
-      <LegendaGrafo />
-    </Paper>
+    <div className="resource-graph-container">
+      <Paper sx={{ height: "600px", minWidth: "800px", position: "relative" }}>
+        <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
+          <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
+        </Box>
+        <LegendaGrafo />
+      </Paper>
+    </div>
   );
 };
 

@@ -220,12 +220,23 @@ h2, h3 {
   background: #c0392b;
 }
 
-/* Remove the historico-container from analises-container */
 .analises-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
   width: 100%;
+}
+
+.graph-metrics-container {
+  margin-top: 16px;
+  flex: 0 0 auto;
+  max-height: 40%;
+  overflow-y: auto;
+}
+
+.petri-net-container, .resource-graph-container {
+  flex: 1 1 auto;
+  min-height: 60%;
 }
 
 /* Responsividade */
