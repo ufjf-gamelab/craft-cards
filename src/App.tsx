@@ -12,7 +12,7 @@ import Jogador from "./Jogador.tsx";
 import ResourcePetriNet from "./ResourcePetriNet";
 import React from "react";
 import ResourceGraph from "./ResourceGraph.tsx";
-import GraphMetrics, { calculateMetrics } from "./GraphMetrics.tsx";
+import GraphMetrics from "./GraphMetrics.tsx";
 
 function App() {
   const game = useContext(GameReducerContext)!;
