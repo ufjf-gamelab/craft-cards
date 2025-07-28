@@ -13,6 +13,7 @@ export enum GameActions {
   COMPRAR_CARTA = "comprar carta",
   TOGGLE_PETRI_NET = "toggle petri net",
   TOGGLE_GRAPH = "toggle graph",
+  TOGGLE_HISTORICO = "toggle historico",
 }
 
 type ComprarCartaActionType = {
@@ -45,6 +46,10 @@ type ToggleGraphActionType = {
   type: GameActions.TOGGLE_GRAPH;
 };
 
+type ToggleHistoricoActionType = {
+  type: GameActions.TOGGLE_HISTORICO;
+};
+
 type GameActionType =
   | AumentaPontoActionType
   | DiminuiAcaoActionType
@@ -52,7 +57,8 @@ type GameActionType =
   | PassarTurnoActionType
   | ComprarCartaActionType
   | TogglePetriNetActionType
-  | ToggleGraphActionType;
+  | ToggleGraphActionType
+  | ToggleHistoricoActionType;
 
 export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
   return (state: GameType, action: GameActionType): GameType => {
@@ -107,6 +113,12 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
       return {
         ...game,
         showGraph: !game.showGraph
+      };
+    
+    case GameActions.TOGGLE_HISTORICO:
+      return {
+        ...game,
+        showHistorico: !game.showHistorico
       };
 
     default:
@@ -268,6 +280,7 @@ export function setupNewGame(game: GameType) {
     historico: [],
     showPetriNet: false,
     showGraph: true,
+    showHistorico: false,
   };
 }
 

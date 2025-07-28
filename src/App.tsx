@@ -16,6 +16,7 @@ import ResourceGraph from "./ResourceGraph.tsx";
 function App() {
   const game = useContext(GameReducerContext)!;
   const dispatch = useContext(GameDispatchContext)!;
+
   if (game === null || dispatch === null) {
     return <p>Carregando...</p>;
   }
@@ -38,6 +39,10 @@ function App() {
 
   function toggleGraph() {
     dispatch({ type: GameActions.TOGGLE_GRAPH });
+  }
+
+  function toggleHistorico() {
+    dispatch({ type: GameActions.TOGGLE_HISTORICO });
   }
 
   const playableCards = React.useMemo(() => {
@@ -70,6 +75,9 @@ function App() {
             <button className="control-button" onClick={toggleGraph}>
               {game.showGraph ? "Mostrar PetriNet" : "Mostrar Graph"}
             </button>
+            <button className="control-button" onClick={toggleHistorico}>
+              {game.showHistorico ? "Ocultar Histórico" : "Mostrar Histórico"}
+            </button>
             <button className="control-button primary" onClick={passarTurno}>
               Passar Turno
             </button>
@@ -100,12 +108,23 @@ function App() {
                   />
                 )}
               </div>
-              <div className="historico-container">
-                <Historico />
-              </div>
             </div>
           </div>
         </div>
+
+        {game.showHistorico && (
+          <div className="historico-popup">
+            <div className="historico-popup-content">
+              <button 
+                className="historico-close-button" 
+                onClick={toggleHistorico}
+              >
+                ×
+              </button>
+              <Historico />
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

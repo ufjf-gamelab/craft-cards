@@ -18,6 +18,7 @@ export type GameType = {
   historico?: Array<GameHistoryType>;
   showPetriNet: boolean;
   showGraph: boolean;
+  showHistorico?: boolean;
 };
 
 export type CartaType = {
@@ -209,5 +210,6 @@ export const GAME_INITIAL = {
   descarteDaOferta: [],
   showPetriNet: false,
   showGraph: true,
-  historico: [], // Inicializa o histórico como um array vazio
+  historico: [],
+  showHistorico: false,
 };
