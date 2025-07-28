@@ -11,6 +11,7 @@ import Historico from "./Historico.tsx";
 import Jogador from "./Jogador.tsx";
 import ResourcePetriNet from "./ResourcePetriNet";
 import React from "react";
+import ResourceGraph from "./ResourceGraph.tsx";
 
 function App() {
   const game = useContext(GameReducerContext)!;
@@ -35,7 +36,10 @@ function App() {
     dispatch({ type: GameActions.TOGGLE_PETRI_NET });
   }
 
-  // Calcula as cartas jogáveis no componente pai
+  function toggleGraph() {
+    dispatch({ type: GameActions.TOGGLE_GRAPH });
+  }
+
   const playableCards = React.useMemo(() => {
     return [...game.mao].filter(card => {
       return card.custo.every(cost => {
@@ -63,6 +67,9 @@ function App() {
             <button className="control-button" onClick={togglePetriNet}>
               {game.showPetriNet ? "Ocultar Análises" : "Mostrar Análises"}
             </button>
+            <button className="control-button" onClick={toggleGraph}>
+              {game.showGraph ? "Mostrar PetriNet" : "Mostrar Graph"}
+            </button>
             <button className="control-button primary" onClick={passarTurno}>
               Passar Turno
             </button>
@@ -70,7 +77,6 @@ function App() {
         </div>
 
         <div className="main-content">
-          {/* Área do Jogo - Sempre visível */}
           <div className="game-area">
             <div className="game-board">
               <div className="game-row top-row">
@@ -82,16 +88,17 @@ function App() {
             </div>
           </div>
 
-          {/* Área de Análises - Independente */}
-          <div
-            className={`analises-area ${game.showPetriNet ? "visible" : ""}`}
-          >
+          <div className={`analises-area ${game.showPetriNet ? "visible" : ""}`}>
             <div className="analises-container">
               <div className="petri-net-container">
-                <ResourcePetriNet 
-                  recursos={game.recursos} 
-                  playableCards={playableCards} 
-                />
+                {game.showGraph ? (
+                  <ResourceGraph />
+                ) : (
+                  <ResourcePetriNet 
+                    recursos={game.recursos} 
+                    playableCards={playableCards} 
+                  />
+                )}
               </div>
               <div className="historico-container">
                 <Historico />
