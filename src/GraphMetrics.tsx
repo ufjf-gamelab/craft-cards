@@ -9,11 +9,48 @@ import simpleSize from 'graphology-metrics/graph/simple-size';
 import { Paper, Typography } from "@mui/material";
 import { LINK_COLORS } from "./ResourceGraph";
 
-interface GraphMetricsProps {
+type GraphMetricsProps = {
   graph?: MultiDirectedGraph;
 }
 
-export const calculateMetrics = (graph: MultiDirectedGraph) => {
+type ResourceDegreeInfo = {
+  name: string;
+  degree: number;
+  type: string;
+  quantity?: number;
+}
+
+type GraphMetricsData = {
+  basic: {
+    order: number;
+    size: number;
+    density: string;
+    isDirected: boolean;
+    isMultiGraph: boolean;
+  };
+  centrality: {
+    averageDegree: string;
+    degreeDistribution: Record<number, number>;
+    weightedDegreeDistribution: Record<number, number>;
+  };
+  connectivity: {
+    diameter: number;
+    averageEccentricity: string;
+    isConnected: boolean;
+    stronglyConnectedComponents: number;
+  };
+  nodeTypeStats: {
+    resource: { count: number; totalQuantity: number };
+    card: { count: number };
+  };
+  edgeTypeStats: {
+    gain: { count: number; totalQuantity: number };
+    cost: { count: number; totalQuantity: number };
+  };
+  resourceDegrees: ResourceDegreeInfo[];
+}
+
+export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | null => {
   if (graph.order === 0) return null;
 
   try {
@@ -38,6 +75,7 @@ export const calculateMetrics = (graph: MultiDirectedGraph) => {
       },
       nodeTypeStats: calculateNodeTypeStats(graph),
       edgeTypeStats: calculateEdgeTypeStats(graph),
+      resourceDegrees: calculateResourceDegrees(graph),
     };
   } catch (error) {
     console.error("Error calculating graph metrics:", error);
@@ -45,13 +83,13 @@ export const calculateMetrics = (graph: MultiDirectedGraph) => {
   }
 };
 
-const calculateAverageDegree = (graph: MultiDirectedGraph) => {
+const calculateAverageDegree = (graph: MultiDirectedGraph): string => {
   const degrees = graph.mapNodes((node) => graph.degree(node));
   const sum = degrees.reduce((acc, val) => acc + val, 0);
   return (sum / degrees.length).toFixed(2);
 };
 
-const calculateDegreeDistribution = (graph: MultiDirectedGraph) => {
+const calculateDegreeDistribution = (graph: MultiDirectedGraph): Record<number, number> => {
   const distribution: Record<number, number> = {};
   graph.forEachNode((node) => {
     const degree = graph.degree(node);
@@ -60,7 +98,7 @@ const calculateDegreeDistribution = (graph: MultiDirectedGraph) => {
   return distribution;
 };
 
-const calculateWeightedDegreeDistribution = (graph: MultiDirectedGraph) => {
+const calculateWeightedDegreeDistribution = (graph: MultiDirectedGraph): Record<number, number> => {
   const distribution: Record<number, number> = {};
   graph.forEachNode((node) => {
     const wDegree = weightedDegree(graph, node);
@@ -69,7 +107,7 @@ const calculateWeightedDegreeDistribution = (graph: MultiDirectedGraph) => {
   return distribution;
 };
 
-const calculateAverageEccentricity = (graph: MultiDirectedGraph) => {
+const calculateAverageEccentricity = (graph: MultiDirectedGraph): string => {
   const eccs = graph.mapNodes((node) => eccentricity(graph, node));
   const sum = eccs.reduce((acc, val) => acc + val, 0);
   return (sum / eccs.length).toFixed(2);
@@ -92,6 +130,27 @@ const calculateNodeTypeStats = (graph: MultiDirectedGraph) => {
   });
 
   return stats;
+};
+
+const calculateResourceDegrees = (graph: MultiDirectedGraph): ResourceDegreeInfo[] => {
+  const resources: ResourceDegreeInfo[] = [];
+  
+  graph.forEachNode((node) => {
+    const attrs = graph.getNodeAttributes(node);
+    if (attrs.type === "resource") {
+      resources.push({
+        name: node,
+        degree: graph.degree(node),
+        type: attrs.type,
+        quantity: attrs.quantity || 0
+      });
+    }
+  });
+  
+  // Ordena por grau (maior primeiro)
+  resources.sort((a, b) => b.degree - a.degree);
+  
+  return resources;
 };
 
 const calculateEdgeTypeStats = (graph: MultiDirectedGraph) => {
@@ -117,7 +176,6 @@ const calculateEdgeTypeStats = (graph: MultiDirectedGraph) => {
 };
 
 const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
-  // Calcula as métricas diretamente durante a renderização
   const currentGraph = graph || new MultiDirectedGraph();
   const metrics = calculateMetrics(currentGraph);
 
@@ -161,6 +219,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
               </div>
             </Paper>
           </div>
+          
           {/* Centralidade */}
           <div style={{ flex: "1 1 300px" }}>
             <Paper style={{ padding: 16 }}>
@@ -187,6 +246,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
               </div>
             </Paper>
           </div>
+          
           {/* Estatísticas de Nós */}
           <div style={{ flex: "1 1 300px" }}>
             <Paper style={{ padding: 16 }}>
@@ -215,6 +275,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
               </div>
             </Paper>
           </div>
+          
           {/* Estatísticas de Arestas */}
           <div style={{ flex: "1 1 300px" }}>
             <Paper style={{ padding: 16 }}>
@@ -234,6 +295,55 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                 <Typography>
                   <strong>Total de Gastos:</strong> -{metrics.edgeTypeStats.cost.totalQuantity}
                 </Typography>
+              </div>
+            </Paper>
+          </div>
+          
+          {/* Recursos por Grau de Conexão */}
+          <div style={{ flex: "1 1 400px" }}>
+            <Paper style={{ padding: 16 }}>
+              <Typography variant="subtitle1" style={{ marginBottom: 16 }}>
+                Recursos Mais Conectados (Comuns)
+              </Typography>
+              <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}>
+                {metrics.resourceDegrees.slice(0, 5).map((resource, index) => (
+                  <div key={resource.name} style={{ 
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: 4,
+                    padding: 4,
+                    backgroundColor: index % 2 === 0 ? '#f5f5f5' : 'white'
+                  }}>
+                    <Typography variant="body2">
+                      {index + 1}. {resource.name}
+                    </Typography>
+                    <Typography variant="body2" style={{ fontWeight: 'bold' }}>
+                      {resource.degree} conexões
+                    </Typography>
+                  </div>
+                ))}
+              </div>
+
+              <Typography variant="subtitle1" style={{ marginBottom: 16 }}>
+                Recursos Pouco Conectados (Raros)
+              </Typography>
+              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                {metrics.resourceDegrees.slice(-5).reverse().map((resource, index) => (
+                  <div key={resource.name} style={{ 
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: 4,
+                    padding: 4,
+                    backgroundColor: index % 2 === 0 ? '#f5f5f5' : 'white'
+                  }}>
+                    <Typography variant="body2">
+                      {metrics.resourceDegrees.length - index}. {resource.name}
+                    </Typography>
+                    <Typography variant="body2" style={{ fontWeight: 'bold' }}>
+                      {resource.degree} conexão{resource.degree !== 1 ? 'es' : ''}
+                    </Typography>
+                  </div>
+                ))}
               </div>
             </Paper>
           </div>
