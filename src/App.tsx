@@ -14,6 +14,8 @@ import React from "react";
 import ResourceGraph from "./ResourceGraph.tsx";
 import GraphMetrics from "./GraphMetrics.tsx";
 
+type AnalysisTab = "petriNet" | "graph" | "historico";
+
 function App() {
   const game = useContext(GameReducerContext)!;
   const dispatch = useContext(GameDispatchContext)!;
@@ -34,112 +36,137 @@ function App() {
     dispatch({ type: GameActions.PASSAR_TURNO });
   }
 
-  function togglePetriNet() {
-    dispatch({ type: GameActions.TOGGLE_PETRI_NET });
+  function toggleAnalises() {
+    dispatch({ type: GameActions.TOGGLE_ANALISES });
   }
 
-  function toggleGraph() {
-    dispatch({ type: GameActions.TOGGLE_GRAPH });
+  function setActiveTab(tab: AnalysisTab) {
+    dispatch({
+      type: GameActions.SET_ACTIVE_TAB,
+      payload: tab,
+    });
   }
 
-  function toggleHistorico() {
-    dispatch({ type: GameActions.TOGGLE_HISTORICO });
-  }
-  
   const playableCards = React.useMemo(() => {
-    return [...game.mao].filter(card => {
-      return card.custo.every(cost => {
-        const resource = game.recursos.find(r => r.nome === cost.nome);
+    return [...game.mao].filter((card) => {
+      return card.custo.every((cost) => {
+        const resource = game.recursos.find((r) => r.nome === cost.nome);
         return resource && resource.quantidade >= cost.quantidade;
       });
     });
   }, [game.recursos, game.mao, game.oferta]);
 
   return (
-    <>
-      <div className="game-app">
-        <div className="game-header">
-          <div className="game-status">
-            <div className="status-item">pontos: {game.pontos}</div>
-            <ListaDeRecursos recursos={game.recursos} />
-          </div>
-          <div className="game-controls">
-            <button className="control-button" onClick={aumentaPonto}>
-              Aumenta Ponto
-            </button>
-            <button className="control-button" onClick={diminuiAcao}>
-              Diminui Ação
-            </button>
-            <button className="control-button" onClick={togglePetriNet}>
-              {game.showPetriNet ? "Ocultar Análises" : "Mostrar Análises"}
-            </button>
-            <button className="control-button" onClick={toggleGraph}>
-              {game.showGraph ? "Mostrar PetriNet" : "Mostrar Graph"}
-            </button>
-            <button className="control-button" onClick={toggleHistorico}>
-              {game.showHistorico ? "Ocultar Histórico" : "Mostrar Histórico"}
-            </button>
-            <button className="control-button primary" onClick={passarTurno}>
-              Passar Turno
-            </button>
+    <div className="game-app">
+      <div className="game-header">
+        <div className="game-status">
+          <div className="status-item">pontos: {game.pontos}</div>
+          <ListaDeRecursos recursos={game.recursos} />
+        </div>
+        <div className="game-controls">
+          <button className="control-button" onClick={aumentaPonto}>
+            Aumenta Ponto
+          </button>
+          <button className="control-button" onClick={diminuiAcao}>
+            Diminui Ação
+          </button>
+          <button className="control-button" onClick={toggleAnalises}>
+            {game.analisesVisiveis ? "Ocultar Análises" : "Mostrar Análises"}
+          </button>
+          <button className="control-button primary" onClick={passarTurno}>
+            Passar Turno
+          </button>
+        </div>
+      </div>
+
+      <div className="main-content">
+        <div className="game-area">
+          <div className="game-board">
+            <div className="game-row top-row">
+              <Oferta />
+            </div>
+            <div className="game-row bottom-row">
+              <Jogador />
+            </div>
           </div>
         </div>
 
-        <div className="main-content">
-          <div className="game-area">
-            <div className="game-board">
-              <div className="game-row top-row">
-                <Oferta />
-              </div>
-              <div className="game-row bottom-row">
-                <Jogador />
-              </div>
-            </div>
-          </div>
-
-          <div
-            className={`analises-area ${game.showPetriNet ? "visible" : ""}`}
-          >
+        {game.analisesVisiveis && (
+          <div className="analises-area visible">
             <div className="analises-container">
-              <div className="petri-net-container">
-                {game.showGraph ? (
-                  <ResourceGraph
-                    onGraphCreated={(graph) =>
-                      dispatch({
-                        type: GameActions.SET_GRAPH,
-                        payload: graph,
-                      })
-                    }
-                  />
-                ) : (
-                  <ResourcePetriNet
-                    recursos={game.recursos}
-                    playableCards={playableCards}
-                  />
+              <div className="analises-tabs">
+                <button
+                  className={`tab-button ${
+                    game.activeTab === "petriNet" ? "active" : ""
+                  }`}
+                  onClick={() => setActiveTab("petriNet")}
+                >
+                  Petri Net
+                </button>
+                <button
+                  className={`tab-button ${
+                    game.activeTab === "graph" ? "active" : ""
+                  }`}
+                  onClick={() => setActiveTab("graph")}
+                >
+                  Graph
+                </button>
+                <button
+                  className={`tab-button ${
+                    game.activeTab === "historico" ? "active" : ""
+                  }`}
+                  onClick={() =>
+                    dispatch({
+                      type: GameActions.SET_ACTIVE_TAB,
+                      payload: "historico",
+                    })
+                  }
+                >
+                  Histórico
+                </button>
+              </div>
+
+              <div className="analises-content">
+                {game.activeTab === "petriNet" && (
+                  <div className="petri-net-container visible">
+                    <ResourcePetriNet
+                      recursos={game.recursos}
+                      playableCards={playableCards}
+                    />
+                  </div>
                 )}
-                {game.showGraph && game.resourceGraph && (
-                  <GraphMetrics graph={game.resourceGraph} />
+
+                {game.activeTab === "graph" && (
+                  <div className="graph-container visible">
+                    <ResourceGraph
+                      onGraphCreated={(graph) =>
+                        dispatch({
+                          type: GameActions.SET_GRAPH,
+                          payload: graph,
+                        })
+                      }
+                    />
+                    {game.resourceGraph && (
+                      <GraphMetrics graph={game.resourceGraph} />
+                    )}
+                  </div>
+                )}
+
+                {game.activeTab === "historico" && (
+                  <div
+                    className={`historico-container ${
+                      game.activeTab === "historico" ? "visible" : ""
+                    }`}
+                  >
+                    <Historico />
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-
-        {game.showHistorico && (
-          <div className="historico-popup">
-            <div className="historico-popup-content">
-              <button
-                className="historico-close-button"
-                onClick={toggleHistorico}
-              >
-                ×
-              </button>
-              <Historico />
             </div>
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 

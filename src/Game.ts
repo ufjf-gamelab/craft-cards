@@ -12,9 +12,9 @@ export enum GameActions {
   JOGAR_CARTA = "jogar carta",
   PASSAR_TURNO = "passar turno",
   COMPRAR_CARTA = "comprar carta",
-  TOGGLE_PETRI_NET = "toggle petri net",
-  TOGGLE_GRAPH = "toggle graph",
   TOGGLE_HISTORICO = "toggle historico",
+  TOGGLE_ANALISES = "toggle analises",
+  SET_ACTIVE_TAB = "set active tab",
   SET_GRAPH = "set graph",
 }
 
@@ -40,12 +40,13 @@ type PassarTurnoActionType = {
   type: GameActions.PASSAR_TURNO;
 };
 
-type TogglePetriNetActionType = {
-  type: GameActions.TOGGLE_PETRI_NET;
+type SetActiveTabActionType = {
+  type: GameActions.SET_ACTIVE_TAB;
+  payload: "petriNet" | "graph" | "historico";
 };
 
-type ToggleGraphActionType = {
-  type: GameActions.TOGGLE_GRAPH;
+type ToggleAnalisesActionType = {
+  type: GameActions.TOGGLE_ANALISES;
 };
 
 type ToggleHistoricoActionType = {
@@ -63,11 +64,58 @@ type GameActionType =
   | JogarCartaActionType
   | PassarTurnoActionType
   | ComprarCartaActionType
-  | TogglePetriNetActionType
-  | ToggleGraphActionType
   | ToggleHistoricoActionType
-  | SetGraphActionType
-  | ToggleHistoricoActionType;
+  | ToggleAnalisesActionType
+  | SetActiveTabActionType
+  | SetGraphActionType;
+
+export function gameReducer(game: GameType, action: GameActionType): GameType {
+  switch (action.type) {
+    case GameActions.AUMENTA_PONTO:
+      return aumentaPontoAction(game, action);
+
+    case GameActions.DIMINUI_ACAO:
+      return diminuiAcaoAction(game, action);
+
+    case GameActions.JOGAR_CARTA:
+      return jogarCartaAction(game, action);
+
+    case GameActions.PASSAR_TURNO:
+      return passarTurnoAction(game, action);
+
+    case GameActions.COMPRAR_CARTA:
+      return comprarCartaAction(game, action);
+
+    case GameActions.TOGGLE_ANALISES:
+      return {
+        ...game,
+        analisesVisiveis: !game.analisesVisiveis,
+      };
+
+    case GameActions.SET_ACTIVE_TAB:
+      return {
+        ...game,
+        activeTab: action.payload,
+      };
+
+    case GameActions.SET_GRAPH:
+      return {
+        ...game,
+        resourceGraph: action.payload,
+      };
+
+    case GameActions.TOGGLE_HISTORICO:
+      return {
+        ...game,
+        showHistorico: !game.showHistorico,
+      };
+
+    default:
+      break;
+  }
+
+  return game;
+}
 
 export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
   return (state: GameType, action: GameActionType): GameType => {
@@ -96,54 +144,6 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
     }
     return novoEstado;
   };
-}
-
-export function gameReducer(game: GameType, action: GameActionType): GameType {
-  switch (action.type) {
-    case GameActions.AUMENTA_PONTO:
-      return aumentaPontoAction(game, action);
-
-    case GameActions.DIMINUI_ACAO:
-      return diminuiAcaoAction(game, action);
-
-    case GameActions.JOGAR_CARTA:
-      return jogarCartaAction(game, action);
-
-    case GameActions.PASSAR_TURNO:
-      return passarTurnoAction(game, action);
-
-    case GameActions.COMPRAR_CARTA:
-      return comprarCartaAction(game, action);
-
-    case GameActions.TOGGLE_PETRI_NET:
-      return {
-        ...game,
-        showPetriNet: !game.showPetriNet,
-      };
-
-    case GameActions.TOGGLE_GRAPH:
-      return {
-        ...game,
-        showGraph: !game.showGraph,
-      };
-
-    case GameActions.TOGGLE_HISTORICO:
-      return {
-        ...game,
-        showHistorico: !game.showHistorico,
-      };
-
-    case GameActions.SET_GRAPH:
-      return {
-        ...game,
-        resourceGraph: action.payload,
-      };
-
-    default:
-      break;
-  }
-
-  return game;
 }
 
 function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
@@ -296,8 +296,9 @@ export function setupNewGame(game: GameType) {
   return {
     ...newGame,
     historico: [],
-    showPetriNet: false,
-    showGraph: true,
     showHistorico: false,
+    analisesVisiveis: false,
+    activeTab: "petriNet",
+    resourceGraph: null,
   };
 }

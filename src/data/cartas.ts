@@ -21,6 +21,8 @@ export type GameType = {
   showGraph: boolean;
   showHistorico?: boolean;
   resourceGraph?: MultiDirectedGraph;
+  activeTab?: "petriNet" | "graph" | "historico";
+  analisesVisiveis?: boolean;
 };
 
 export type CartaType = {
