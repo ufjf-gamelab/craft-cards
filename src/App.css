@@ -113,7 +113,7 @@
 
 .petri-net-container,
 .graph-container,
-.historico-container {
+.historico-tab-container {
   height: 100%;
   width: 100%;
   display: none;
@@ -121,7 +121,7 @@
 
 .petri-net-container.visible,
 .graph-container.visible,
-.historico-container.visible {
+.historico-tab-container.visible {
   display: block;
 }
 

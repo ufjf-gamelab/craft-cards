@@ -154,7 +154,7 @@ function App() {
 
                 {game.activeTab === "historico" && (
                   <div
-                    className={`historico-container ${
+                    className={`historico-tab-container ${
                       game.activeTab === "historico" ? "visible" : ""
                     }`}
                   >

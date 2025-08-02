@@ -12,7 +12,6 @@ export enum GameActions {
   JOGAR_CARTA = "jogar carta",
   PASSAR_TURNO = "passar turno",
   COMPRAR_CARTA = "comprar carta",
-  TOGGLE_HISTORICO = "toggle historico",
   TOGGLE_ANALISES = "toggle analises",
   SET_ACTIVE_TAB = "set active tab",
   SET_GRAPH = "set graph",
@@ -49,10 +48,6 @@ type ToggleAnalisesActionType = {
   type: GameActions.TOGGLE_ANALISES;
 };
 
-type ToggleHistoricoActionType = {
-  type: GameActions.TOGGLE_HISTORICO;
-};
-
 type SetGraphActionType = {
   type: GameActions.SET_GRAPH;
   payload: MultiDirectedGraph;
@@ -64,7 +59,6 @@ type GameActionType =
   | JogarCartaActionType
   | PassarTurnoActionType
   | ComprarCartaActionType
-  | ToggleHistoricoActionType
   | ToggleAnalisesActionType
   | SetActiveTabActionType
   | SetGraphActionType;
@@ -102,12 +96,6 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
       return {
         ...game,
         resourceGraph: action.payload,
-      };
-
-    case GameActions.TOGGLE_HISTORICO:
-      return {
-        ...game,
-        showHistorico: !game.showHistorico,
       };
 
     default:
@@ -296,7 +284,6 @@ export function setupNewGame(game: GameType) {
   return {
     ...newGame,
     historico: [],
-    showHistorico: false,
     analisesVisiveis: false,
     activeTab: "petriNet",
     resourceGraph: null,
