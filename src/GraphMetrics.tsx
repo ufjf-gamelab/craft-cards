@@ -16,8 +16,21 @@ type GraphMetricsProps = {
 type ResourceDegreeInfo = {
   name: string;
   degree: number;
+  inDegree: number;
+  outDegree: number;
   type: string;
   quantity?: number;
+  production?: number;
+  consumption?: number;
+}
+
+type ProductionConsumptionStats = {
+  producedResources: ResourceDegreeInfo[];
+  consumedResources: ResourceDegreeInfo[];
+  topProducers: ResourceDegreeInfo[];
+  topConsumers: ResourceDegreeInfo[];
+  totalProduction: number;
+  totalConsumption: number;
 }
 
 type GraphMetricsData = {
@@ -48,39 +61,71 @@ type GraphMetricsData = {
     cost: { count: number; totalQuantity: number };
   };
   resourceDegrees: ResourceDegreeInfo[];
+  productionConsumption: ProductionConsumptionStats;
 }
 
-export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | null => {
-  if (graph.order === 0) return null;
+const calculateProductionConsumption = (graph: MultiDirectedGraph): ProductionConsumptionStats => {
+  const resources: ResourceDegreeInfo[] = [];
+  let totalProduction = 0;
+  let totalConsumption = 0;
 
-  try {
-    return {
-      basic: {
-        order: graph.order,
-        size: simpleSize(graph),
-        density: density(graph).toFixed(4),
-        isDirected: true,
-        isMultiGraph: true,
-      },
-      centrality: {
-        averageDegree: calculateAverageDegree(graph),
-        degreeDistribution: calculateDegreeDistribution(graph),
-        weightedDegreeDistribution: calculateWeightedDegreeDistribution(graph),
-      },
-      connectivity: {
-        diameter: diameter(graph),
-        averageEccentricity: calculateAverageEccentricity(graph),
-        isConnected: connectedComponents(graph).length === 1,
-        stronglyConnectedComponents: connectedComponents(graph).length,
-      },
-      nodeTypeStats: calculateNodeTypeStats(graph),
-      edgeTypeStats: calculateEdgeTypeStats(graph),
-      resourceDegrees: calculateResourceDegrees(graph),
-    };
-  } catch (error) {
-    console.error("Error calculating graph metrics:", error);
-    return null;
-  }
+  graph.forEachNode((node) => {
+    const attrs = graph.getNodeAttributes(node);
+    if (attrs.type === "resource") {
+      const inDegree = graph.inDegree(node);
+      const outDegree = graph.outDegree(node);
+      
+      let production = 0;
+      let consumption = 0;
+
+      // Calcular produção total (arestas de entrada com label positiva)
+      graph.forEachInEdge(node, (edge) => {
+        const edgeAttrs = graph.getEdgeAttributes(edge);
+        if (edgeAttrs.color === LINK_COLORS.gain) {
+          const quantity = parseInt(edgeAttrs.label.replace("+", "")) || 0;
+          production += quantity;
+          totalProduction += quantity;
+        }
+      });
+
+      // Calcular consumo total (arestas de saída com label negativa)
+      graph.forEachOutEdge(node, (edge) => {
+        const edgeAttrs = graph.getEdgeAttributes(edge);
+        if (edgeAttrs.color === LINK_COLORS.cost) {
+          const quantity = parseInt(edgeAttrs.label.replace("-", "")) || 0;
+          consumption += quantity;
+          totalConsumption += quantity;
+        }
+      });
+
+      resources.push({
+        name: node,
+        degree: graph.degree(node),
+        inDegree,
+        outDegree,
+        type: attrs.type,
+        quantity: attrs.quantity || 0,
+        production,
+        consumption
+      });
+    }
+  });
+
+  // Ordenar por produção e consumo
+  const producedResources = resources.filter(r => (r.production ?? 0) > 0)
+    .sort((a, b) => (b.production ?? 0) - (a.production ?? 0));
+  
+  const consumedResources = resources.filter(r => (r.consumption ?? 0) > 0)
+    .sort((a, b) => (b.consumption ?? 0) - (a.consumption ?? 0));
+
+  return {
+    producedResources,
+    consumedResources,
+    topProducers: producedResources.slice(0, 5),
+    topConsumers: consumedResources.slice(0, 5),
+    totalProduction,
+    totalConsumption
+  };
 };
 
 const calculateAverageDegree = (graph: MultiDirectedGraph): string => {
@@ -141,6 +186,8 @@ const calculateResourceDegrees = (graph: MultiDirectedGraph): ResourceDegreeInfo
       resources.push({
         name: node,
         degree: graph.degree(node),
+        inDegree: graph.inDegree(node),
+        outDegree: graph.outDegree(node),
         type: attrs.type,
         quantity: attrs.quantity || 0
       });
@@ -173,6 +220,40 @@ const calculateEdgeTypeStats = (graph: MultiDirectedGraph) => {
   });
 
   return stats;
+};
+
+export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | null => {
+  if (graph.order === 0) return null;
+
+  try {
+    return {
+      basic: {
+        order: graph.order,
+        size: simpleSize(graph),
+        density: density(graph).toFixed(4),
+        isDirected: true,
+        isMultiGraph: true,
+      },
+      centrality: {
+        averageDegree: calculateAverageDegree(graph),
+        degreeDistribution: calculateDegreeDistribution(graph),
+        weightedDegreeDistribution: calculateWeightedDegreeDistribution(graph),
+      },
+      connectivity: {
+        diameter: diameter(graph),
+        averageEccentricity: calculateAverageEccentricity(graph),
+        isConnected: connectedComponents(graph).length === 1,
+        stronglyConnectedComponents: connectedComponents(graph).length,
+      },
+      nodeTypeStats: calculateNodeTypeStats(graph),
+      edgeTypeStats: calculateEdgeTypeStats(graph),
+      resourceDegrees: calculateResourceDegrees(graph),
+      productionConsumption: calculateProductionConsumption(graph),
+    };
+  } catch (error) {
+    console.error("Error calculating graph metrics:", error);
+    return null;
+  }
 };
 
 const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
@@ -344,6 +425,74 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                     </Typography>
                   </div>
                 ))}
+              </div>
+            </Paper>
+          </div>
+
+          {/* Produção e Consumo */}
+          <div style={{ flex: "1 1 400px" }}>
+            <Paper style={{ padding: 16 }}>
+              <Typography variant="subtitle1" style={{ marginBottom: 16 }}>
+                Produção e Consumo
+              </Typography>
+              
+              <Typography variant="subtitle2" style={{ marginBottom: 8 }}>
+                Top Produtores
+              </Typography>
+              <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}>
+                {metrics.productionConsumption.topProducers.map((resource, index) => (
+                  <div key={resource.name} style={{ 
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: 4,
+                    padding: 4,
+                    backgroundColor: index % 2 === 0 ? '#f5f5f5' : 'white'
+                  }}>
+                    <Typography variant="body2">
+                      {index + 1}. {resource.name}
+                    </Typography>
+                    <Typography variant="body2" style={{ fontWeight: 'bold', color: '#2e7d32' }}>
+                      +{resource.production}
+                    </Typography>
+                  </div>
+                ))}
+              </div>
+
+              <Typography variant="subtitle2" style={{ marginBottom: 8 }}>
+                Top Consumidores
+              </Typography>
+              <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 16 }}>
+                {metrics.productionConsumption.topConsumers.map((resource, index) => (
+                  <div key={resource.name} style={{ 
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: 4,
+                    padding: 4,
+                    backgroundColor: index % 2 === 0 ? '#f5f5f5' : 'white'
+                  }}>
+                    <Typography variant="body2">
+                      {index + 1}. {resource.name}
+                    </Typography>
+                    <Typography variant="body2" style={{ fontWeight: 'bold', color: '#d32f2f' }}>
+                      -{resource.consumption}
+                    </Typography>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography>
+                  <strong>Total Produzido:</strong> 
+                  <span style={{ color: '#2e7d32', marginLeft: 4 }}>
+                    +{metrics.productionConsumption.totalProduction}
+                  </span>
+                </Typography>
+                <Typography>
+                  <strong>Total Consumido:</strong>
+                  <span style={{ color: '#d32f2f', marginLeft: 4 }}>
+                    -{metrics.productionConsumption.totalConsumption}
+                  </span>
+                </Typography>
               </div>
             </Paper>
           </div>
