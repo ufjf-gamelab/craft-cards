@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
 import { Paper, Box } from "@mui/material";
@@ -28,52 +28,33 @@ type ResourcePetriNetProps = {
 };
 
 export const NODE_COLORS = {
-  place: "#4CAF50",    // Verde para lugares (recursos)
+  place: "#4CAF50", // Verde para lugares (recursos)
   transition: "#2196F3", // Azul para transições (cartas)
   activeTransition: "#FFC107", //Laranja para transições que podem ser ativas
 };
 
 export const LINK_COLORS = {
-  input: "#F44336",    // Vermelho para arcos de entrada (custos)
-  output: "#4CAF50",   // Verde para arcos de saída (ganhos)
+  input: "#F44336", // Vermelho para arcos de entrada (custos)
+  output: "#4CAF50", // Verde para arcos de saída (ganhos)
 };
 
-const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableCards }) => {
+const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
+  recursos,
+  playableCards,
+}) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const initializedRef = useRef(false);
+  const [petriNetInitialized, setPetriNetInitialized] = useState(false);
+  const simulationRef = useRef<any>(null);
+  const graphRef = useRef<MultiDirectedGraph<
+    NodeAttributes,
+    LinkAttributes
+  > | null>(null);
 
-  // Funções para atualizar o grafo
-  const updateGraph = () => {
-    if (!initializedRef.current || !svgRef.current) return;
-    
-    const svg = d3.select(svgRef.current);
-    svg.selectAll(".token-count")
-      .text((d: any) => {
-        const resource = recursos.find(r => r.nome === d.label);
-        return resource?.quantidade || 0;
-      });
-      updateTransitionColors();
-  };
+  // Função de inicialização
+  const initPetriNet = () => {
+    if (!svgRef.current || !containerRef.current || petriNetInitialized) return;
 
-  const updateTransitionColors = () => {
-    if (!initializedRef.current || !svgRef.current) return;
-    
-    const svg = d3.select(svgRef.current);
-    svg.selectAll(".transition-node")
-      .attr("fill", (d: any) => {
-        if (d.type !== "transition") return d.color;
-        const cardId = d.id.replace("transition_", "");
-        return playableCards.some(card => card.id === cardId)
-          ? NODE_COLORS.activeTransition
-          : NODE_COLORS.transition;
-      });
-  };
-
-  // Inicialização do grafo (executada apenas uma vez)
-  if (!initializedRef.current && svgRef.current && containerRef.current) {
-    initializedRef.current = true;
-    
     const container = containerRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
@@ -85,9 +66,11 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
 
     // Criação do grafo estático
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
+    graphRef.current = graph;
+
     const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
-    // 1. Adiciona todas as transições (cartas)
+    // Adiciona nós de transição (cartas)
     allCards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
       graph.addNode(transitionId, {
@@ -95,24 +78,26 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
         label: carta.titulo,
         type: "transition",
         size: 10,
-        color: NODE_COLORS.transition,
+        color: playableCards.some((card) => card.id === carta.id)
+          ? NODE_COLORS.activeTransition
+          : NODE_COLORS.transition,
       });
     });
 
     // 2. Adiciona todos os lugares (recursos)
     const allResources = new Set<string>();
-    allCards.forEach(carta => {
-      [...carta.ganho, ...carta.custo].forEach(recurso => {
+    allCards.forEach((carta) => {
+      [...carta.ganho, ...carta.custo].forEach((recurso) => {
         allResources.add(recurso.nome);
       });
     });
 
-    allResources.forEach(nome => {
+    allResources.forEach((nome) => {
       graph.addNode(`place_${nome}`, {
         id: `place_${nome}`,
         label: nome,
         type: "place",
-        tokens: recursos.find(r => r.nome === nome)?.quantidade || 0, //adiciona tokens
+        tokens: recursos.find((r) => r.nome === nome)?.quantidade || 0, //adiciona tokens
         size: 15,
         color: NODE_COLORS.place,
       });
@@ -121,7 +106,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
     // 3. Adiciona todos os arcos
     allCards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
-      
+
       // Arcos de entrada (custos)
       carta.custo.forEach((custo) => {
         const placeId = `place_${custo.nome}`;
@@ -132,7 +117,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
           color: LINK_COLORS.input,
         });
       });
-      
+
       // Arcos de saída (ganhos)
       carta.ganho.forEach((ganho) => {
         const placeId = `place_${ganho.nome}`;
@@ -150,7 +135,8 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
     const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
     // Configuração do zoom
-    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+    const zoomBehavior = d3
+      .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
       .on("zoom", (event) => g.attr("transform", event.transform));
 
@@ -159,17 +145,27 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
     const g = svg.append("g");
 
     // Cria a simulação de força
-    const simulation = d3.forceSimulation(nodes)
+    const simulation = d3
+      .forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-100))
-      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(90))
+      .force(
+        "link",
+        d3
+          .forceLink(links)
+          .id((d: any) => d.id)
+          .distance(90)
+      )
       .force("center", d3.forceCenter(width / 2, height / 2))
       .alphaDecay(0.05)
       .velocityDecay(0.4);
 
-    // Adiciona marcadores de seta
+    simulationRef.current = simulation;
+
+    // Marcadores de seta
     const defs = svg.append("defs");
     Object.values(LINK_COLORS).forEach((color) => {
-      defs.append("marker")
+      defs
+        .append("marker")
         .attr("id", `arrowhead-${color.replace("#", "")}`)
         .attr("viewBox", "0 -5 10 10")
         .attr("refX", 15)
@@ -182,8 +178,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
         .attr("fill", color);
     });
 
-    // Desenha os links (arcos)
-    const link = g.append("g")
+    // Links
+    const link = g
+      .append("g")
       .selectAll("line")
       .data(links)
       .enter()
@@ -192,63 +189,65 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
       .attr("stroke-width", 2)
       .attr("marker-end", (d) => `url(#arrowhead-${d.color.replace("#", "")}`);
 
-    // Desenha os nós (lugares e transições) com classes específicas para atualização
-    const node = g.append("g")
+    // Nós
+    const node = g
+      .append("g")
       .selectAll("g")
       .data(nodes)
       .enter()
       .append("g")
       .call(
-        d3.drag<SVGGElement, NodeAttributes>()
+        d3
+          .drag<SVGGElement, NodeAttributes>()
           .on("start", dragstarted)
           .on("drag", dragged)
           .on("end", dragended)
       );
 
     // Renderização dos nós
-    node.each(function(d) {
-      const nodeGroup = d3.select(this);
-      
+    node.each(function (this: SVGGElement, d: NodeAttributes) {
+      const nodeGroup = d3.select<SVGGElement, NodeAttributes>(this);
+
       if (d.type === "place") {
-        // Círculo para lugares
-        nodeGroup.append("circle")
+        nodeGroup
+          .append("circle")
           .attr("r", d.size)
           .attr("fill", d.color)
           .attr("stroke", "#fff")
           .attr("stroke-width", 2);
-        
-        // Contador de tokens
-        nodeGroup.append("text")
+
+        nodeGroup
+          .append("text")
           .attr("class", "token-count")
           .attr("dy", 4)
           .attr("text-anchor", "middle")
           .attr("fill", "#fff")
           .style("font-weight", "bold")
           .text(d.tokens || 0);
-          
-        // Rótulo do lugar
-        nodeGroup.append("text")
+
+        nodeGroup
+          .append("text")
           .attr("dy", d.size + 15)
           .attr("text-anchor", "middle")
           .attr("fill", "#fff")
           .style("font-size", "10px")
           .text(d.label);
       } else {
-        // Retângulo para transições
-        nodeGroup.append("rect")
-          .attr("class", "transition-node") // Classe para seleção
-          .attr("width", d.size * 0.5)
-          .attr("height", d.size * 4)
-          .attr("x", -d.size * 0.25)
-          .attr("y", -d.size *2)
+        nodeGroup
+          .append("rect")
+          .attr("class", "transition-node")
+          .attr("width", 5)
+          .attr("height", 40)
+          .attr("x", -2.5)
+          .attr("y", -20)
           .attr("rx", 2)
           .attr("fill", d.color)
           .attr("stroke", "#fff")
           .attr("stroke-width", 2);
-          
-        // Rótulo da transição
-        nodeGroup.append("text")
-          .attr("dy", d.size + 15)
+
+        nodeGroup
+          .append("text")
+          .attr("dy", 25)
           .attr("text-anchor", "middle")
           .attr("fill", "#fff")
           .style("font-size", "10px")
@@ -257,7 +256,8 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
     });
 
     // Rótulos dos arcos
-    const linkLabels = g.append("g")
+    const linkLabels = g
+      .append("g")
       .selectAll("text")
       .data(links)
       .enter()
@@ -312,13 +312,13 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
         (width - 100) / graphWidth,
         (height - 100) / graphHeight,
         1.0
+        
       );
 
       const translate = [
         (width - graphWidth * scale) / 2 - minX * scale,
         (height - graphHeight * scale) / 2 - minY * scale,
       ];
-
       g.transition()
         .duration(1000)
         .attr(
@@ -327,14 +327,56 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({ recursos, playableC
         );
     };
 
-    setTimeout(adjustZoom, 1500);
-    updateGraph();
-  }
+    setTimeout(adjustZoom, 500);
+    setPetriNetInitialized(true);
+  };
 
-  // Atualiza os tokens quando o jogo muda
-  updateGraph();
+  // Função para atualizar os visuais
+  const updatePetriNet = () => {
+    if (!petriNetInitialized || !svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+
+    // Atualiza tokens
+    svg.selectAll(".token-count").text((d: any) => {
+      if (d.type !== "place") {
+        return "0"; // Retorna como string para garantir compatibilidade
+      }
+      const resource = recursos.find((r) => r.nome === d.label);
+      return resource ? String(resource.quantidade) : "0";
+    });
+
+    // Atualiza cores das transições
+    svg.selectAll(".transition-node").attr("fill", (d: any) => {
+      if (d.type !== "transition") return d.color;
+      const cardId = d.id.replace("transition_", "");
+      return playableCards.some((card) => card.id === cardId)
+        ? NODE_COLORS.activeTransition
+        : NODE_COLORS.transition;
+    });
+  };
+
+  // Inicializa a PetriNet quando o componente é montado
+  React.useLayoutEffect(() => {
+    initPetriNet();
+  }, []);
+
+  // Atualiza a PetriNet quando os recursos ou cartas jogáveis mudam
+  React.useLayoutEffect(() => {
+    updatePetriNet();
+  }, [recursos, playableCards]);
+
   return (
-    <Paper sx={{ height: "600px", minWidth: "800px", position: "relative", backgroundColor: "#363636ff", borderRadius: "10px", boxShadow: "0 2px 10px rgba(0, 0, 0, 0.837)"}}>
+    <Paper
+      sx={{
+        height: "600px",
+        minWidth: "800px",
+        position: "relative",
+        backgroundColor: "#363636ff",
+        borderRadius: "10px",
+        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.837)",
+      }}
+    >
       <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
         <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
       </Box>

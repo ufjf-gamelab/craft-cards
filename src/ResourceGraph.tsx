@@ -279,7 +279,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         );
     };
 
-    setTimeout(adjustZoom, 1500);
+    setTimeout(adjustZoom, 500);
     setGraphInitialized(true);
 
     // Call the callback if provided
