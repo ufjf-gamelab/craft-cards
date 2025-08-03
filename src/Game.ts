@@ -285,7 +285,7 @@ export function setupNewGame(game: GameType) {
     ...newGame,
     historico: [],
     analisesVisiveis: false,
-    activeTab: "petriNet",
+    activeTab: "graph",
     resourceGraph: null,
   };
 }
