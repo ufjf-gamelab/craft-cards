@@ -6,7 +6,7 @@ import eccentricity from 'graphology-metrics/node/eccentricity';
 import { weightedDegree } from 'graphology-metrics/node/weighted-degree';
 import { connectedComponents } from 'graphology-components';
 import simpleSize from 'graphology-metrics/graph/simple-size';
-import { Paper, Typography, Box, Tabs, Tab, Collapse, IconButton, Tooltip, Chip, Divider } from "@mui/material";
+import { Paper, Typography, Box, Tabs, Tab, List, ListItemButton, ListItemIcon, ListItemText, ListItem, Collapse, IconButton, Tooltip, Chip, Divider } from "@mui/material";
 import { LINK_COLORS } from "./ResourceGraph";
 
 type GraphMetricsProps = {
@@ -71,6 +71,15 @@ type GraphMetricsData = {
   resourceDegrees: ResourceDegreeInfo[];
   productionConsumption: ProductionConsumptionStats;
   pathAnalysis: PathAnalysis;
+}
+
+type Problem = {
+  id: string;
+  type: 'error' | 'warning' | 'info' | 'suggestion';
+  message: string;
+  resource?: string;
+  details?: string;
+  fix?: string;
 }
 
 const ExpandIcon = ({ expanded }: { expanded: boolean }) => (
@@ -159,6 +168,10 @@ const ResourceChip: React.FC<{
     />
   </Box>
 );
+
+const ErrorIcon = () => <span style={{ color: '#f44336', fontWeight: 'bold' }}>✖</span>;
+const WarningIcon = () => <span style={{ color: '#ff9800', fontWeight: 'bold' }}>⚠</span>;
+const LightbulbIcon = () => <span style={{ color: '#2196f3', fontWeight: 'bold' }}>💡</span>;
 
 const findAllPaths = (
   graph: MultiDirectedGraph,
@@ -493,6 +506,336 @@ export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | 
   }
 };
 
+const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics }) => {
+  const [activeTab, setActiveTab] = useState<'problems' | 'warnings' | 'suggestions'>('problems');
+  
+  const generateProblems = (): Problem[] => {
+    const problems: Problem[] = [];
+    const coOccurrenceMap = new Map<string, number>();
+    const patternMap = new Map<string, number>();
+
+    // 1. Problemas críticos (existente)
+    Object.entries(metrics.pathAnalysis.shortestPaths).forEach(([start, paths]) => {
+      const allResources = Object.keys(metrics.pathAnalysis.allPaths);
+      allResources.forEach(end => {
+        if (start !== end && !paths[end]) {
+          problems.push({
+            id: `unreachable-${start}-${end}`,
+            type: 'error',
+            message: `Recurso "${end}" não pode ser alcançado a partir de "${start}"`,
+            resource: end,
+            details: `Não existe caminho de produção para obter ${end} a partir de ${start}`,
+            fix: `Adicione uma carta que produza ${end} ou crie uma cadeia de produção intermediária`
+          });
+        }
+      });
+    });
+
+    // 2. Warnings (existente)
+    metrics.resourceDegrees.forEach(resource => {
+      if (resource.outDegree === 0 && resource.inDegree > 0) {
+        problems.push({
+          id: `unused-${resource.name}`,
+          type: 'warning',
+          message: `Recurso "${resource.name}" é produzido mas não é consumido`,
+          resource: resource.name,
+          details: `Produzido ${resource.inDegree} vezes mas nunca consumido`,
+          fix: `Adicione cartas que consumam ${resource.name} ou remova suas fontes de produção`
+        });
+      }
+    });
+
+    if (!metrics.connectivity.isConnected) {
+      problems.push({
+        id: 'disconnected-graph',
+        type: 'warning',
+        message: 'O grafo possui componentes desconexos',
+        details: `Existem ${metrics.connectivity.stronglyConnectedComponents} subgrafos não conectados entre si`,
+        fix: 'Considere adicionar cartas que conectem os diferentes subsistemas de recursos'
+      });
+    }
+
+    if (metrics.pathAnalysis.mostDemandedResource) {
+      const top = metrics.pathAnalysis.mostDemandedResource;
+      problems.push({
+        id: 'high-demand',
+        type: 'warning',
+        message: `Recurso "${top.name}" tem alta demanda (${top.outDegree} usos)`,
+        resource: top.name,
+        details: `É consumido por ${top.outDegree} cartas mas produzido apenas ${top.inDegree} vezes`,
+        fix: `Balanceie adicionando mais fontes de "${top.name}" ou reduzindo suas dependências`
+      });
+    }
+
+    if (metrics.pathAnalysis.hasCycles) {
+      problems.push({
+        id: 'cycles-detected',
+        type: metrics.pathAnalysis.cycleExamples.length > 2 ? 'warning' : 'info',
+        message: `${metrics.pathAnalysis.cycleExamples.length} ciclos de dependência detectados`,
+        details: `Exemplo: ${metrics.pathAnalysis.cycleExamples[0].join(' → ')} → ${metrics.pathAnalysis.cycleExamples[0][0]}`,
+        fix: 'Ciclos podem criar loops infinitos - verifique se são intencionais'
+      });
+    }
+
+    // 3. Análise para sugestões
+    // 3.1. Densidade do grafo
+    if (parseFloat(metrics.basic.density) > 0.5) {
+      problems.push({
+        id: 'high-density',
+        type: 'suggestion',
+        message: 'Densidade do grafo muito alta (sistema complexo)',
+        details: `Densidade atual: ${metrics.basic.density}`,
+        fix: 'Considere simplificar as relações entre recursos ou dividir em subsistemas'
+      });
+    }
+
+    // 3.2. Balanceamento econômico
+    metrics.resourceDegrees.forEach(resource => {
+      if (resource.inDegree > 0 && resource.outDegree > 0) {
+        const ratio = resource.outDegree / resource.inDegree;
+        if (ratio > 2) {
+          problems.push({
+            id: `high-demand-ratio-${resource.name}`,
+            type: 'suggestion',
+            message: `Recurso "${resource.name}" tem alta relação demanda/produção`,
+            details: `É consumido ${resource.outDegree} vezes mas produzido apenas ${resource.inDegree} vezes (razão ${ratio.toFixed(1)})`,
+            fix: `Considere adicionar mais fontes de "${resource.name}" ou reduzir suas dependências`
+          });
+        } else if (ratio < 0.5) {
+          problems.push({
+            id: `low-demand-ratio-${resource.name}`,
+            type: 'suggestion',
+            message: `Recurso "${resource.name}" tem baixa utilização`,
+            details: `É produzido ${resource.inDegree} vezes mas consumido apenas ${resource.outDegree} vezes`,
+            fix: `Considere adicionar mais usos para "${resource.name}" ou reduzir sua produção`
+          });
+        }
+      }
+    });
+
+    // 3.3. Caminhos longos
+    Object.entries(metrics.pathAnalysis.shortestPaths).forEach(([start, paths]) => {
+      Object.entries(paths).forEach(([end, path]) => {
+        if (path.length > 4) {
+          problems.push({
+            id: `long-path-${start}-${end}`,
+            type: 'suggestion',
+            message: `Caminho muito longo entre ${start} e ${end}`,
+            details: `Requer ${path.length-1} passos: ${path.join(" → ")}`,
+            fix: `Considere adicionar um atalho direto ou recurso intermediário`
+          });
+        }
+      });
+    });
+
+    // 3.4. Padrões de co-ocorrência
+    Object.values(metrics.pathAnalysis.shortestPaths).forEach(paths => {
+      Object.values(paths).forEach(path => {
+        // Mapeia pares de recursos consecutivos
+        path.forEach((node, i) => {
+          if (i < path.length-1) {
+            const pair = `${node}→${path[i+1]}`;
+            coOccurrenceMap.set(pair, (coOccurrenceMap.get(pair) || 0) + 1);
+          }
+        });
+
+        // Mapeia padrões de 3 recursos
+        for (let i = 0; i < path.length-2; i++) {
+          const sequence = path.slice(i, i+3).join('→');
+          patternMap.set(sequence, (patternMap.get(sequence) || 0) + 1);
+        }
+      });
+    });
+
+    // Sugere combinar recursos frequentemente pareados
+    coOccurrenceMap.forEach((count, pair) => {
+      if (count > 3) {
+        const [resA, resB] = pair.split('→');
+        problems.push({
+          id: `co-occurrence-${pair}`,
+          type: 'suggestion',
+          message: `Recursos ${resA} e ${resB} são frequentemente usados juntos`,
+          details: `Aparecem juntos em ${count} caminhos diferentes`,
+          fix: `Considere criar um recurso composto "${resA}+${resB}" ou uma carta que os produza/consuma juntos`
+        });
+      }
+    });
+
+    // Sugere formalizar padrões recorrentes
+    patternMap.forEach((count, sequence) => {
+      if (count >= 3) {
+        problems.push({
+          id: `pattern-${sequence}`,
+          type: 'suggestion',
+          message: `Padrão recorrente detectado: ${sequence.replace(/→/g, ' → ')}`,
+          details: `Aparece ${count} vezes em diferentes caminhos`,
+          fix: `Considere criar uma mecânica ou carta que encapsule este padrão`
+        });
+      }
+    });
+
+    // 3.5. Recursos subutilizados
+    metrics.resourceDegrees.forEach(resource => {
+      if (resource.inDegree === 1 && resource.outDegree === 1) {
+        problems.push({
+          id: `underutilized-${resource.name}`,
+          type: 'suggestion',
+          message: `Recurso "${resource.name}" tem apenas uma fonte e um uso`,
+          details: 'Pode ser um ponto desnecessário na cadeia de produção',
+          fix: `Considere remover "${resource.name}" ou dar mais utilidades a ele`
+        });
+      }
+    });
+
+    // 3.6. Balanceamento produção/consumo global
+    const globalRatio = metrics.productionConsumption.totalProduction / 
+                       (metrics.productionConsumption.totalConsumption || 1);
+    
+    if (globalRatio > 1.5) {
+      problems.push({
+        id: 'global-production-excess',
+        type: 'suggestion',
+        message: 'Produção global muito maior que consumo',
+        details: `Produção total: +${metrics.productionConsumption.totalProduction} | Consumo total: -${metrics.productionConsumption.totalConsumption}`,
+        fix: 'Ajuste as quantidades para evitar acúmulo excessivo de recursos'
+      });
+    } else if (globalRatio < 0.67) {
+      problems.push({
+        id: 'global-consumption-excess',
+        type: 'suggestion',
+        message: 'Consumo global muito maior que produção',
+        details: `Produção total: +${metrics.productionConsumption.totalProduction} | Consumo total: -${metrics.productionConsumption.totalConsumption}`,
+        fix: 'Ajuste as quantidades para evitar falta de recursos'
+      });
+    }
+
+    return problems;
+  };
+
+  const problems = generateProblems();
+  const errors = problems.filter(p => p.type === 'error');
+  const warnings = problems.filter(p => p.type === 'warning');
+  const suggestions = problems.filter(p => p.type === 'suggestion' || p.type === 'info');
+
+  return (
+    <Paper style={{ padding: 16, height: '100%', overflow: 'auto' }}>
+      <Typography variant="h6" gutterBottom>
+        Análise de Balanceamento
+      </Typography>
+      
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <ErrorIcon />
+                <span style={{ marginLeft: 8 }}>Problemas ({errors.length})</span>
+              </Box>
+            } 
+            value="problems" 
+          />
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <WarningIcon />
+                <span style={{ marginLeft: 8 }}>Alertas ({warnings.length})</span>
+              </Box>
+            } 
+            value="warnings" 
+          />
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <LightbulbIcon />
+                <span style={{ marginLeft: 8 }}>Sugestões ({suggestions.length})</span>
+              </Box>
+            } 
+            value="suggestions" 
+          />
+        </Tabs>
+      </Box>
+
+      <Box sx={{ height: 'calc(100% - 100px)', overflow: 'auto' }}>
+        {activeTab === 'problems' && (
+          <List dense>
+            {errors.map(problem => (
+              <ListItem key={problem.id}>
+                <ListItemButton onClick={() => {}}>
+                  <ListItemIcon>
+                    <ErrorIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={problem.message}
+                    secondary={problem.details}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+            {errors.length === 0 && (
+              <Typography color="text.secondary" sx={{ p: 2 }}>
+                Nenhum problema crítico encontrado
+              </Typography>
+            )}
+          </List>
+        )}
+
+        {activeTab === 'warnings' && (
+          <List dense>
+            {warnings.map(problem => (
+              <ListItem key={problem.id}>
+                <ListItemButton onClick={() => {}}>
+                  <ListItemIcon>
+                    <WarningIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={problem.message}
+                    secondary={problem.details}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+            {warnings.length === 0 && (
+              <Typography color="text.secondary" sx={{ p: 2 }}>
+                Nenhum alerta encontrado
+              </Typography>
+            )}
+          </List>
+        )}
+
+        {activeTab === 'suggestions' && (
+          <List dense>
+            {suggestions.map(problem => (
+              <ListItem key={problem.id}>
+                <ListItemButton onClick={() => {}}>
+                  <ListItemIcon>
+                    <LightbulbIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={problem.message}
+                    secondary={
+                      <Box>
+                        <Typography variant="body2">{problem.details}</Typography>
+                        <Typography variant="caption" color="primary">
+                          {problem.fix}
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+            {suggestions.length === 0 && (
+              <Typography color="text.secondary" sx={{ p: 2 }}>
+                Nenhuma sugestão disponível
+              </Typography>
+            )}
+          </List>
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
 const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
   const currentGraph = graph || new MultiDirectedGraph();
   const metrics = calculateMetrics(currentGraph);
@@ -779,8 +1122,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
             </MetricSection>
           </>
         ) : (
-          <>
-          </>
+          <BalanceAnalysisPanel metrics={metrics} />
         )}
       </Paper>
     </div>
