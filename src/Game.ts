@@ -1,5 +1,5 @@
 import { createContext, Dispatch } from "react";
-import { CartaType, GameHistoryType, GameType } from "./data/cartas";
+import { CartaType, GameType } from "./data/cartas";
 import { MultiDirectedGraph } from "graphology";
 
 export const GameReducerContext = createContext<GameType | null>(null);
