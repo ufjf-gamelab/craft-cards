@@ -1,9 +1,14 @@
 import { MultiDirectedGraph } from "graphology";
-import { GameActions } from "../Game";
 
 export type GameHistoryType = {
-  acao: GameActions;
-  recursos: Array<RecursoType>;
+  turno: number;
+  acoes: {
+    tipo: string;
+    recursos: Array<{
+      nome: string;
+      quantidade: number;
+    }>;
+  }[];
 };
 
 export type GameType = {

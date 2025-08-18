@@ -107,29 +107,51 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
 
 export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
   return (state: GameType, action: GameActionType): GameType => {
-    const estadoAntigo = structuredClone(state); //salva o estado antes de fazer a ação
+    const estadoAntigo = structuredClone(state);
     const novoEstado = reducer(state, action);
-    const acao = action.type;
+    
+    // Não registramos no histórico a ação de passar turno
+    // pois ela já é tratada no passarTurnoAction
+    if (action.type === GameActions.PASSAR_TURNO) {
+      return novoEstado;
+    }
 
-    // Cria registro se os recursos mudaram
-    if (
-      JSON.stringify(estadoAntigo.recursos) !==
-      JSON.stringify(novoEstado.recursos)
-    ) {
-      const gameHistory: GameHistoryType = {
-        acao: acao,
-        recursos: novoEstado.recursos.map((recurso) => ({
+    // Verifica se os recursos mudaram
+    if (JSON.stringify(estadoAntigo.recursos) !== JSON.stringify(novoEstado.recursos)) {
+      const gameHistoryEntry = {
+        tipo: action.type,
+        recursos: novoEstado.recursos.map(recurso => ({
           nome: recurso.nome,
-          quantidade: recurso.quantidade,
-        })),
+          quantidade: recurso.quantidade
+        }))
       };
 
-      // Adiciona o registro ao histórico do jogo
+      // Se não houver histórico, cria o primeiro turno
+      if (!novoEstado.historico || novoEstado.historico.length === 0) {
+        const newTurn = {
+          turno: 1,
+          acoes: [gameHistoryEntry]
+        };
+        return {
+          ...novoEstado,
+          historico: [newTurn]
+        };
+      }
+
+      // Adiciona a ação ao último turno
+      const lastIndex = novoEstado.historico.length - 1;
+      const updatedHistorico = [...novoEstado.historico];
+      updatedHistorico[lastIndex] = {
+        ...updatedHistorico[lastIndex],
+        acoes: [...updatedHistorico[lastIndex].acoes, gameHistoryEntry]
+      };
+      
       return {
         ...novoEstado,
-        historico: [...(novoEstado.historico || []), gameHistory],
+        historico: updatedHistorico
       };
     }
+    
     return novoEstado;
   };
 }
@@ -202,7 +224,16 @@ function passarTurnoAction(game: GameType, _action: PassarTurnoActionType) {
 
   reporMao(newGame);
 
-  return newGame;
+  // Cria um novo turno vazio no histórico
+  const novoTurno = {
+    turno: (newGame.historico?.length || 0) + 1,
+    acoes: []
+  };
+
+  return {
+    ...newGame,
+    historico: [...(newGame.historico || []), novoTurno]
+  };
 }
 
 function aumentaPontoAction(game: GameType, _action: AumentaPontoActionType) {
@@ -283,7 +314,10 @@ export function setupNewGame(game: GameType) {
 
   return {
     ...newGame,
-    historico: [],
+    historico: [{
+      turno: 1,
+      acoes: []
+    }],
     analisesVisiveis: false,
     activeTab: "graph",
     resourceGraph: null,

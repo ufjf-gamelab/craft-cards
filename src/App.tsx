@@ -8,6 +8,7 @@ import {
 import { useContext } from "react";
 import Oferta from "./Oferta.tsx";
 import Historico from "./Historico.tsx";
+import HistoricoLog from "./HistoricoLog.tsx";
 import Jogador from "./Jogador.tsx";
 import ResourcePetriNet from "./ResourcePetriNet";
 import React from "react";
@@ -159,6 +160,7 @@ function App() {
                     }`}
                   >
                     <Historico />
+                    <HistoricoLog />
                   </div>
                 )}
               </div>

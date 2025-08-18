@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const RESOURCE_COLORS: Record<string, string> = {
+export const RESOURCE_COLORS: Record<string, string> = {
   ação: "#FF5733",
   "madeira bruta": "#8B4513",
   água: "#1E90FF",
@@ -28,25 +28,30 @@ export default function Historico() {
   const game = useContext(GameReducerContext);
 
   // Prepara os dados para o gráfico
-  const chartData = game?.historico?.map((entry, index) => {
-    const dataPoint: any = {
-      name: `${entry.acao} ${index + 1}`,
-      acao: entry.acao,
-    };
+  const chartData = game?.historico?.flatMap((turno) => 
+    turno.acoes.map((acao, index) => {
+      const dataPoint: any = {
+        name: `Turno ${turno.turno} - ${acao.tipo} ${index + 1}`,
+        acao: acao.tipo,
+        turno: turno.turno,
+      };
 
-    // Adiciona cada recurso como uma propriedade no ponto de dados
-    entry.recursos.forEach((recurso) => {
-      dataPoint[recurso.nome] = recurso.quantidade;
-    });
+      // Adiciona cada recurso como uma propriedade no ponto de dados
+      acao.recursos.forEach((recurso) => {
+        dataPoint[recurso.nome] = recurso.quantidade;
+      });
 
-    return dataPoint;
-  });
+      return dataPoint;
+    })
+  );
 
   // Obtém todos os tipos de recursos únicos
   const resourceTypes = Array.from(
     new Set(
-      game?.historico?.flatMap((entry) =>
-        entry.recursos.map((recurso) => recurso.nome)
+      game?.historico?.flatMap((turno) =>
+        turno.acoes.flatMap((acao) =>
+          acao.recursos.map((recurso) => recurso.nome)
+        )
       ) || []
     )
   );
@@ -69,7 +74,7 @@ export default function Historico() {
             <XAxis
               dataKey="name"
               label={{
-                value: "Tipos de Ação",
+                value: "Turnos e Ações",
                 position: "insideBottomRight",
                 offset: -20,
               }}
@@ -84,11 +89,11 @@ export default function Historico() {
             <Tooltip
               formatter={(value, name) => [`${value}`, name]}
               contentStyle={{
-                backgroundColor: "#333", // Cor de fundo escura
-                borderColor: "#666", // Cor da borda
-                color: "#fff", // Cor do texto
-                borderRadius: "5px", // Borda arredondada
-                padding: "10px", // Espaçamento interno
+                backgroundColor: "#333",
+                borderColor: "#666",
+                color: "#fff",
+                borderRadius: "5px",
+                padding: "10px",
               }}
             />
             <Legend />
