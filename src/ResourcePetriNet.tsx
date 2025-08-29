@@ -159,7 +159,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
   const graphRef = useRef<MultiDirectedGraph<NodeAttributes, LinkAttributes> | null>(null);
   const nodeGroupsRef = useRef<any>(null);
 
-  const [marcacaoAtual, setMarcacaoAtual] = useState<Marcacao>(recursosParaMarcacao(recursos));
   const [marcacaoModoLivre, setMarcacaoModoLivre] = useState<Marcacao>({});
   const [transicoesHabilitadas, setTransicoesHabilitadas] = useState<string[]>([]);
   const [modoLivre, setModoLivre] = useState(false);
@@ -208,7 +207,7 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
   }, [marcacaoModoLivre, petriNetInitialized, modoLivre]);
 
   // SOLUÇÃO: handleNodeClick atualizado para chamar updatePetriNet imediatamente após setState
-  const handleNodeClick = useCallback((nodeId: string, nodeLabel: string) => {
+  const handleNodeClick = useCallback(( nodeLabel: string) => {
     if (!modoLivre) return;
     
     setLoading(true);
@@ -279,8 +278,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
             updatePetriNet();
           }
         }, 0);
-      } else {
-        setMarcacaoAtual(novaMarcacao);
       }
     } catch (error) {
       console.error("Erro ao disparar transição:", error);
@@ -487,7 +484,7 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
           .attr("stroke", "#fff")
           .attr("stroke-width", 2)
           .style("cursor", modoLivre ? "pointer" : "default")
-          .on("click", () => handleNodeClick(d.id, d.label));
+          .on("click", () => handleNodeClick(d.label));
 
         // SOLUÇÃO: Adicionar a classe token-count corretamente e evento de clique
         nodeGroup
@@ -500,7 +497,7 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
           .style("cursor", modoLivre ? "pointer" : "default")
           .style("pointer-events", "all") // Permitir eventos de clique no texto
           .text(getMarcacaoAtual()[d.label] || 0)
-          .on("click", () => handleNodeClick(d.id, d.label));
+          .on("click", () => handleNodeClick(d.label));
 
         nodeGroup
           .append("text")
