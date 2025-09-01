@@ -1,7 +1,13 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
-import { Paper, Box, Switch, FormControlLabel, Typography } from "@mui/material";
+import {
+  Paper,
+  Box,
+  Switch,
+  FormControlLabel,
+  Typography,
+} from "@mui/material";
 import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
 const OMEGA = "ω";
@@ -42,15 +48,17 @@ export const LINK_COLORS = {
 
 type Marcacao = Record<string, number | string>;
 
-const recursosParaMarcacao = (recursos: Array<{ nome: string; quantidade: number }>): Marcacao => {
+const recursosParaMarcacao = (
+  recursos: Array<{ nome: string; quantidade: number }>
+): Marcacao => {
   const marcacao: Marcacao = {};
-  recursos.forEach(r => marcacao[r.nome] = r.quantidade);
+  recursos.forEach((r) => (marcacao[r.nome] = r.quantidade));
   return marcacao;
 };
 
 const isTransicaoHabilitada = (
-  transicaoId: string, 
-  marcacao: Marcacao, 
+  transicaoId: string,
+  marcacao: Marcacao,
   playableCards: Array<{ id: string }>,
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes> | null,
   modoLivre: boolean = false
@@ -59,9 +67,9 @@ const isTransicaoHabilitada = (
 
   try {
     const cartaId = transicaoId.replace("transition_", "");
-    
+
     if (!modoLivre) {
-      const cartaJogavel = playableCards.some(card => card.id === cartaId);
+      const cartaJogavel = playableCards.some((card) => card.id === cartaId);
       if (!cartaJogavel) return false;
     }
 
@@ -73,15 +81,15 @@ const isTransicaoHabilitada = (
     for (const arcoId of arcosEntrada) {
       const arco = graph.getEdgeAttributes(arcoId);
       const lugarId = arco.source;
-      
+
       if (!graph.hasNode(lugarId)) continue;
-      
+
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const pesoNecessario = arco.weight;
-      
+
       if (marcacao[recursoNome] === OMEGA) continue;
-      
-      const quantidadeAtual = marcacao[recursoNome] as number || 0;
+
+      const quantidadeAtual = (marcacao[recursoNome] as number) || 0;
       if (quantidadeAtual < pesoNecessario) {
         return false;
       }
@@ -111,15 +119,15 @@ const dispararTransicao = (
 
     for (const arcoId of arcosEntrada) {
       const lugarId = graph.source(arcoId);
-      
+
       if (!graph.hasNode(lugarId)) continue;
-      
+
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const peso = graph.getEdgeAttribute(arcoId, "weight");
 
       if (novaMarcacao[recursoNome] === OMEGA) continue;
-      
-      const quantidadeAtual = novaMarcacao[recursoNome] as number || 0;
+
+      const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
       novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
     }
 
@@ -130,15 +138,15 @@ const dispararTransicao = (
 
     for (const arcoId of arcosSaida) {
       const lugarId = graph.target(arcoId);
-      
+
       if (!graph.hasNode(lugarId)) continue;
-      
+
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const peso = graph.getEdgeAttribute(arcoId, "weight");
 
       if (novaMarcacao[recursoNome] === OMEGA) continue;
-      
-      const quantidadeAtual = novaMarcacao[recursoNome] as number || 0;
+
+      const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
       novaMarcacao[recursoNome] = quantidadeAtual + peso;
     }
   } catch (error) {
@@ -156,89 +164,94 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [petriNetInitialized, setPetriNetInitialized] = useState(false);
   const simulationRef = useRef<any>(null);
-  const graphRef = useRef<MultiDirectedGraph<NodeAttributes, LinkAttributes> | null>(null);
+  const graphRef = useRef<MultiDirectedGraph<
+    NodeAttributes,
+    LinkAttributes
+  > | null>(null);
   const nodeGroupsRef = useRef<any>(null);
 
-  const [marcacaoModoLivre, setMarcacaoModoLivre] = useState<Marcacao>({});
-  const [transicoesHabilitadas, setTransicoesHabilitadas] = useState<string[]>([]);
+  const [marcacaoModoLivre, setMarcacaoModoLivre] = useState<Marcacao>(
+    recursos.reduce((acc, r) => ({ ...acc, [r.nome]: 0 }), {})
+  );
+
+  const [transicoesHabilitadas, setTransicoesHabilitadas] = useState<string[]>(
+    []
+  );
   const [modoLivre, setModoLivre] = useState(false);
+  const modoLivreRef = useRef(modoLivre);
   const [loading, setLoading] = useState(false);
 
-  // Inicializar marcação do modo livre
   useEffect(() => {
-    const initialMarcacao: Marcacao = {};
-    recursos.forEach(r => {
-      initialMarcacao[r.nome] = 0;
-    });
-    setMarcacaoModoLivre(initialMarcacao);
-  }, [recursos]);
+    modoLivreRef.current = modoLivre;
+  }, [modoLivre]);
 
-  // Obter marcação atual baseada no modo
   const getMarcacaoAtual = useCallback(() => {
     return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
   }, [modoLivre, marcacaoModoLivre, recursos]);
 
-  // Atualizar transições habilitadas quando recursos mudarem
   useEffect(() => {
     atualizarTransicoesHabilitadas();
   }, [recursos, playableCards, modoLivre, marcacaoModoLivre]);
 
-  // Inicializar a rede apenas uma vez
   useEffect(() => {
     if (!petriNetInitialized) {
       initPetriNet();
     }
   }, [petriNetInitialized]);
 
-  // Atualizar visualizações quando recursos ou cartas mudarem (modo normal)
   useEffect(() => {
-    if (petriNetInitialized && !modoLivre) {
+    if (petriNetInitialized) {
       updatePetriNet();
       atualizarTransicoesHabilitadas();
     }
-  }, [recursos, playableCards, petriNetInitialized, modoLivre]);
+  }, [
+    marcacaoModoLivre,
+    recursos,
+    playableCards,
+    petriNetInitialized,
+    modoLivre,
+  ]);
 
-  // Atualizar visualizações quando a marcação do modo livre mudar
-  useEffect(() => {
-    if (petriNetInitialized && modoLivre) {
-      updatePetriNet();
-      atualizarTransicoesHabilitadas();
-    }
-  }, [marcacaoModoLivre, petriNetInitialized, modoLivre]);
+  const handleNodeClick = useCallback(
+    (nodeLabel: string) => {
+      if (!modoLivreRef.current) return;
 
-  // SOLUÇÃO: handleNodeClick atualizado para chamar updatePetriNet imediatamente após setState
-  const handleNodeClick = useCallback(( nodeLabel: string) => {
-    if (!modoLivre) return;
-    
-    setLoading(true);
-    try {
-      const recursoNome = nodeLabel;
-      
-      setMarcacaoModoLivre(prevMarcacao => {
-        const novaMarcacao = { ...prevMarcacao };
-        
-        if (novaMarcacao[recursoNome] === OMEGA) {
-          novaMarcacao[recursoNome] = OMEGA;
-        } else {
-          const quantidadeAtual = novaMarcacao[recursoNome] as number || 0;
-          novaMarcacao[recursoNome] = quantidadeAtual + 1;
-        }
-        
-        // SOLUÇÃO: Forçar atualização visual imediata após a mudança de estado
-        setTimeout(() => {
-          if (petriNetInitialized) {
-            updatePetriNet();
+      setLoading(true);
+      try {
+        const recursoNome = nodeLabel;
+
+        console.log("=== Clique em recurso ===");
+        console.log("Recurso clicado:", recursoNome);
+        console.log("Marcacao antes:", marcacaoModoLivre);
+
+        setMarcacaoModoLivre((prevMarcacao) => {
+          const novaMarcacao = { ...prevMarcacao };
+
+          if (novaMarcacao[recursoNome] === OMEGA) {
+            novaMarcacao[recursoNome] = OMEGA;
+          } else {
+            const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+            novaMarcacao[recursoNome] = quantidadeAtual + 1;
           }
-        }, 0);
-        
-        return novaMarcacao;
-      });
-    } catch (error) {
-      console.error("Erro ao adicionar token:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [modoLivre, petriNetInitialized]);
+
+          console.log("Marcacao depois:", novaMarcacao);
+
+          setTimeout(() => {
+            if (petriNetInitialized) {
+              updatePetriNet();
+            }
+          }, 0);
+
+          return novaMarcacao;
+        });
+      } catch (error) {
+        console.error("Erro ao adicionar token:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [petriNetInitialized]
+  );
 
   const atualizarTransicoesHabilitadas = useCallback(() => {
     if (!graphRef.current) {
@@ -250,9 +263,18 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
       const currentMarcacao = getMarcacaoAtual();
       const habilitadas = graphRef.current
         .nodes()
-        .filter(node => graphRef.current?.getNodeAttribute(node, 'type') === 'transition')
-        .filter(transicaoId => 
-          isTransicaoHabilitada(transicaoId, currentMarcacao, playableCards, graphRef.current, modoLivre)
+        .filter(
+          (node) =>
+            graphRef.current?.getNodeAttribute(node, "type") === "transition"
+        )
+        .filter((transicaoId) =>
+          isTransicaoHabilitada(
+            transicaoId,
+            currentMarcacao,
+            playableCards,
+            graphRef.current,
+            modoLivre
+          )
         );
 
       setTransicoesHabilitadas(habilitadas);
@@ -268,11 +290,22 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
     setLoading(true);
     try {
       const currentMarcacao = getMarcacaoAtual();
-      const novaMarcacao = dispararTransicao(transicaoId, currentMarcacao, graphRef.current);
-      
+      console.log("Tokens antes do disparo:", currentMarcacao);
+
+      const novaMarcacao = dispararTransicao(
+        transicaoId,
+        currentMarcacao,
+        graphRef.current
+      );
+
+      console.log("Tokens depois do disparo:", novaMarcacao);
+      console.log(
+        "Transição disparada:",
+        transicaoId.replace("transition_", "")
+      );
+
       if (modoLivre) {
         setMarcacaoModoLivre(novaMarcacao);
-        // SOLUÇÃO: Forçar atualização visual imediatamente após setState
         setTimeout(() => {
           if (petriNetInitialized) {
             updatePetriNet();
@@ -286,18 +319,22 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
     }
   };
 
-  const handleModoLivreChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleModoLivreChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setLoading(true);
     try {
       const novoModoLivre = event.target.checked;
       setModoLivre(novoModoLivre);
-      
+
       if (nodeGroupsRef.current) {
-        nodeGroupsRef.current.each(function(this: SVGGElement, d: any) {
+        nodeGroupsRef.current.each(function (this: SVGGElement, d: any) {
           if (d.type === "place") {
-            d3.select(this).select("circle")
+            d3.select(this)
+              .select("circle")
               .style("cursor", novoModoLivre ? "pointer" : "default");
-            d3.select(this).select(".token-count")
+            d3.select(this)
+              .select(".token-count")
               .style("cursor", novoModoLivre ? "pointer" : "default");
           }
         });
@@ -310,17 +347,9 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
   };
 
   const resetModoLivre = () => {
-    const initialMarcacao: Marcacao = {};
-    recursos.forEach(r => {
-      initialMarcacao[r.nome] = 0;
-    });
-    setMarcacaoModoLivre(initialMarcacao);
-    // SOLUÇÃO: Forçar atualização visual imediatamente após setState
-    setTimeout(() => {
-      if (petriNetInitialized) {
-        updatePetriNet();
-      }
-    }, 0);
+    setMarcacaoModoLivre(
+      recursos.reduce((acc, r) => ({ ...acc, [r.nome]: 0 }), {})
+    );
   };
 
   const initPetriNet = () => {
@@ -339,7 +368,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
 
     const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
-    // Criar transições (cartas)
     allCards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
       graph.addNode(transitionId, {
@@ -351,7 +379,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
       });
     });
 
-    // Criar lugares (recursos)
     const allResources = new Set<string>();
     allCards.forEach((carta) => {
       [...carta.ganho, ...carta.custo].forEach((recurso) => {
@@ -370,7 +397,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
       });
     });
 
-    // Criar arcos
     allCards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
 
@@ -399,7 +425,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
       });
     });
 
-    // Converter para formato D3
     const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
     const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
@@ -428,7 +453,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
 
     simulationRef.current = simulation;
 
-    // Marcadores de seta
     const defs = svg.append("defs");
     Object.values(LINK_COLORS).forEach((color) => {
       defs
@@ -445,7 +469,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
         .attr("fill", color);
     });
 
-    // Links
     const link = g
       .append("g")
       .selectAll("line")
@@ -454,9 +477,11 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
       .append("line")
       .attr("stroke", (d: any) => d.color)
       .attr("stroke-width", 2)
-      .attr("marker-end", (d: any) => `url(#arrowhead-${d.color.replace("#", "")})`);
+      .attr(
+        "marker-end",
+        (d: any) => `url(#arrowhead-${d.color.replace("#", "")})`
+      );
 
-    // Nós
     nodeGroupsRef.current = g
       .append("g")
       .selectAll("g")
@@ -472,8 +497,7 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
           .on("end", dragended)
       );
 
-    // Renderizar nós
-    nodeGroupsRef.current.each(function(this: SVGGElement, d: NodeAttributes) {
+    nodeGroupsRef.current.each(function (this: SVGGElement, d: NodeAttributes) {
       const nodeGroup = d3.select<SVGGElement, NodeAttributes>(this);
 
       if (d.type === "place") {
@@ -486,7 +510,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
           .style("cursor", modoLivre ? "pointer" : "default")
           .on("click", () => handleNodeClick(d.label));
 
-        // SOLUÇÃO: Adicionar a classe token-count corretamente e evento de clique
         nodeGroup
           .append("text")
           .attr("class", "token-count")
@@ -495,7 +518,7 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
           .attr("fill", "#fff")
           .style("font-weight", "bold")
           .style("cursor", modoLivre ? "pointer" : "default")
-          .style("pointer-events", "all") // Permitir eventos de clique no texto
+          .style("pointer-events", "all")
           .text(getMarcacaoAtual()[d.label] || 0)
           .on("click", () => handleNodeClick(d.label));
 
@@ -531,7 +554,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
       }
     });
 
-    // Rótulos dos arcos
     const linkLabels = g
       .append("g")
       .selectAll("text")
@@ -549,7 +571,10 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
         .attr("x2", (d: any) => (d.target as any).x)
         .attr("y2", (d: any) => (d.target as any).y);
 
-      nodeGroupsRef.current.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
+      nodeGroupsRef.current.attr(
+        "transform",
+        (d: any) => `translate(${d.x},${d.y})`
+      );
 
       linkLabels
         .attr("x", (d: any) => ((d.source as any).x + (d.target as any).x) / 2)
@@ -573,7 +598,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
       d.fy = null;
     }
 
-    // Ajustar zoom
     const adjustZoom = () => {
       const bounds = getGraphBounds(nodes, width, height);
       if (!bounds) return;
@@ -606,35 +630,37 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
     }, 500);
   };
 
-  // SOLUÇÃO: Método updatePetriNet atualizado para garantir atualização visual imediata
   const updatePetriNet = () => {
     if (!petriNetInitialized || !svgRef.current) return;
 
     const svg = d3.select(svgRef.current);
     const currentMarcacao = getMarcacaoAtual();
 
-    // Atualiza tokens dos lugares
     svg.selectAll<SVGTextElement, any>(".token-count").text(function () {
       const parentData: any = d3.select(this.parentNode as Element).datum();
       if (!parentData || parentData.type !== "place") return "0";
       return String(currentMarcacao[parentData.label] ?? 0);
     });
 
-    // Atualiza cores das transições
-    svg.selectAll<SVGRectElement, any>(".transition-node").attr("fill", function () {
-      const nodeData: any = d3.select(this.parentNode as Element).datum();
-      if (!nodeData || nodeData.type !== "transition") return nodeData?.color ?? NODE_COLORS.transition;
+    svg
+      .selectAll<SVGRectElement, any>(".transition-node")
+      .attr("fill", function () {
+        const nodeData: any = d3.select(this.parentNode as Element).datum();
+        if (!nodeData || nodeData.type !== "transition")
+          return nodeData?.color ?? NODE_COLORS.transition;
 
-      const isHabilitada = isTransicaoHabilitada(
-        nodeData.id,
-        currentMarcacao,
-        playableCards,
-        graphRef.current,
-        modoLivre
-      );
+        const isHabilitada = isTransicaoHabilitada(
+          nodeData.id,
+          currentMarcacao,
+          playableCards,
+          graphRef.current,
+          modoLivre
+        );
 
-      return isHabilitada ? NODE_COLORS.activeTransition : NODE_COLORS.transition;
-    });
+        return isHabilitada
+          ? NODE_COLORS.activeTransition
+          : NODE_COLORS.transition;
+      });
   };
 
   return (
@@ -651,7 +677,7 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
       <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
         <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
       </Box>
-      
+
       <Box
         sx={{
           position: "absolute",
@@ -663,11 +689,11 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
           maxWidth: "400px",
           maxHeight: "500px",
           overflow: "auto",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
         }}
       >
         <h3>Teste - Rede de Petri</h3>
-        
+
         <FormControlLabel
           control={
             <Switch
@@ -678,7 +704,7 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
             />
           }
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
               <Typography>Modo Livre</Typography>
               {modoLivre && (
                 <Box
@@ -686,9 +712,9 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
                     ml: 1,
                     width: 8,
                     height: 8,
-                    borderRadius: '50%',
-                    backgroundColor: 'green',
-                    animation: 'pulse 1s infinite'
+                    borderRadius: "50%",
+                    backgroundColor: "green",
+                    animation: "pulse 1s infinite",
                   }}
                 />
               )}
@@ -698,41 +724,70 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
         />
 
         {modoLivre && (
-          <button 
+          <button
             onClick={resetModoLivre}
-            style={{ 
-              marginBottom: '10px', 
-              padding: '5px 10px', 
-              fontSize: '12px',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer'
+            style={{
+              marginBottom: "10px",
+              padding: "5px 10px",
+              fontSize: "12px",
+              backgroundColor: "#f44336",
+              color: "white",
+              border: "none",
+              borderRadius: "3px",
+              cursor: "pointer",
             }}
             disabled={loading}
           >
             Resetar Modo Livre
           </button>
         )}
-        
-        {loading && <Typography variant="body2" color="primary">Carregando...</Typography>}
-        
-        <p><strong>Modo:</strong> {modoLivre ? "Livre" : "Normal"}</p>
-        
-        <p><strong>Marcação Atual:</strong></p>
-        <pre style={{ fontSize: "10px", backgroundColor: "#f5f5f5", padding: "5px", borderRadius: "3px" }}>
+
+        {loading && (
+          <Typography variant="body2" color="primary">
+            Carregando...
+          </Typography>
+        )}
+
+        <p>
+          <strong>Modo:</strong> {modoLivre ? "Livre" : "Normal"}
+        </p>
+
+        <p>
+          <strong>Marcação Atual:</strong>
+        </p>
+        <pre
+          style={{
+            fontSize: "10px",
+            backgroundColor: "#f5f5f5",
+            padding: "5px",
+            borderRadius: "3px",
+          }}
+        >
           {JSON.stringify(getMarcacaoAtual(), null, 2)}
         </pre>
-        
-        <p><strong>Transições Habilitadas ({transicoesHabilitadas.length}):</strong></p>
-        <ul style={{ fontSize: "10px", paddingLeft: "15px", marginBottom: "10px" }}>
-          {transicoesHabilitadas.map(id => (
+
+        <p>
+          <strong>
+            Transições Habilitadas ({transicoesHabilitadas.length}):
+          </strong>
+        </p>
+        <ul
+          style={{
+            fontSize: "10px",
+            paddingLeft: "15px",
+            marginBottom: "10px",
+          }}
+        >
+          {transicoesHabilitadas.map((id) => (
             <li key={id} style={{ marginBottom: "3px" }}>
-              {id.replace('transition_', '')}
-              <button 
+              {id.replace("transition_", "")}
+              <button
                 onClick={() => testarDisparoTransicao(id)}
-                style={{ marginLeft: '10px', fontSize: '8px', padding: '2px 5px' }}
+                style={{
+                  marginLeft: "10px",
+                  fontSize: "8px",
+                  padding: "2px 5px",
+                }}
                 disabled={loading}
               >
                 Disparar
