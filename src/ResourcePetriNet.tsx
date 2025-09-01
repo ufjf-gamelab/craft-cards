@@ -73,19 +73,16 @@ const isTransicaoHabilitada = (
       if (!cartaJogavel) return false;
     }
 
-    const arcosEntrada = graph.filterEdges((edge) => {
-      const attr = graph.getEdgeAttributes(edge);
-      return attr.target === transicaoId;
-    });
+    const arcosEntrada = graph.inEdges(transicaoId) || [];
 
     for (const arcoId of arcosEntrada) {
-      const arco = graph.getEdgeAttributes(arcoId);
-      const lugarId = arco.source;
+      const arcoAttr = graph.getEdgeAttributes(arcoId);
+      const lugarId = graph.source(arcoId);
 
       if (!graph.hasNode(lugarId)) continue;
 
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
-      const pesoNecessario = arco.weight;
+      const pesoNecessario = arcoAttr.weight || 0;
 
       if (marcacao[recursoNome] === OMEGA) continue;
 
@@ -111,19 +108,21 @@ const dispararTransicao = (
 
   const novaMarcacao = { ...marcacao };
 
+  console.log(`=== Disparando transição ${transicaoId} ===`);
+
   try {
-    const arcosEntrada = graph.filterEdges((edge) => {
-      const attr = graph.getEdgeAttributes(edge);
-      return attr.target === transicaoId;
-    });
+    // ===== Arcos de entrada =====
+    const arcosEntrada = graph.inEdges(transicaoId) || [];
+    console.log("Arcos de entrada encontrados: ", arcosEntrada);
 
     for (const arcoId of arcosEntrada) {
+      const arcoAttr = graph.getEdgeAttributes(arcoId);
       const lugarId = graph.source(arcoId);
 
       if (!graph.hasNode(lugarId)) continue;
 
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
-      const peso = graph.getEdgeAttribute(arcoId, "weight");
+      const peso = arcoAttr.weight || 0;
 
       if (novaMarcacao[recursoNome] === OMEGA) continue;
 
@@ -131,24 +130,26 @@ const dispararTransicao = (
       novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
     }
 
-    const arcosSaida = graph.filterEdges((edge) => {
-      const attr = graph.getEdgeAttributes(edge);
-      return attr.source === transicaoId;
-    });
+    // ===== Arcos de saída =====
+    const arcosSaida = graph.outEdges(transicaoId) || [];
+    console.log("Arcos de saída encontrados: ", arcosSaida);
 
     for (const arcoId of arcosSaida) {
+      const arcoAttr = graph.getEdgeAttributes(arcoId);
       const lugarId = graph.target(arcoId);
 
       if (!graph.hasNode(lugarId)) continue;
 
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
-      const peso = graph.getEdgeAttribute(arcoId, "weight");
+      const peso = arcoAttr.weight || 0;
 
       if (novaMarcacao[recursoNome] === OMEGA) continue;
 
       const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
       novaMarcacao[recursoNome] = quantidadeAtual + peso;
     }
+
+    console.log("Marcação final após disparo: ", novaMarcacao);
   } catch (error) {
     console.error("Erro ao disparar transição:", error);
   }
@@ -173,6 +174,13 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
   const [marcacaoModoLivre, setMarcacaoModoLivre] = useState<Marcacao>(
     recursos.reduce((acc, r) => ({ ...acc, [r.nome]: 0 }), {})
   );
+
+  // REF para armazenar a marcação atual do modo livre
+  const marcacaoModoLivreRef = useRef<Marcacao>(marcacaoModoLivre);
+
+  useEffect(() => {
+    marcacaoModoLivreRef.current = marcacaoModoLivre;
+  }, [marcacaoModoLivre]);
 
   const [transicoesHabilitadas, setTransicoesHabilitadas] = useState<string[]>(
     []
@@ -218,40 +226,84 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
 
       setLoading(true);
       try {
-        const recursoNome = nodeLabel;
-
-        console.log("=== Clique em recurso ===");
-        console.log("Recurso clicado:", recursoNome);
-        console.log("Marcacao antes:", marcacaoModoLivre);
-
         setMarcacaoModoLivre((prevMarcacao) => {
           const novaMarcacao = { ...prevMarcacao };
+          const valorAtual = novaMarcacao[nodeLabel];
 
-          if (novaMarcacao[recursoNome] === OMEGA) {
-            novaMarcacao[recursoNome] = OMEGA;
+          if (valorAtual === OMEGA) {
+            novaMarcacao[nodeLabel] = OMEGA;
           } else {
-            const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
-            novaMarcacao[recursoNome] = quantidadeAtual + 1;
+            novaMarcacao[nodeLabel] = ((valorAtual as number) || 0) + 1;
           }
 
-          console.log("Marcacao depois:", novaMarcacao);
-
+          // Atualiza visualmente imediatamente
           setTimeout(() => {
-            if (petriNetInitialized) {
-              updatePetriNet();
-            }
+            if (petriNetInitialized) updatePetriNet();
           }, 0);
 
           return novaMarcacao;
         });
-      } catch (error) {
-        console.error("Erro ao adicionar token:", error);
       } finally {
         setLoading(false);
       }
     },
     [petriNetInitialized]
   );
+
+const testarDisparoTransicao = (transicaoId: string) => {
+  if (!graphRef.current) return;
+
+  setLoading(true);
+
+  try {
+    const currentMarcacao = { ...marcacaoModoLivreRef.current };
+    console.log("Tokens antes do disparo: ", currentMarcacao);
+
+    // Confirma que a transição existe exatamente no graph
+    if (!graphRef.current.hasNode(transicaoId)) {
+      console.warn("Transição não encontrada no graph:", transicaoId);
+      return;
+    }
+
+    const habilitada = isTransicaoHabilitada(
+      transicaoId,
+      currentMarcacao,
+      playableCards,
+      graphRef.current,
+      modoLivreRef.current
+    );
+
+    if (!habilitada) {
+      console.log("Transição não habilitada:", transicaoId);
+      return;
+    }
+
+    const novaMarcacao = dispararTransicao(
+      transicaoId,
+      currentMarcacao,
+      graphRef.current
+    );
+
+    console.log("Tokens depois do disparo: ", novaMarcacao);
+    console.log(
+      "Transição disparada:",
+      transicaoId.replace("transition_", "")
+    );
+
+    if (modoLivreRef.current) {
+      setMarcacaoModoLivre(novaMarcacao);
+
+      // Atualiza visualmente
+      setTimeout(() => {
+        if (petriNetInitialized) updatePetriNet();
+      }, 0);
+    }
+  } catch (error) {
+    console.error("Erro ao testar disparo da transição:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const atualizarTransicoesHabilitadas = useCallback(() => {
     if (!graphRef.current) {
@@ -284,40 +336,6 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
     }
   }, [getMarcacaoAtual, playableCards, modoLivre]);
 
-  const testarDisparoTransicao = (transicaoId: string) => {
-    if (!graphRef.current) return;
-
-    setLoading(true);
-    try {
-      const currentMarcacao = getMarcacaoAtual();
-      console.log("Tokens antes do disparo:", currentMarcacao);
-
-      const novaMarcacao = dispararTransicao(
-        transicaoId,
-        currentMarcacao,
-        graphRef.current
-      );
-
-      console.log("Tokens depois do disparo:", novaMarcacao);
-      console.log(
-        "Transição disparada:",
-        transicaoId.replace("transition_", "")
-      );
-
-      if (modoLivre) {
-        setMarcacaoModoLivre(novaMarcacao);
-        setTimeout(() => {
-          if (petriNetInitialized) {
-            updatePetriNet();
-          }
-        }, 0);
-      }
-    } catch (error) {
-      console.error("Erro ao disparar transição:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleModoLivreChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -352,266 +370,276 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
     );
   };
 
-  const initPetriNet = () => {
-    if (!svgRef.current || !containerRef.current) return;
+const initPetriNet = () => {
+  if (!svgRef.current || !containerRef.current) return;
 
-    const container = containerRef.current;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    const svg = d3.select(svgRef.current);
+  const container = containerRef.current;
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  const svg = d3.select(svgRef.current);
 
-    svg.selectAll("*").remove();
-    svg.attr("width", width).attr("height", height);
+  svg.selectAll("*").remove();
+  svg.attr("width", width).attr("height", height);
 
-    const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
-    graphRef.current = graph;
+  const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
+  graphRef.current = graph;
 
-    const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
+  const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
-    allCards.forEach((carta) => {
-      const transitionId = `transition_${carta.id}`;
-      graph.addNode(transitionId, {
-        id: transitionId,
-        label: carta.titulo,
-        type: "transition",
-        size: 10,
-        color: NODE_COLORS.transition,
-      });
+  // === Adiciona transições ===
+  allCards.forEach((carta) => {
+    const transitionId = `transition_${carta.id}`;
+    graph.addNode(transitionId, {
+      id: transitionId,
+      label: carta.titulo,
+      type: "transition",
+      size: 10,
+      color: NODE_COLORS.transition,
     });
+  });
 
-    const allResources = new Set<string>();
-    allCards.forEach((carta) => {
-      [...carta.ganho, ...carta.custo].forEach((recurso) => {
-        allResources.add(recurso.nome);
-      });
+  // === Adiciona lugares ===
+  const allResources = new Set<string>();
+  allCards.forEach((carta) => {
+    [...carta.ganho, ...carta.custo].forEach((recurso) => {
+      allResources.add(recurso.nome);
     });
+  });
 
-    allResources.forEach((nome) => {
-      graph.addNode(`place_${nome}`, {
-        id: `place_${nome}`,
-        label: nome,
-        type: "place",
-        tokens: 0,
-        size: 15,
-        color: NODE_COLORS.place,
-      });
+  allResources.forEach((nome) => {
+    graph.addNode(`place_${nome}`, {
+      id: `place_${nome}`,
+      label: nome,
+      type: "place",
+      tokens: 0,
+      size: 15,
+      color: NODE_COLORS.place,
     });
+  });
 
-    allCards.forEach((carta) => {
-      const transitionId = `transition_${carta.id}`;
+  // === Adiciona arcos corretamente ===
+  allCards.forEach((carta) => {
+    const transitionId = `transition_${carta.id}`;
 
-      carta.custo.forEach((custo) => {
-        const placeId = `place_${custo.nome}`;
-        if (graph.hasNode(placeId)) {
-          graph.addDirectedEdge(placeId, transitionId, {
-            source: placeId,
-            target: transitionId,
-            weight: custo.quantidade,
-            color: LINK_COLORS.input,
-          });
-        }
-      });
-
-      carta.ganho.forEach((ganho) => {
-        const placeId = `place_${ganho.nome}`;
-        if (graph.hasNode(placeId)) {
-          graph.addDirectedEdge(transitionId, placeId, {
-            source: transitionId,
-            target: placeId,
-            weight: ganho.quantidade,
-            color: LINK_COLORS.output,
-          });
-        }
-      });
-    });
-
-    const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
-    const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
-
-    const zoomBehavior = d3
-      .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 8])
-      .on("zoom", (event) => g.attr("transform", event.transform));
-
-    svg.call(zoomBehavior);
-
-    const g = svg.append("g");
-
-    const simulation = d3
-      .forceSimulation(nodes)
-      .force("charge", d3.forceManyBody().strength(-100))
-      .force(
-        "link",
-        d3
-          .forceLink(links)
-          .id((d: any) => d.id)
-          .distance(90)
-      )
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .alphaDecay(0.05)
-      .velocityDecay(0.4);
-
-    simulationRef.current = simulation;
-
-    const defs = svg.append("defs");
-    Object.values(LINK_COLORS).forEach((color) => {
-      defs
-        .append("marker")
-        .attr("id", `arrowhead-${color.replace("#", "")}`)
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 15)
-        .attr("refY", 0)
-        .attr("orient", "auto")
-        .attr("markerWidth", 6)
-        .attr("markerHeight", 6)
-        .append("path")
-        .attr("d", "M 0,-5 L 10,0 L 0,5")
-        .attr("fill", color);
-    });
-
-    const link = g
-      .append("g")
-      .selectAll("line")
-      .data(links)
-      .enter()
-      .append("line")
-      .attr("stroke", (d: any) => d.color)
-      .attr("stroke-width", 2)
-      .attr(
-        "marker-end",
-        (d: any) => `url(#arrowhead-${d.color.replace("#", "")})`
-      );
-
-    nodeGroupsRef.current = g
-      .append("g")
-      .selectAll("g")
-      .data(nodes, (d: any) => d.id)
-      .enter()
-      .append("g")
-      .attr("data-id", (d: any) => d.id)
-      .call(
-        d3
-          .drag<SVGGElement, NodeAttributes>()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended)
-      );
-
-    nodeGroupsRef.current.each(function (this: SVGGElement, d: NodeAttributes) {
-      const nodeGroup = d3.select<SVGGElement, NodeAttributes>(this);
-
-      if (d.type === "place") {
-        nodeGroup
-          .append("circle")
-          .attr("r", d.size)
-          .attr("fill", d.color)
-          .attr("stroke", "#fff")
-          .attr("stroke-width", 2)
-          .style("cursor", modoLivre ? "pointer" : "default")
-          .on("click", () => handleNodeClick(d.label));
-
-        nodeGroup
-          .append("text")
-          .attr("class", "token-count")
-          .attr("dy", 4)
-          .attr("text-anchor", "middle")
-          .attr("fill", "#fff")
-          .style("font-weight", "bold")
-          .style("cursor", modoLivre ? "pointer" : "default")
-          .style("pointer-events", "all")
-          .text(getMarcacaoAtual()[d.label] || 0)
-          .on("click", () => handleNodeClick(d.label));
-
-        nodeGroup
-          .append("text")
-          .attr("dy", d.size + 15)
-          .attr("text-anchor", "middle")
-          .attr("fill", "#fff")
-          .style("font-size", "10px")
-          .text(d.label);
-      } else {
-        nodeGroup
-          .append("rect")
-          .attr("class", "transition-node")
-          .attr("width", 5)
-          .attr("height", 40)
-          .attr("x", -2.5)
-          .attr("y", -20)
-          .attr("rx", 2)
-          .attr("fill", d.color)
-          .attr("stroke", "#fff")
-          .attr("stroke-width", 2)
-          .style("cursor", "pointer")
-          .on("click", () => testarDisparoTransicao(d.id));
-
-        nodeGroup
-          .append("text")
-          .attr("dy", 25)
-          .attr("text-anchor", "middle")
-          .attr("fill", "#fff")
-          .style("font-size", "10px")
-          .text(d.label);
+    // Arcos de custo (entrada)
+    carta.custo.forEach((custo) => {
+      const placeId = `place_${custo.nome}`;
+      if (graph.hasNode(placeId)) {
+        const edgeId = graph.addDirectedEdge(placeId, transitionId);
+        graph.setEdgeAttribute(edgeId, "weight", custo.quantidade);
+        graph.setEdgeAttribute(edgeId, "color", LINK_COLORS.input);
+        graph.setEdgeAttribute(edgeId, "source", placeId);
+        graph.setEdgeAttribute(edgeId, "target", transitionId);
       }
     });
 
-    const linkLabels = g
-      .append("g")
-      .selectAll("text")
-      .data(links)
-      .enter()
-      .append("text")
-      .attr("font-size", 10)
-      .attr("fill", (d: any) => d.color)
-      .text((d: any) => d.weight);
-
-    simulation.on("tick", () => {
-      link
-        .attr("x1", (d: any) => (d.source as any).x)
-        .attr("y1", (d: any) => (d.source as any).y)
-        .attr("x2", (d: any) => (d.target as any).x)
-        .attr("y2", (d: any) => (d.target as any).y);
-
-      nodeGroupsRef.current.attr(
-        "transform",
-        (d: any) => `translate(${d.x},${d.y})`
-      );
-
-      linkLabels
-        .attr("x", (d: any) => ((d.source as any).x + (d.target as any).x) / 2)
-        .attr("y", (d: any) => ((d.source as any).y + (d.target as any).y) / 2);
+    // Arcos de ganho (saída)
+    carta.ganho.forEach((ganho) => {
+      const placeId = `place_${ganho.nome}`;
+      if (graph.hasNode(placeId)) {
+        const edgeId = graph.addDirectedEdge(transitionId, placeId);
+        graph.setEdgeAttribute(edgeId, "weight", ganho.quantidade);
+        graph.setEdgeAttribute(edgeId, "color", LINK_COLORS.output);
+        graph.setEdgeAttribute(edgeId, "source", transitionId);
+        graph.setEdgeAttribute(edgeId, "target", placeId);
+      }
     });
+  });
 
-    function dragstarted(event: any, d: any) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
+  // === Preparação dos nós e links para D3 ===
+  const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
+  const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
+
+  const g = svg.append("g");
+
+  // === Zoom ===
+  const zoomBehavior = d3
+    .zoom<SVGSVGElement, unknown>()
+    .scaleExtent([0.1, 8])
+    .on("zoom", (event) => g.attr("transform", event.transform));
+  svg.call(zoomBehavior);
+
+  // === Simulação de força ===
+  const simulation = d3
+    .forceSimulation(nodes)
+    .force("charge", d3.forceManyBody().strength(-100))
+    .force(
+      "link",
+      d3
+        .forceLink(links)
+        .id((d: any) => d.id)
+        .distance(90)
+    )
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .alphaDecay(0.05)
+    .velocityDecay(0.4);
+
+  simulationRef.current = simulation;
+
+  // === Definição de setas nos links ===
+  const defs = svg.append("defs");
+  Object.values(LINK_COLORS).forEach((color) => {
+    defs
+      .append("marker")
+      .attr("id", `arrowhead-${color.replace("#", "")}`)
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 15)
+      .attr("refY", 0)
+      .attr("orient", "auto")
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .append("path")
+      .attr("d", "M 0,-5 L 10,0 L 0,5")
+      .attr("fill", color);
+  });
+
+  const link = g
+    .append("g")
+    .selectAll("line")
+    .data(links)
+    .enter()
+    .append("line")
+    .attr("stroke", (d: any) => d.color)
+    .attr("stroke-width", 2)
+    .attr(
+      "marker-end",
+      (d: any) => `url(#arrowhead-${d.color.replace("#", "")})`
+    );
+
+  // === Criação dos nós no SVG ===
+  nodeGroupsRef.current = g
+    .append("g")
+    .selectAll("g")
+    .data(nodes, (d: any) => d.id)
+    .enter()
+    .append("g")
+    .attr("data-id", (d: any) => d.id)
+    .call(
+      d3
+        .drag<SVGGElement, NodeAttributes>()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended)
+    );
+
+  // === Conteúdo dos nós ===
+  nodeGroupsRef.current.each(function (this: SVGGElement, d: NodeAttributes) {
+    const nodeGroup = d3.select<SVGGElement, NodeAttributes>(this);
+
+    if (d.type === "place") {
+      nodeGroup
+        .append("circle")
+        .attr("r", d.size)
+        .attr("fill", d.color)
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 2)
+        .style("cursor", modoLivre ? "pointer" : "default")
+        .on("click", () => handleNodeClick(d.label));
+
+      nodeGroup
+        .append("text")
+        .attr("class", "token-count")
+        .attr("dy", 4)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#fff")
+        .style("font-weight", "bold")
+        .style("cursor", modoLivre ? "pointer" : "default")
+        .text(getMarcacaoAtual()[d.label] || 0)
+        .on("click", () => handleNodeClick(d.label));
+
+      nodeGroup
+        .append("text")
+        .attr("dy", d.size + 15)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#fff")
+        .style("font-size", "10px")
+        .text(d.label);
+    } else {
+      nodeGroup
+        .append("rect")
+        .attr("class", "transition-node")
+        .attr("width", 5)
+        .attr("height", 40)
+        .attr("x", -2.5)
+        .attr("y", -20)
+        .attr("rx", 2)
+        .attr("fill", d.color)
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 2)
+        .style("cursor", "pointer")
+        .on("click", () => testarDisparoTransicao(d.id));
+
+      nodeGroup
+        .append("text")
+        .attr("dy", 25)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#fff")
+        .style("font-size", "10px")
+        .text(d.label);
     }
+  });
 
-    function dragged(event: any, d: any) {
-      d.fx = event.x;
-      d.fy = event.y;
-    }
+  // === Labels dos links ===
+  g.append("g")
+    .selectAll("text")
+    .data(links)
+    .enter()
+    .append("text")
+    .attr("font-size", 10)
+    .attr("fill", (d: any) => d.color)
+    .text((d: any) => d.weight);
 
-    function dragended(event: any, d: any) {
-      if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    }
+  // === Atualização da simulação ===
+  simulation.on("tick", () => {
+    link
+      .attr("x1", (d: any) => (d.source as any).x)
+      .attr("y1", (d: any) => (d.source as any).y)
+      .attr("x2", (d: any) => (d.target as any).x)
+      .attr("y2", (d: any) => (d.target as any).y);
 
-    const adjustZoom = () => {
-      const bounds = getGraphBounds(nodes, width, height);
-      if (!bounds) return;
+    nodeGroupsRef.current.attr(
+      "transform",
+      (d: any) => `translate(${d.x},${d.y})`
+    );
 
+    g.selectAll("text")
+      .attr("x", (d: any) =>
+        d.source && d.target ? ((d.source.x + d.target.x) / 2) : 0
+      )
+      .attr("y", (d: any) =>
+        d.source && d.target ? ((d.source.y + d.target.y) / 2) : 0
+      );
+  });
+
+  function dragstarted(event: any, d: any) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+
+  function dragged(event: any, d: any) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+
+  function dragended(event: any, d: any) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  // Ajusta zoom inicial
+  setTimeout(() => {
+    const bounds = getGraphBounds(nodes, width, height);
+    if (bounds) {
       const { minX, maxX, minY, maxY } = bounds;
       const graphWidth = maxX - minX;
       const graphHeight = maxY - minY;
-
       const scale = Math.min(
         (width - 100) / graphWidth,
         (height - 100) / graphHeight,
         1.0
       );
-
       const translate = [
         (width - graphWidth * scale) / 2 - minX * scale,
         (height - graphHeight * scale) / 2 - minY * scale,
@@ -622,13 +650,11 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
           "transform",
           `translate(${translate[0]},${translate[1]}) scale(${scale})`
         );
-    };
+    }
+    setPetriNetInitialized(true);
+  }, 500);
+};
 
-    setTimeout(() => {
-      adjustZoom();
-      setPetriNetInitialized(true);
-    }, 500);
-  };
 
   const updatePetriNet = () => {
     if (!petriNetInitialized || !svgRef.current) return;
@@ -684,7 +710,7 @@ const ResourcePetriNetTeste: React.FC<ResourcePetriNetProps> = ({
           top: 10,
           right: 10,
           backgroundColor: "rgba(255, 255, 255, 0.95)",
-          padding: 2,
+      padding: 2,
           borderRadius: 1,
           maxWidth: "400px",
           maxHeight: "500px",
