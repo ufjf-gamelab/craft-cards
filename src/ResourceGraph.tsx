@@ -29,13 +29,14 @@ interface LinkAttributes {
 }
 
 export const NODE_COLORS = {
-  resource: "#4CAF50",
-  card: "#2196F3",
+  resource: "#4CAF50",    // Verde 
+  card: "#2196F3",        // Azul 
+  active: "#FFC107",      // Amarelo
 };
 
 export const LINK_COLORS = {
-  gain: "#4CAF50",
-  cost: "#F44336",
+  gain: "#4CAF50",        // Verde 
+  cost: "#F44336",        // Vermelho 
 };
 
 const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
@@ -46,8 +47,12 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
 
   if (!game) {
     return (
-      <Paper sx={{ p: 2, textAlign: "center" }}>
-        <Typography>Carregando análise de recursos...</Typography>
+      <Paper sx={{ 
+        p: 2, 
+        textAlign: "center",
+        backgroundColor: '#363636'
+      }}>
+        <Typography sx={{ color: 'white' }}>Carregando análise de recursos...</Typography>
       </Paper>
     );
   }
@@ -138,7 +143,8 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     // Configuração do SVG
     const svg = d3.select(svgRef.current)
       .attr("width", width)
-      .attr("height", height);
+      .attr("height", height)
+      .style("background-color", "#363636"); 
 
     const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
@@ -195,18 +201,23 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
           .on("end", dragended)
       );
 
+    // Círculos dos nós
     node.append("circle")
       .attr("r", (d) => d.size)
       .attr("fill", (d) => d.color)
       .attr("stroke", "#fff")
-      .attr("stroke-width", 2);
+      .attr("stroke-width", 2)
+      .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"); // Sombra para destaque
 
+    // Texto dos nós
     node.append("text")
       .text((d) => d.type === "resource" ? `${d.label} (${d.quantity})` : d.label)
       .attr("dy", (d) => d.size + 15)
       .attr("text-anchor", "middle")
-      .attr("fill", "#333")
-      .style("font-size", "10px");
+      .attr("fill", "#fff") // Texto branco para contraste
+      .style("font-size", "10px")
+      .style("font-weight", "bold")
+      .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)"); // Sombra no texto
 
     // Rótulos das conexões
     const linkLabels = g.append("g")
@@ -216,6 +227,8 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       .append("text")
       .attr("font-size", 10)
       .attr("fill", (d) => d.color)
+      .attr("font-weight", "bold")
+      .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)") // Sombra nos rótulos
       .text((d) => d.label);
 
     // Atualização da simulação
@@ -234,21 +247,31 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     });
 
     // Funções de drag
-    function dragstarted(event: any, d: any) {
+    function dragstarted(this: SVGGElement, event: any, d: any) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
+      
+      // Efeito visual ao arrastar
+      d3.select(this).select("circle")
+        .attr("stroke-width", 4)
+        .attr("stroke", "#FFC107"); // Destaque amarelo ao arrastar
     }
 
-    function dragged(event: any, d: any) {
+    function dragged(this: SVGGElement, event: any, d: any) {
       d.fx = event.x;
       d.fy = event.y;
     }
 
-    function dragended(event: any, d: any) {
+    function dragended(this: SVGGElement, event: any, d: any) {
       if (!event.active) simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;
+      
+      // Remove o destaque
+      d3.select(this).select("circle")
+        .attr("stroke-width", 2)
+        .attr("stroke", "#fff");
     }
 
     // Ajusta o zoom para caber no container
@@ -279,6 +302,15 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         );
     };
 
+    // Adiciona instruções de uso
+    svg.append("text")
+      .attr("x", 10)
+      .attr("y", 20)
+      .attr("fill", "#fff")
+      .style("font-size", "12px")
+      .style("font-weight", "bold")
+      .text("Use scroll para zoom | Arraste para mover nós");
+
     setTimeout(adjustZoom, 500);
     setGraphInitialized(true);
 
@@ -286,7 +318,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     if (onGraphCreated) {
       onGraphCreated(graph);
     }
-    
   };
 
   // Chama a inicialização do gráfico quando o container estiver montado
@@ -296,7 +327,15 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
 
   return (
     <div className="resource-graph-container">
-      <Paper sx={{ height: "600px", minWidth: "800px", position: "relative" }}>
+      <Paper sx={{ 
+        height: "600px", 
+        minWidth: "800px", 
+        position: "relative",
+        backgroundColor: "#363636",
+        borderRadius: "10px",
+        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.837)",
+        overflow: "hidden"
+      }}>
         <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
           <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
         </Box>

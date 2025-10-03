@@ -7,7 +7,17 @@ import { weightedDegree } from 'graphology-metrics/node/weighted-degree';
 import { connectedComponents } from 'graphology-components';
 import simpleSize from 'graphology-metrics/graph/simple-size';
 import { Paper, Typography, Box, Tabs, Tab, List, ListItemButton, ListItemIcon, ListItemText, ListItem, Collapse, IconButton, Tooltip, Chip, Divider } from "@mui/material";
-import { LINK_COLORS } from "./ResourceGraph";
+
+export const NODE_COLORS = {
+  resource: "#4CAF50",    // Verde
+  card: "#2196F3",        // Azul 
+  active: "#FFC107",      // Amarelo
+};
+
+export const LINK_COLORS = {
+  gain: "#4CAF50",        // Verde
+  cost: "#F44336",        // Vermelho 
+};
 
 type GraphMetricsProps = {
   graph?: MultiDirectedGraph;
@@ -87,7 +97,8 @@ const ExpandIcon = ({ expanded }: { expanded: boolean }) => (
     display: 'inline-block',
     transform: expanded ? 'rotate(180deg)' : 'none', 
     transition: 'transform 0.3s',
-    fontSize: '1.2rem'
+    fontSize: '1.2rem',
+    color: '#fff'
   }}>
     ▼
   </span>
@@ -100,7 +111,11 @@ const MetricSection: React.FC<{
   onToggle: () => void;
   children: React.ReactNode;
 }> = ({ title, description, expanded, onToggle, children }) => (
-  <Paper style={{ marginBottom: 16 }}>
+  <Paper style={{ 
+    marginBottom: 16,
+    backgroundColor: '#424242',
+    border: '1px solid #555'
+  }}>
     <Box 
       display="flex" 
       justifyContent="space-between" 
@@ -108,11 +123,18 @@ const MetricSection: React.FC<{
       p={2}
       onClick={onToggle}
       style={{ cursor: 'pointer' }}
+      sx={{
+        '&:hover': {
+          backgroundColor: '#4a4a4a',
+        }
+      }}
     >
       <Box display="flex" alignItems="center">
-        <Typography variant="subtitle1">{title}</Typography>
+        <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold' }}>
+          {title}
+        </Typography>
         <Tooltip title={description} arrow>
-          <span style={{ marginLeft: 8, fontSize: '0.9rem', color: '#666' }}>ℹ️</span>
+          <span style={{ marginLeft: 8, fontSize: '0.9rem', color: '#FFC107' }}>ℹ️</span>
         </Tooltip>
       </Box>
       <IconButton size="small">
@@ -133,13 +155,15 @@ const MetricItem: React.FC<{
   tooltip?: string;
 }> = ({ label, value, tooltip }) => (
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{label}:</Typography>
+    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#FFC107', minWidth: '120px' }}>
+      {label}:
+    </Typography>
     {tooltip ? (
       <Tooltip title={tooltip} arrow>
-        <Typography>{value}</Typography>
+        <Typography sx={{ color: 'white' }}>{value}</Typography>
       </Tooltip>
     ) : (
-      <Typography>{value}</Typography>
+      <Typography sx={{ color: 'white' }}>{value}</Typography>
     )}
   </Box>
 );
@@ -153,25 +177,28 @@ const ResourceChip: React.FC<{
     justifyContent: 'space-between',
     alignItems: 'center',
     p: 1,
-    bgcolor: type === 'production' ? 'success.light' : 'error.light',
+    bgcolor: type === 'production' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)',
     borderRadius: 1,
-    mb: 1
+    mb: 1,
+    border: `1px solid ${type === 'production' ? '#4CAF50' : '#F44336'}`
   }}>
-    <Typography variant="body2">{resource.name}</Typography>
+    <Typography variant="body2" sx={{ color: 'white' }}>{resource.name}</Typography>
     <Chip 
       label={type === 'production' ? `+${resource.production}` : `-${resource.consumption}`}
       size="small"
       sx={{ 
-        bgcolor: type === 'production' ? 'success.main' : 'error.main',
-        color: 'white'
+        bgcolor: type === 'production' ? '#4CAF50' : '#F44336',
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: '0.75rem'
       }}
     />
   </Box>
 );
 
-const ErrorIcon = () => <span style={{ color: '#f44336', fontWeight: 'bold' }}>✖</span>;
-const WarningIcon = () => <span style={{ color: '#ff9800', fontWeight: 'bold' }}>⚠</span>;
-const LightbulbIcon = () => <span style={{ color: '#2196f3', fontWeight: 'bold' }}>💡</span>;
+const ErrorIcon = () => <span style={{ color: '#F44336', fontWeight: 'bold' }}>✖</span>;
+const WarningIcon = () => <span style={{ color: '#FF9800', fontWeight: 'bold' }}>⚠</span>;
+const LightbulbIcon = () => <span style={{ color: '#2196F3', fontWeight: 'bold' }}>💡</span>;
 
 const findAllPaths = (
   graph: MultiDirectedGraph,
@@ -514,7 +541,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
     const coOccurrenceMap = new Map<string, number>();
     const patternMap = new Map<string, number>();
 
-    // 1. Problemas críticos (existente)
+    // 1. Problemas críticos
     Object.entries(metrics.pathAnalysis.shortestPaths).forEach(([start, paths]) => {
       const allResources = Object.keys(metrics.pathAnalysis.allPaths);
       allResources.forEach(end => {
@@ -531,7 +558,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       });
     });
 
-    // 2. Warnings (existente)
+    // 2. Warnings
     metrics.resourceDegrees.forEach(resource => {
       if (resource.outDegree === 0 && resource.inDegree > 0) {
         problems.push({
@@ -718,13 +745,33 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
   const suggestions = problems.filter(p => p.type === 'suggestion' || p.type === 'info');
 
   return (
-    <Paper style={{ padding: 16, height: '100%', overflow: 'auto' }}>
-      <Typography variant="h6" gutterBottom>
+    <Paper style={{ 
+      padding: 16, 
+      height: '100%', 
+      overflow: 'auto',
+      backgroundColor: '#363636',
+      color: 'white'
+    }}>
+      <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>
         Análise de Balanceamento
       </Typography>
       
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+      <Box sx={{ borderBottom: 1, borderColor: '#555', mb: 2 }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(_, newValue) => setActiveTab(newValue)}
+          sx={{
+            '& .MuiTab-root': {
+              color: '#ccc',
+              '&.Mui-selected': {
+                color: '#2196F3',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#2196F3',
+            },
+          }}
+        >
           <Tab 
             label={
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -759,20 +806,22 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         {activeTab === 'problems' && (
           <List dense>
             {errors.map(problem => (
-              <ListItem key={problem.id}>
-                <ListItemButton onClick={() => {}}>
+              <ListItem key={problem.id} sx={{ borderBottom: '1px solid #444' }}>
+                <ListItemButton onClick={() => {}} sx={{ color: 'white' }}>
                   <ListItemIcon>
                     <ErrorIcon />
                   </ListItemIcon>
                   <ListItemText
                     primary={problem.message}
                     secondary={problem.details}
+                    primaryTypographyProps={{ color: 'white' }}
+                    secondaryTypographyProps={{ color: '#ccc' }}
                   />
                 </ListItemButton>
               </ListItem>
             ))}
             {errors.length === 0 && (
-              <Typography color="text.secondary" sx={{ p: 2 }}>
+              <Typography color="#ccc" sx={{ p: 2 }}>
                 Nenhum problema crítico encontrado
               </Typography>
             )}
@@ -782,20 +831,22 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         {activeTab === 'warnings' && (
           <List dense>
             {warnings.map(problem => (
-              <ListItem key={problem.id}>
-                <ListItemButton onClick={() => {}}>
+              <ListItem key={problem.id} sx={{ borderBottom: '1px solid #444' }}>
+                <ListItemButton onClick={() => {}} sx={{ color: 'white' }}>
                   <ListItemIcon>
                     <WarningIcon />
                   </ListItemIcon>
                   <ListItemText
                     primary={problem.message}
                     secondary={problem.details}
+                    primaryTypographyProps={{ color: 'white' }}
+                    secondaryTypographyProps={{ color: '#ccc' }}
                   />
                 </ListItemButton>
               </ListItem>
             ))}
             {warnings.length === 0 && (
-              <Typography color="text.secondary" sx={{ p: 2 }}>
+              <Typography color="#ccc" sx={{ p: 2 }}>
                 Nenhum alerta encontrado
               </Typography>
             )}
@@ -805,8 +856,8 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         {activeTab === 'suggestions' && (
           <List dense>
             {suggestions.map(problem => (
-              <ListItem key={problem.id}>
-                <ListItemButton onClick={() => {}}>
+              <ListItem key={problem.id} sx={{ borderBottom: '1px solid #444' }}>
+                <ListItemButton onClick={() => {}} sx={{ color: 'white' }}>
                   <ListItemIcon>
                     <LightbulbIcon />
                   </ListItemIcon>
@@ -814,8 +865,8 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
                     primary={problem.message}
                     secondary={
                       <Box>
-                        <Typography variant="body2">{problem.details}</Typography>
-                        <Typography variant="caption" color="primary">
+                        <Typography variant="body2" sx={{ color: '#ccc' }}>{problem.details}</Typography>
+                        <Typography variant="caption" sx={{ color: '#2196F3' }}>
                           {problem.fix}
                         </Typography>
                       </Box>
@@ -825,7 +876,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
               </ListItem>
             ))}
             {suggestions.length === 0 && (
-              <Typography color="text.secondary" sx={{ p: 2 }}>
+              <Typography color="#ccc" sx={{ p: 2 }}>
                 Nenhuma sugestão disponível
               </Typography>
             )}
@@ -859,23 +910,44 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
 
   if (!metrics) {
     return (
-      <Paper style={{ padding: 16, textAlign: "center" }}>
-        <Typography>Carregando métricas do grafo...</Typography>
+      <Paper style={{ 
+        padding: 16, 
+        textAlign: "center",
+        backgroundColor: '#363636',
+        color: 'white'
+      }}>
+        <Typography sx={{ color: 'white' }}>Carregando métricas do grafo...</Typography>
       </Paper>
     );
   }
 
   return (
     <div className="graph-metrics-container">
-      <Paper style={{ padding: 16, height: "100%", overflow: "auto" }}>
-        <Typography variant="h6" gutterBottom>
+      <Paper style={{ 
+        padding: 16, 
+        height: "100%", 
+        overflow: "auto",
+        backgroundColor: '#363636'
+      }}>
+        <Typography variant="h6" gutterBottom sx={{ color: 'white' }}>
           Métricas do Grafo de Recursos
         </Typography>
         
         <Tabs 
           value={activeTab} 
           onChange={(_, newValue) => setActiveTab(newValue)}
-          sx={{ mb: 2 }}
+          sx={{ 
+            mb: 2,
+            '& .MuiTab-root': {
+              color: '#ccc',
+              '&.Mui-selected': {
+                color: '#2196F3',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#2196F3',
+            },
+          }}
         >
           <Tab label="Métricas" value="metrics" />
           <Tab label="Análise de Balanceamento" value="balance" />
@@ -1016,27 +1088,35 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
             >
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 <Box sx={{ flex: 1, minWidth: 250 }}>
-                  <Typography variant="subtitle2" gutterBottom>Top Produtores</Typography>
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: '#FFC107' }}>
+                    Top Produtores
+                  </Typography>
                   {metrics.productionConsumption.topProducers.map((res) => (
                     <ResourceChip key={res.name} resource={res} type="production" />
                   ))}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 250 }}>
-                  <Typography variant="subtitle2" gutterBottom>Top Consumidores</Typography>
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: '#FFC107' }}>
+                    Top Consumidores
+                  </Typography>
                   {metrics.productionConsumption.topConsumers.map((res) => (
                     <ResourceChip key={res.name} resource={res} type="consumption" />
                   ))}
                 </Box>
               </Box>
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 2, backgroundColor: '#555' }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
-                <Typography>
+                <Typography sx={{ color: 'white' }}>
                   <strong>Total Produzido:</strong> 
-                  <span style={{ color: '#2e7d32', marginLeft: 8 }}>+{metrics.productionConsumption.totalProduction}</span>
+                  <span style={{ color: '#4CAF50', marginLeft: 8, fontWeight: 'bold' }}>
+                    +{metrics.productionConsumption.totalProduction}
+                  </span>
                 </Typography>
-                <Typography>
+                <Typography sx={{ color: 'white' }}>
                   <strong>Total Consumido:</strong> 
-                  <span style={{ color: '#d32f2f', marginLeft: 8 }}>-{metrics.productionConsumption.totalConsumption}</span>
+                  <span style={{ color: '#F44336', marginLeft: 8, fontWeight: 'bold' }}>
+                    -{metrics.productionConsumption.totalConsumption}
+                  </span>
                 </Typography>
               </Box>
             </MetricSection>
@@ -1049,19 +1129,22 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
             >
               {metrics.pathAnalysis.mostDemandedResource && (
                 <>
-                  <Typography variant="subtitle2" gutterBottom>Recurso Mais Demandado</Typography>
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: '#FFC107' }}>
+                    Recurso Mais Demandado
+                  </Typography>
                   <Box sx={{ 
                     p: 2, 
-                    bgcolor: 'warning.light', 
+                    bgcolor: 'rgba(255, 193, 7, 0.1)', 
                     borderRadius: 1,
-                    mb: 2
+                    mb: 2,
+                    border: '1px solid #FFC107'
                   }}>
                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2 }}>
                       <MetricItem label="Recurso" value={metrics.pathAnalysis.mostDemandedResource.name} />
                       <MetricItem label="Demanda" value={metrics.pathAnalysis.mostDemandedResource.outDegree} />
                       <MetricItem label="Produção" value={metrics.pathAnalysis.mostDemandedResource.inDegree} />
                     </Box>
-                    <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+                    <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic', color: '#FFC107' }}>
                       Este recurso é consumido por muitas cartas mas tem poucas fontes de produção, podendo se tornar um gargalo.
                     </Typography>
                   </Box>
@@ -1070,17 +1153,24 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
 
               {metrics.pathAnalysis.hasCycles && (
                 <>
-                  <Typography variant="subtitle2" gutterBottom>Ciclos Detectados</Typography>
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: '#FFC107' }}>
+                    Ciclos Detectados
+                  </Typography>
                   <Box sx={{ mb: 2 }}>
-                    <Typography>
+                    <Typography sx={{ color: 'white' }}>
                       <strong>Total:</strong> {metrics.pathAnalysis.cycleExamples.length} ciclos
                     </Typography>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1, color: '#ccc' }}>
                       Ciclos podem criar loops infinitos ou combos poderosos. Verifique se são intencionais.
                     </Typography>
                     {metrics.pathAnalysis.cycleExamples.map((cycle, i) => (
-                      <Paper key={i} sx={{ p: 1, mb: 1, bgcolor: 'background.default' }}>
-                        <Typography variant="body2" fontFamily="monospace">
+                      <Paper key={i} sx={{ 
+                        p: 1, 
+                        mb: 1, 
+                        backgroundColor: 'rgba(255, 193, 7, 0.05)',
+                        border: '1px solid rgba(255, 193, 7, 0.3)'
+                      }}>
+                        <Typography variant="body2" fontFamily="monospace" sx={{ color: '#FFC107' }}>
                           {cycle.join(" → ")} → {cycle[0]}
                         </Typography>
                       </Paper>
@@ -1089,7 +1179,9 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                 </>
               )}
 
-              <Typography variant="subtitle2" gutterBottom>Caminhos Mais Curtos Entre Recursos</Typography>
+              <Typography variant="subtitle2" gutterBottom sx={{ color: '#FFC107' }}>
+                Caminhos Mais Curtos Entre Recursos
+              </Typography>
               {Object.keys(metrics.pathAnalysis.shortestPaths).length > 0 ? (
                 <Box sx={{ 
                   display: 'grid', 
@@ -1100,24 +1192,32 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                   p: 1
                 }}>
                   {Object.entries(metrics.pathAnalysis.shortestPaths).map(([start, ends]) => (
-                    <Paper key={start} sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" sx={{ mb: 1 }}>De: {start}</Typography>
+                    <Paper key={start} sx={{ 
+                      p: 2, 
+                      backgroundColor: '#424242',
+                      border: '1px solid #555'
+                    }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, color: '#2196F3' }}>
+                        De: {start}
+                      </Typography>
                       {Object.entries(ends).map(([end, path]) => (
                         <Box key={end} sx={{ mb: 1 }}>
-                          <Typography variant="body2">
+                          <Typography variant="body2" sx={{ color: 'white' }}>
                             <strong>Para {end}:</strong>
                           </Typography>
-                          <Typography variant="body2" fontFamily="monospace" sx={{ ml: 1 }}>
+                          <Typography variant="body2" fontFamily="monospace" sx={{ ml: 1, color: '#4CAF50' }}>
                             {path.join(" → ")}
                           </Typography>
-                          <Typography variant="caption">Passos: {path.length - 1}</Typography>
+                          <Typography variant="caption" sx={{ color: '#ccc' }}>
+                            Passos: {path.length - 1}
+                          </Typography>
                         </Box>
                       ))}
                     </Paper>
                   ))}
                 </Box>
               ) : (
-                <Typography>Nenhum caminho entre recursos encontrado</Typography>
+                <Typography sx={{ color: 'white' }}>Nenhum caminho entre recursos encontrado</Typography>
               )}
             </MetricSection>
           </>
