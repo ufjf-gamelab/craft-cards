@@ -172,7 +172,10 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<any>(null);
-  const graphRef = useRef<MultiDirectedGraph<NodeAttributes, LinkAttributes> | null>(null);
+  const graphRef = useRef<MultiDirectedGraph<
+    NodeAttributes,
+    LinkAttributes
+  > | null>(null);
   const nodeGroupsRef = useRef<any>(null);
   const initializedRef = useRef(false); // Substitui petriNetInitialized
 
@@ -194,7 +197,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
 
   // ========== USEFFECT OTIMIZADOS ==========
-  
+
   useEffect(() => {
     marcacaoModoLivreRef.current = marcacaoModoLivre;
   }, [marcacaoModoLivre]);
@@ -232,9 +235,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       const cartaId = transicaoId.replace("transition_", "");
 
       if (!modoLivre) {
-        const cartaJogavel = playableCards.some(
-          (card) => card.id === cartaId
-        );
+        const cartaJogavel = playableCards.some((card) => card.id === cartaId);
         if (!cartaJogavel) return false;
       }
 
@@ -482,10 +483,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     );
 
     console.log("Tokens depois do disparo: ", novaMarcacao);
-    console.log(
-      "Transição disparada:",
-      transicaoId.replace("transition_", "")
-    );
+    console.log("Transição disparada:", transicaoId.replace("transition_", ""));
 
     if (modoLivreRef.current) {
       setMarcacaoModoLivre(novaMarcacao);
@@ -495,27 +493,32 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   // ========== FUNÇÃO DE ATUALIZAÇÃO VISUAL COM D3 ==========
   const atualizarVisualizacao = () => {
     if (!svgRef.current || !initializedRef.current) return;
-    
+
     const currentMarcacao = getMarcacaoAtual();
     const svg = d3.select(svgRef.current);
-    
+
     // Atualizar tokens (D3 controla diretamente)
-    svg.selectAll(".token-count")
-      .text(function() {
-        const parentData: any = d3.select((this as any).parentNode).datum();
-        return parentData?.type === "place" ? 
-          String(currentMarcacao[parentData.label] ?? 0) : "0";
-      });
-    
+    svg.selectAll(".token-count").text(function () {
+      const parentData: any = d3.select((this as any).parentNode).datum();
+      return parentData?.type === "place"
+        ? String(currentMarcacao[parentData.label] ?? 0)
+        : "0";
+    });
+
     // Atualizar transições habilitadas (D3 controla - ELIMINA estado transicoesHabilitadas)
-    svg.selectAll(".transition-node")
-      .attr("fill", function() {
-        const nodeData: any = d3.select((this as any).parentNode).datum();
-        const isHabilitada = isTransicaoHabilitada(
-          nodeData.id, currentMarcacao, playableCards, graphRef.current, modoLivre
-        );
-        return isHabilitada ? NODE_COLORS.activeTransition : NODE_COLORS.transition;
-      });
+    svg.selectAll(".transition-node").attr("fill", function () {
+      const nodeData: any = d3.select((this as any).parentNode).datum();
+      const isHabilitada = isTransicaoHabilitada(
+        nodeData.id,
+        currentMarcacao,
+        playableCards,
+        graphRef.current,
+        modoLivre
+      );
+      return isHabilitada
+        ? NODE_COLORS.activeTransition
+        : NODE_COLORS.transition;
+    });
   };
 
   const handleModoLivreChange = (
@@ -868,10 +871,9 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
 
         setNosArvore(todosNos);
         setArvore(raiz);
-        
+
         // Renderizar imediatamente após gerar a árvore
         renderArvore(raiz);
-        
       } catch (error) {
         console.error("Erro ao gerar árvore:", error);
       } finally {
@@ -949,7 +951,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     // Destacar o nó selecionado
     g.selectAll("circle").attr("stroke-width", 2).attr("stroke", "#fff");
 
-    node.select("circle").attr("stroke-width", 4).attr("stroke", "#FF5722");
+    node.select("circle").attr("stroke-width", 4).attr("stroke", "#61ff22ff");
 
     setNoSelecionado(nodeId);
 
@@ -1262,13 +1264,13 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         >
           {/* LADO ESQUERDO - TÍTULO E CONTROLES */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
+            <Typography
+              variant="h6"
+              sx={{
                 color: "#fff",
                 fontWeight: "bold",
                 textShadow: "0 2px 4px rgba(0,0,0,0.5)",
-                minWidth: "120px"
+                minWidth: "120px",
               }}
             >
               Rede de Petri
@@ -1281,11 +1283,11 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
                   onChange={handleModoLivreChange}
                   color="primary"
                   sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: '#4CAF50',
+                    "& .MuiSwitch-switchBase.Mui-checked": {
+                      color: "#4CAF50",
                     },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: '#4CAF50',
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                      backgroundColor: "#4CAF50",
                     },
                   }}
                 />
@@ -1319,7 +1321,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
                 sx={{
                   color: "#fff",
                   borderColor: "#f44336",
-                  '&:hover': {
+                  "&:hover": {
                     borderColor: "#ff6659",
                     backgroundColor: "rgba(244, 67, 54, 0.1)",
                   },
@@ -1335,12 +1337,12 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
 
           {/* LADO DIREITO - BOTÃO GERAR ÁRVORE */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Typography 
-              sx={{ 
+            <Typography
+              sx={{
                 color: "#fff",
                 fontSize: "14px",
                 fontWeight: "500",
-                minWidth: "80px"
+                minWidth: "80px",
               }}
             >
               <strong>Modo:</strong> {modoLivre ? "Livre" : "Normal"}
@@ -1353,10 +1355,10 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
               disabled={expandindoArvore}
               sx={{
                 backgroundColor: "#2196F3",
-                '&:hover': {
+                "&:hover": {
                   backgroundColor: "#1976D2",
                 },
-                '&:disabled': {
+                "&:disabled": {
                   backgroundColor: "#666",
                 },
                 fontSize: "12px",
@@ -1400,29 +1402,77 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           sx={{
             p: 2,
             mt: 2,
-            backgroundColor: "#f5f5f5",
+            backgroundColor: "#363636", // Fundo escuro igual ao da Rede de Petri
+            color: "#fff", // Texto em branco para alto contraste
             maxHeight: "400px",
             overflow: "auto",
+            borderRadius: "10px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.8)",
           }}
         >
-          <Typography variant="h6" gutterBottom>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{ color: "#fff", borderBottom: "2px solid #4CAF50", pb: 1 }}
+          >
             Estados da Árvore de Alcançabilidade
           </Typography>
 
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold", width: "60px" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "60px",
+                    backgroundColor: "#2196F3", // Azul das transições
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Estado
                 </TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Marcação</TableCell>
-                <TableCell sx={{ fontWeight: "bold", width: "120px" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  Marcação
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "120px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Transição
                 </TableCell>
-                <TableCell sx={{ fontWeight: "bold", width: "100px" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "100px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Tipo
                 </TableCell>
-                <TableCell sx={{ fontWeight: "bold", width: "80px" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "80px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Ação
                 </TableCell>
               </TableRow>
@@ -1434,28 +1484,57 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
                   sx={{
                     backgroundColor:
                       no.id === "n0"
-                        ? "#e3f2fd"
+                        ? "rgba(33, 150, 243, 0.1)" // Azul claro para inicial
                         : no.ciclico
-                        ? "#fff8e1"
+                        ? "rgba(255, 193, 7, 0.1)" // Amarelo claro para cíclico
                         : no.terminal
-                        ? "#ffebee"
-                        : "inherit",
-                    "&:hover": { backgroundColor: "#f5f5f5" },
+                        ? "rgba(244, 67, 54, 0.1)" // Vermelho claro para terminal
+                        : "rgba(76, 175, 80, 0.05)", // Verde muito claro para intermediário
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.1)", // Branco sutil ao passar mouse
+                    },
+                    color: "#fff", // Texto branco em todas as linhas
                   }}
                 >
-                  <TableCell sx={{ fontWeight: "bold" }}>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      color: "#fff",
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
                     {no.id.replace("n", "M")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell
+                    sx={{
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
                     <Typography
                       variant="body2"
-                      sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}
+                      sx={{
+                        fontFamily: "monospace",
+                        fontSize: "0.8rem",
+                        color: "#fff",
+                      }}
                     >
                       {formatarMarcacao(no.marcacao)}
                     </Typography>
                   </TableCell>
-                  <TableCell>{obterTransicaoParaNo(no)}</TableCell>
-                  <TableCell>
+                  <TableCell
+                    sx={{
+                      color: "#fff",
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    {obterTransicaoParaNo(no)}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "#fff",
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
                     {no.id === "n0"
                       ? "Inicial"
                       : no.ciclico
@@ -1464,7 +1543,11 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
                       ? "Terminal"
                       : "Intermediário"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell
+                    sx={{
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
                     <Button
                       variant="outlined"
                       size="small"
@@ -1473,6 +1556,12 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
                         fontSize: "0.7rem",
                         padding: "2px 6px",
                         minWidth: "auto",
+                        color: "#2196F3",
+                        borderColor: "#2196F3",
+                        "&:hover": {
+                          backgroundColor: "rgba(33, 150, 243, 0.1)",
+                          borderColor: "#64b5f6",
+                        },
                       }}
                     >
                       Centralizar
@@ -1483,42 +1572,63 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             </TableBody>
           </Table>
 
+          {/* Legenda atualizada */}
           <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Box
                 sx={{
                   width: 16,
                   height: 16,
-                  backgroundColor: "#e3f2fd",
+                  backgroundColor: "rgba(33, 150, 243, 0.1)",
                   mr: 1,
-                  border: "1px solid #90caf9",
+                  border: "1px solid #2196F3",
                 }}
               />
-              <Typography variant="body2">Estado Inicial</Typography>
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Estado Inicial
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Box
                 sx={{
                   width: 16,
                   height: 16,
-                  backgroundColor: "#fff8e1",
+                  backgroundColor: "rgba(255, 193, 7, 0.1)",
                   mr: 1,
-                  border: "1px solid #ffd54f",
+                  border: "1px solid #FFC107",
                 }}
               />
-              <Typography variant="body2">Estado Cíclico</Typography>
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Estado Cíclico
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Box
                 sx={{
                   width: 16,
                   height: 16,
-                  backgroundColor: "#ffebee",
+                  backgroundColor: "rgba(244, 67, 54, 0.1)",
                   mr: 1,
-                  border: "1px solid #ef5350",
+                  border: "1px solid #F44336",
                 }}
               />
-              <Typography variant="body2">Estado Terminal</Typography>
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Estado Terminal
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: "rgba(76, 175, 80, 0.05)",
+                  mr: 1,
+                  border: "1px solid #4CAF50",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Intermediário
+              </Typography>
             </Box>
           </Box>
         </Paper>
