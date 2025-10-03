@@ -1082,7 +1082,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .enter()
       .append("text")
       .attr("font-size", 12)
-      .attr("fill", "#333")
+      .attr("fill", "#ffffffff")
       .text((d: any) => d.label);
 
     // Desenhar nós
