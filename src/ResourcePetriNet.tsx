@@ -193,7 +193,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   const [arvore, setArvore] = useState<NoArvore | null>(null);
   const [expandindoArvore, setExpandindoArvore] = useState(false);
   const [mostrarArvore, setMostrarArvore] = useState(false);
-  const [noSelecionado, setNoSelecionado] = useState<string | null>(null);
   const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
 
   // ========== USEFFECT OTIMIZADOS ==========
@@ -929,6 +928,11 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     if (svg.empty()) return;
 
     const g = svg.select("g");
+
+    // Remover seleção anterior (controlado pelo D3)
+    g.selectAll("circle").attr("stroke-width", 2).attr("stroke", "#fff");
+
+    // Aplicar nova seleção (controlado pelo D3)
     const node = g.selectAll(".node").filter((d: any) => d.id === nodeId);
 
     if (node.empty()) return;
@@ -948,12 +952,8 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     // Aplicar transformação com transição suave
     g.transition().duration(750).attr("transform", transform.toString());
 
-    // Destacar o nó selecionado
-    g.selectAll("circle").attr("stroke-width", 2).attr("stroke", "#fff");
-
+    // Destacar o nó selecionado (D3 controla o estado visual)
     node.select("circle").attr("stroke-width", 4).attr("stroke", "#61ff22ff");
-
-    setNoSelecionado(nodeId);
 
     treeContainer.scrollIntoView({ behavior: "smooth", block: "center" });
   };
