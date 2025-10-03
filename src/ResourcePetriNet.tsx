@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
 import {
@@ -8,6 +8,11 @@ import {
   FormControlLabel,
   Typography,
   Button,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableHead,
 } from "@mui/material";
 import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
@@ -163,180 +168,196 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   recursos,
   playableCards,
 }) => {
+  // ========== REFs PARA CONTROLE INTERNO D3 ==========
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [petriNetInitialized, setPetriNetInitialized] = useState(false);
   const simulationRef = useRef<any>(null);
-  const graphRef = useRef<MultiDirectedGraph<
-    NodeAttributes,
-    LinkAttributes
-  > | null>(null);
+  const graphRef = useRef<MultiDirectedGraph<NodeAttributes, LinkAttributes> | null>(null);
   const nodeGroupsRef = useRef<any>(null);
+  const initializedRef = useRef(false); // Substitui petriNetInitialized
 
+  // ========== ESTADOS REAIS DA APLICAÇÃO ==========
   const [marcacaoModoLivre, setMarcacaoModoLivre] = useState<Marcacao>(
     recursos.reduce((acc, r) => ({ ...acc, [r.nome]: 0 }), {})
   );
-
-  // REF para armazenar a marcação atual do modo livre
-  const marcacaoModoLivreRef = useRef<Marcacao>(marcacaoModoLivre);
-
-  useEffect(() => {
-    marcacaoModoLivreRef.current = marcacaoModoLivre;
-  }, [marcacaoModoLivre]);
-
-  const [transicoesHabilitadas, setTransicoesHabilitadas] = useState<string[]>(
-    []
-  );
   const [modoLivre, setModoLivre] = useState(false);
-  const modoLivreRef = useRef(modoLivre);
-  const [loading, setLoading] = useState(false);
 
-  // ==================== ESTADOS DA ÁRVORE ====================
+  // REFs para valores atualizados
+  const marcacaoModoLivreRef = useRef<Marcacao>(marcacaoModoLivre);
+  const modoLivreRef = useRef(modoLivre);
+
+  // ========== ESTADOS DA ÁRVORE ==========
   const [arvore, setArvore] = useState<NoArvore | null>(null);
   const [expandindoArvore, setExpandindoArvore] = useState(false);
   const [mostrarArvore, setMostrarArvore] = useState(false);
+  const [noSelecionado, setNoSelecionado] = useState<string | null>(null);
+  const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
+
+  // ========== USEFFECT OTIMIZADOS ==========
+  
+  useEffect(() => {
+    marcacaoModoLivreRef.current = marcacaoModoLivre;
+  }, [marcacaoModoLivre]);
 
   useEffect(() => {
     modoLivreRef.current = modoLivre;
   }, [modoLivre]);
 
-  const getMarcacaoAtual = useCallback(() => {
+  // useEffect consolidado para inicialização e atualizações
+  useEffect(() => {
+    if (!initializedRef.current) {
+      initPetriNet();
+    } else {
+      atualizarVisualizacao(); // D3 controla atualizações visuais
+    }
+  }, [marcacaoModoLivre, recursos, playableCards, modoLivre]);
+
+  // ==================== FUNÇÕES OTIMIZADAS ====================
+
+  // Função simplificada - cálculo direto sem useMemo
+  const getMarcacaoAtual = () => {
     return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
-  }, [modoLivre, marcacaoModoLivre, recursos]);
+  };
 
-  const isTransicaoHabilitada = useCallback(
-    (
-      transicaoId: string,
-      marcacao: Marcacao,
-      playableCards: Array<{ id: string }>,
-      graph: MultiDirectedGraph<NodeAttributes, LinkAttributes> | null,
-      modoLivre: boolean = false
-    ): boolean => {
-      if (!graph) return false;
+  const isTransicaoHabilitada = (
+    transicaoId: string,
+    marcacao: Marcacao,
+    playableCards: Array<{ id: string }>,
+    graph: MultiDirectedGraph<NodeAttributes, LinkAttributes> | null,
+    modoLivre: boolean = false
+  ): boolean => {
+    if (!graph) return false;
 
-      try {
-        const cartaId = transicaoId.replace("transition_", "");
+    try {
+      const cartaId = transicaoId.replace("transition_", "");
 
-        if (!modoLivre) {
-          const cartaJogavel = playableCards.some(
-            (card) => card.id === cartaId
-          );
-          if (!cartaJogavel) return false;
-        }
-
-        const arcosEntrada = graph.inEdges(transicaoId) || [];
-
-        for (const arcoId of arcosEntrada) {
-          const arcoAttr = graph.getEdgeAttributes(arcoId);
-          const lugarId = graph.source(arcoId);
-
-          if (!graph.hasNode(lugarId)) continue;
-
-          const recursoNome = graph.getNodeAttribute(lugarId, "label");
-          const pesoNecessario = arcoAttr.weight || 0;
-
-          if (marcacao[recursoNome] === OMEGA) continue;
-
-          const quantidadeAtual = (marcacao[recursoNome] as number) || 0;
-          if (quantidadeAtual < pesoNecessario) {
-            return false;
-          }
-        }
-
-        return true;
-      } catch (error) {
-        console.error("Erro ao verificar transição habilitada:", error);
-        return false;
-      }
-    },
-    []
-  );
-
-  const dispararTransicao = useCallback(
-    (
-      transicaoId: string,
-      marcacao: Marcacao,
-      graph: MultiDirectedGraph<NodeAttributes, LinkAttributes> | null
-    ): Marcacao => {
-      if (!graph) return { ...marcacao };
-
-      const novaMarcacao = { ...marcacao };
-
-      console.log(`=== Disparando transição ${transicaoId} ===`);
-
-      try {
-        // ===== Arcos de entrada =====
-        const arcosEntrada = graph.inEdges(transicaoId) || [];
-        console.log("Arcos de entrada encontrados: ", arcosEntrada);
-
-        for (const arcoId of arcosEntrada) {
-          const arcoAttr = graph.getEdgeAttributes(arcoId);
-          const lugarId = graph.source(arcoId);
-
-          if (!graph.hasNode(lugarId)) continue;
-
-          const recursoNome = graph.getNodeAttribute(lugarId, "label");
-          const peso = arcoAttr.weight || 0;
-
-          if (novaMarcacao[recursoNome] === OMEGA) continue;
-
-          const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
-          novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
-        }
-
-        // ===== Arcos de saída =====
-        const arcosSaida = graph.outEdges(transicaoId) || [];
-        console.log("Arcos de saída encontrados: ", arcosSaida);
-
-        for (const arcoId of arcosSaida) {
-          const arcoAttr = graph.getEdgeAttributes(arcoId);
-          const lugarId = graph.target(arcoId);
-
-          if (!graph.hasNode(lugarId)) continue;
-
-          const recursoNome = graph.getNodeAttribute(lugarId, "label");
-          const peso = arcoAttr.weight || 0;
-
-          if (novaMarcacao[recursoNome] === OMEGA) continue;
-
-          const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
-          novaMarcacao[recursoNome] = quantidadeAtual + peso;
-        }
-
-        console.log("Marcação final após disparo: ", novaMarcacao);
-      } catch (error) {
-        console.error("Erro ao disparar transição:", error);
+      if (!modoLivre) {
+        const cartaJogavel = playableCards.some(
+          (card) => card.id === cartaId
+        );
+        if (!cartaJogavel) return false;
       }
 
-      return novaMarcacao;
-    },
-    []
-  );
+      const arcosEntrada = graph.inEdges(transicaoId) || [];
 
-  // Função para expandir a árvore recursivamente
+      for (const arcoId of arcosEntrada) {
+        const arcoAttr = graph.getEdgeAttributes(arcoId);
+        const lugarId = graph.source(arcoId);
+
+        if (!graph.hasNode(lugarId)) continue;
+
+        const recursoNome = graph.getNodeAttribute(lugarId, "label");
+        const pesoNecessario = arcoAttr.weight || 0;
+
+        if (marcacao[recursoNome] === OMEGA) continue;
+
+        const quantidadeAtual = (marcacao[recursoNome] as number) || 0;
+        if (quantidadeAtual < pesoNecessario) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Erro ao verificar transição habilitada:", error);
+      return false;
+    }
+  };
+
+  const dispararTransicao = (
+    transicaoId: string,
+    marcacao: Marcacao,
+    graph: MultiDirectedGraph<NodeAttributes, LinkAttributes> | null
+  ): Marcacao => {
+    if (!graph) return { ...marcacao };
+
+    const novaMarcacao = { ...marcacao };
+
+    console.log(`=== Disparando transição ${transicaoId} ===`);
+
+    try {
+      // ===== Arcos de entrada =====
+      const arcosEntrada = graph.inEdges(transicaoId) || [];
+      console.log("Arcos de entrada encontrados: ", arcosEntrada);
+
+      for (const arcoId of arcosEntrada) {
+        const arcoAttr = graph.getEdgeAttributes(arcoId);
+        const lugarId = graph.source(arcoId);
+
+        if (!graph.hasNode(lugarId)) continue;
+
+        const recursoNome = graph.getNodeAttribute(lugarId, "label");
+        const peso = arcoAttr.weight || 0;
+
+        if (novaMarcacao[recursoNome] === OMEGA) continue;
+
+        const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+        novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
+      }
+
+      // ===== Arcos de saída =====
+      const arcosSaida = graph.outEdges(transicaoId) || [];
+      console.log("Arcos de saída encontrados: ", arcosSaida);
+
+      for (const arcoId of arcosSaida) {
+        const arcoAttr = graph.getEdgeAttributes(arcoId);
+        const lugarId = graph.target(arcoId);
+
+        if (!graph.hasNode(lugarId)) continue;
+
+        const recursoNome = graph.getNodeAttribute(lugarId, "label");
+        const peso = arcoAttr.weight || 0;
+
+        if (novaMarcacao[recursoNome] === OMEGA) continue;
+
+        const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+        novaMarcacao[recursoNome] = quantidadeAtual + peso;
+      }
+
+      console.log("Marcação final após disparo: ", novaMarcacao);
+    } catch (error) {
+      console.error("Erro ao disparar transição:", error);
+    }
+
+    return novaMarcacao;
+  };
+
+  // Função para expandir a árvore recursivamente COM LIMITES DE SEGURANÇA
   const expandirNoArvore = (
     no: NoArvore,
     graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
     playableCards: Array<{ id: string }>,
     caminhoAncestrais: NoArvore[],
-    contadorNos: { count: number }
+    contadorNos: { count: number },
+    profundidade: number = 0
   ): NoArvore => {
+    // Limite de profundidade para evitar loops infinitos
+    if (profundidade > 50) {
+      no.terminal = true;
+      no.ciclico = true;
+      return no;
+    }
+
+    // Limite máximo de nós
+    if (contadorNos.count > 200) {
+      no.terminal = true;
+      return no;
+    }
+
     // Verificar se já existe um nó com mesma marcação no caminho atual
     const noExistente = caminhoAncestrais.find((n) =>
       compararMarcacoes(n.marcacao, no.marcacao)
     );
 
     if (noExistente && noExistente !== no) {
-      // Se encontramos um ciclo, marcar como cíclico
       no.ciclico = true;
       no.terminal = true;
       return no;
     }
 
-    // Criar novo caminho com este nó incluído
     const novoCaminho = [...caminhoAncestrais, no];
 
-    // Encontrar todas as transições habilitadas nesta marcação
+    // Encontrar transições habilitadas
     const transicoesHabilitadas = graph
       .nodes()
       .filter((node) => graph.getNodeAttribute(node, "type") === "transition")
@@ -346,27 +367,25 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           no.marcacao,
           playableCards,
           graph,
-          true // modo livre para árvore
+          true
         )
       );
 
-    // Se não há transições habilitadas, é nó terminal
     if (transicoesHabilitadas.length === 0) {
       no.terminal = true;
       return no;
     }
 
-    // Expandir cada transição habilitada
-    for (const transicaoId of transicoesHabilitadas) {
+    // Limitar o número de transições expandidas por nó
+    const transicoesLimitadas = transicoesHabilitadas.slice(0, 10);
+
+    for (const transicaoId of transicoesLimitadas) {
       const novaMarcacao = dispararTransicao(transicaoId, no.marcacao, graph);
 
-      // Verificar se esta nova marcação domina algum ancestral no caminho
       let precisaOmega = false;
-
       for (const ancestral of novoCaminho) {
         if (marcaçãoDomina(novaMarcacao, ancestral.marcacao)) {
           precisaOmega = true;
-          // Substituir valores por ω onde há dominância
           Object.keys(novaMarcacao).forEach((chave) => {
             const valorAtual = novaMarcacao[chave];
             const valorAncestral = ancestral.marcacao[chave] || 0;
@@ -390,19 +409,19 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         transicaoDisparada: transicaoId.replace("transition_", ""),
         paiId: no.id,
         children: [],
-        expandido: false, // Mudar para false inicialmente
+        expandido: false,
       };
 
       no.children.push(novoNo);
 
-      // Expandir recursivamente (a menos que seja ω)
       if (!precisaOmega) {
         expandirNoArvore(
           novoNo,
           graph,
           playableCards,
           novoCaminho,
-          contadorNos
+          contadorNos,
+          profundidade + 1
         );
       } else {
         novoNo.terminal = true;
@@ -414,146 +433,108 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     return no;
   };
 
-  const handleNodeClick = useCallback(
-    (nodeLabel: string) => {
-      if (!modoLivreRef.current) return;
+  const handleNodeClick = (nodeLabel: string) => {
+    if (!modoLivreRef.current) return;
 
-      setLoading(true);
-      try {
-        setMarcacaoModoLivre((prevMarcacao) => {
-          const novaMarcacao = { ...prevMarcacao };
-          const valorAtual = novaMarcacao[nodeLabel];
+    setMarcacaoModoLivre((prevMarcacao) => {
+      const novaMarcacao = { ...prevMarcacao };
+      const valorAtual = novaMarcacao[nodeLabel];
 
-          if (valorAtual === OMEGA) {
-            novaMarcacao[nodeLabel] = OMEGA;
-          } else {
-            novaMarcacao[nodeLabel] = ((valorAtual as number) || 0) + 1;
-          }
-
-          // Atualiza visualmente imediatamente
-          setTimeout(() => {
-            if (petriNetInitialized) updatePetriNet();
-          }, 0);
-
-          return novaMarcacao;
-        });
-      } finally {
-        setLoading(false);
+      if (valorAtual === OMEGA) {
+        novaMarcacao[nodeLabel] = OMEGA;
+      } else {
+        novaMarcacao[nodeLabel] = ((valorAtual as number) || 0) + 1;
       }
-    },
-    [petriNetInitialized]
-  );
+
+      return novaMarcacao;
+    });
+  };
 
   const testarDisparoTransicao = (transicaoId: string) => {
     if (!graphRef.current) return;
 
-    setLoading(true);
+    const currentMarcacao = { ...marcacaoModoLivreRef.current };
+    console.log("Tokens antes do disparo: ", currentMarcacao);
 
-    try {
-      const currentMarcacao = { ...marcacaoModoLivreRef.current };
-      console.log("Tokens antes do disparo: ", currentMarcacao);
-
-      // Confirma que a transição existe exatamente no graph
-      if (!graphRef.current.hasNode(transicaoId)) {
-        console.warn("Transição não encontrada no graph:", transicaoId);
-        return;
-      }
-
-      const habilitada = isTransicaoHabilitada(
-        transicaoId,
-        currentMarcacao,
-        playableCards,
-        graphRef.current,
-        modoLivreRef.current
-      );
-
-      if (!habilitada) {
-        console.log("Transição não habilitada:", transicaoId);
-        return;
-      }
-
-      const novaMarcacao = dispararTransicao(
-        transicaoId,
-        currentMarcacao,
-        graphRef.current
-      );
-
-      console.log("Tokens depois do disparo: ", novaMarcacao);
-      console.log(
-        "Transição disparada:",
-        transicaoId.replace("transition_", "")
-      );
-
-      if (modoLivreRef.current) {
-        setMarcacaoModoLivre(novaMarcacao);
-
-        // Atualiza visualmente
-        setTimeout(() => {
-          if (petriNetInitialized) updatePetriNet();
-        }, 0);
-      }
-    } catch (error) {
-      console.error("Erro ao testar disparo da transição:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const atualizarTransicoesHabilitadas = useCallback(() => {
-    if (!graphRef.current) {
-      setTransicoesHabilitadas([]);
+    // Confirma que a transição existe exatamente no graph
+    if (!graphRef.current.hasNode(transicaoId)) {
+      console.warn("Transição não encontrada no graph:", transicaoId);
       return;
     }
 
-    try {
-      const currentMarcacao = getMarcacaoAtual();
-      const habilitadas = graphRef.current
-        .nodes()
-        .filter(
-          (node) =>
-            graphRef.current?.getNodeAttribute(node, "type") === "transition"
-        )
-        .filter((transicaoId) =>
-          isTransicaoHabilitada(
-            transicaoId,
-            currentMarcacao,
-            playableCards,
-            graphRef.current,
-            modoLivre
-          )
-        );
+    const habilitada = isTransicaoHabilitada(
+      transicaoId,
+      currentMarcacao,
+      playableCards,
+      graphRef.current,
+      modoLivreRef.current
+    );
 
-      setTransicoesHabilitadas(habilitadas);
-    } catch (error) {
-      console.error("Erro ao atualizar transições habilitadas:", error);
-      setTransicoesHabilitadas([]);
+    if (!habilitada) {
+      console.log("Transição não habilitada:", transicaoId);
+      return;
     }
-  }, [getMarcacaoAtual, playableCards, modoLivre]);
+
+    const novaMarcacao = dispararTransicao(
+      transicaoId,
+      currentMarcacao,
+      graphRef.current
+    );
+
+    console.log("Tokens depois do disparo: ", novaMarcacao);
+    console.log(
+      "Transição disparada:",
+      transicaoId.replace("transition_", "")
+    );
+
+    if (modoLivreRef.current) {
+      setMarcacaoModoLivre(novaMarcacao);
+    }
+  };
+
+  // ========== FUNÇÃO DE ATUALIZAÇÃO VISUAL COM D3 ==========
+  const atualizarVisualizacao = () => {
+    if (!svgRef.current || !initializedRef.current) return;
+    
+    const currentMarcacao = getMarcacaoAtual();
+    const svg = d3.select(svgRef.current);
+    
+    // Atualizar tokens (D3 controla diretamente)
+    svg.selectAll(".token-count")
+      .text(function() {
+        const parentData: any = d3.select((this as any).parentNode).datum();
+        return parentData?.type === "place" ? 
+          String(currentMarcacao[parentData.label] ?? 0) : "0";
+      });
+    
+    // Atualizar transições habilitadas (D3 controla - ELIMINA estado transicoesHabilitadas)
+    svg.selectAll(".transition-node")
+      .attr("fill", function() {
+        const nodeData: any = d3.select((this as any).parentNode).datum();
+        const isHabilitada = isTransicaoHabilitada(
+          nodeData.id, currentMarcacao, playableCards, graphRef.current, modoLivre
+        );
+        return isHabilitada ? NODE_COLORS.activeTransition : NODE_COLORS.transition;
+      });
+  };
 
   const handleModoLivreChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setLoading(true);
-    try {
-      const novoModoLivre = event.target.checked;
-      setModoLivre(novoModoLivre);
+    const novoModoLivre = event.target.checked;
+    setModoLivre(novoModoLivre);
 
-      if (nodeGroupsRef.current) {
-        nodeGroupsRef.current.each(function (this: SVGGElement, d: any) {
-          if (d.type === "place") {
-            d3.select(this)
-              .select("circle")
-              .style("cursor", novoModoLivre ? "pointer" : "default");
-            d3.select(this)
-              .select(".token-count")
-              .style("cursor", novoModoLivre ? "pointer" : "default");
-          }
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao alterar modo livre:", error);
-    } finally {
-      setLoading(false);
+    if (nodeGroupsRef.current) {
+      nodeGroupsRef.current.each(function (this: SVGGElement, d: any) {
+        if (d.type === "place") {
+          d3.select(this)
+            .select("circle")
+            .style("cursor", novoModoLivre ? "pointer" : "default");
+          d3.select(this)
+            .select(".token-count")
+            .style("cursor", novoModoLivre ? "pointer" : "default");
+        }
+      });
     }
   };
 
@@ -844,49 +825,18 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             `translate(${translate[0]},${translate[1]}) scale(${scale})`
           );
       }
-      setPetriNetInitialized(true);
+      initializedRef.current = true; // Usando ref em vez de state
     }, 500);
   };
 
-  const updatePetriNet = () => {
-    if (!petriNetInitialized || !svgRef.current) return;
-
-    const svg = d3.select(svgRef.current);
-    const currentMarcacao = getMarcacaoAtual();
-
-    svg.selectAll<SVGTextElement, any>(".token-count").text(function () {
-      const parentData: any = d3.select(this.parentNode as Element).datum();
-      if (!parentData || parentData.type !== "place") return "0";
-      return String(currentMarcacao[parentData.label] ?? 0);
-    });
-
-    svg
-      .selectAll<SVGRectElement, any>(".transition-node")
-      .attr("fill", function () {
-        const nodeData: any = d3.select(this.parentNode as Element).datum();
-        if (!nodeData || nodeData.type !== "transition")
-          return nodeData?.color ?? NODE_COLORS.transition;
-
-        const isHabilitada = isTransicaoHabilitada(
-          nodeData.id,
-          currentMarcacao,
-          playableCards,
-          graphRef.current,
-          modoLivre
-        );
-
-        return isHabilitada
-          ? NODE_COLORS.activeTransition
-          : NODE_COLORS.transition;
-      });
-  };
-
+  // Função para gerar árvore com renderização direta
   const gerarArvoreAlcancabilidade = () => {
     if (!graphRef.current) return;
 
     setExpandindoArvore(true);
     setMostrarArvore(true);
 
+    // Usar setTimeout para não bloquear a thread principal
     setTimeout(() => {
       try {
         const marcacaoInicial = getMarcacaoAtual();
@@ -904,14 +854,24 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           graphRef.current!,
           playableCards,
           [],
-          contadorNos
+          contadorNos,
+          0 // profundidade inicial
         );
 
-        // DEBUG: Verificar a estrutura da árvore
-        console.log("Árvore gerada:", JSON.stringify(raiz, null, 2));
-        console.log("Total de nós:", contadorNos.count);
+        // Coletar todos os nós da árvore
+        const todosNos: NoArvore[] = [];
+        const coletarNos = (no: NoArvore) => {
+          todosNos.push(no);
+          no.children.forEach(coletarNos);
+        };
+        coletarNos(raiz);
 
+        setNosArvore(todosNos);
         setArvore(raiz);
+        
+        // Renderizar imediatamente após gerar a árvore
+        renderArvore(raiz);
+        
       } catch (error) {
         console.error("Erro ao gerar árvore:", error);
       } finally {
@@ -920,8 +880,83 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     }, 100);
   };
 
-const renderArvore = useCallback(
-  (arvore: NoArvore) => {
+  // Função para formatar a marcação como texto legível
+  const formatarMarcacao = (marcacao: Marcacao): string => {
+    return Object.entries(marcacao)
+      .map(([recurso, quantidade]) => `${recurso}:${quantidade}`)
+      .join(", ");
+  };
+
+  const obterTransicaoParaNo = (no: NoArvore): string => {
+    if (!no.paiId || !arvore) return "Estado Inicial";
+
+    // Função recursiva para encontrar o pai e a transição
+    const encontrarPai = (
+      noAtual: NoArvore,
+      idProcurado: string
+    ): NoArvore | null => {
+      if (noAtual.id === idProcurado) return noAtual;
+
+      for (const filho of noAtual.children) {
+        const resultado = encontrarPai(filho, idProcurado);
+        if (resultado) return resultado;
+      }
+
+      return null;
+    };
+
+    const pai = encontrarPai(arvore, no.paiId);
+    if (pai) {
+      for (const filho of pai.children) {
+        if (filho.id === no.id) {
+          return filho.transicaoDisparada || "Transição desconhecida";
+        }
+      }
+    }
+
+    return "Transição desconhecida";
+  };
+
+  const centralizarNo = (nodeId: string) => {
+    if (!mostrarArvore || !arvore) return;
+
+    const treeContainer = document.getElementById("arvore-container");
+    if (!treeContainer) return;
+
+    const svg = d3.select(treeContainer).select("svg");
+    if (svg.empty()) return;
+
+    const g = svg.select("g");
+    const node = g.selectAll(".node").filter((d: any) => d.id === nodeId);
+
+    if (node.empty()) return;
+
+    const nodeData = node.datum() as { x?: number; y?: number };
+    if (!nodeData.x || !nodeData.y) return;
+
+    // Obter dimensões do container
+    const width = treeContainer.clientWidth;
+    const height = treeContainer.clientHeight;
+
+    // Calcular transformação para centralizar o nó
+    const transform = d3.zoomIdentity
+      .translate(width / 2 - nodeData.x, height / 2 - nodeData.y)
+      .scale(1);
+
+    // Aplicar transformação com transição suave
+    g.transition().duration(750).attr("transform", transform.toString());
+
+    // Destacar o nó selecionado
+    g.selectAll("circle").attr("stroke-width", 2).attr("stroke", "#fff");
+
+    node.select("circle").attr("stroke-width", 4).attr("stroke", "#FF5722");
+
+    setNoSelecionado(nodeId);
+
+    treeContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const renderArvore = (arvore: NoArvore) => {
     if (!mostrarArvore) return;
 
     const treeContainer = document.getElementById("arvore-container");
@@ -980,9 +1015,14 @@ const renderArvore = useCallback(
       marcacao: no.marcacao,
       ciclico: no.ciclico,
       terminal: no.terminal,
+      isInitial: no.id === "n0",
       type: "state",
       size: 25,
       label: no.id.replace("n", "M"),
+      x: undefined,
+      y: undefined,
+      fx: undefined,
+      fy: undefined,
     }));
 
     const linksData = links.map((link) => ({
@@ -1075,6 +1115,10 @@ const renderArvore = useCallback(
       .append("circle")
       .attr("r", (d: any) => d.size)
       .attr("fill", (d: any) => {
+        // Nó inicial - cor azul
+        if (d.isInitial) return "#2196F3"; // Azul para nó inicial
+
+        // Outros tipos de nós
         if (d.ciclico) return "#FFC107"; // Amarelo para cíclico
         if (d.terminal) return "#f44336"; // Vermelho para terminal
         return "#4CAF50"; // Verde para normal
@@ -1097,7 +1141,14 @@ const renderArvore = useCallback(
       const marcacaoStr = Object.entries(d.marcacao)
         .map(([key, value]) => `${key}: ${value}`)
         .join("\n");
-      return `Marcação:\n${marcacaoStr}`;
+      const tipo = d.isInitial
+        ? " (Estado Inicial)"
+        : d.ciclico
+        ? " (Cíclico)"
+        : d.terminal
+        ? " (Terminal)"
+        : "";
+      return `Marcação${tipo}:\n${marcacaoStr}`;
     });
 
     // Atualizar posições durante a simulação
@@ -1131,7 +1182,7 @@ const renderArvore = useCallback(
         maxX = -Infinity,
         minY = Infinity,
         maxY = -Infinity;
-      
+
       nodesData.forEach((d: any) => {
         if (d.x !== undefined) {
           minX = Math.min(minX, d.x);
@@ -1157,7 +1208,7 @@ const renderArvore = useCallback(
         (height - 100) / graphHeight,
         1.0
       );
-      
+
       const translate = [
         (width - graphWidth * scale) / 2 - minX * scale,
         (height - graphHeight * scale) / 2 - minY * scale,
@@ -1171,39 +1222,7 @@ const renderArvore = useCallback(
           `translate(${translate[0]},${translate[1]}) scale(${scale})`
         );
     }, 1000);
-  },
-  [mostrarArvore]
-);
-
-
-  useEffect(() => {
-    if (arvore) {
-      renderArvore(arvore);
-    }
-  }, [arvore, renderArvore]);
-
-  useEffect(() => {
-    atualizarTransicoesHabilitadas();
-  }, [recursos, playableCards, modoLivre, marcacaoModoLivre]);
-
-  useEffect(() => {
-    if (!petriNetInitialized) {
-      initPetriNet();
-    }
-  }, [petriNetInitialized]);
-
-  useEffect(() => {
-    if (petriNetInitialized) {
-      updatePetriNet();
-      atualizarTransicoesHabilitadas();
-    }
-  }, [
-    marcacaoModoLivre,
-    recursos,
-    playableCards,
-    petriNetInitialized,
-    modoLivre,
-  ]);
+  };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -1243,7 +1262,6 @@ const renderArvore = useCallback(
                 checked={modoLivre}
                 onChange={handleModoLivreChange}
                 color="primary"
-                disabled={loading}
               />
             }
             label={
@@ -1279,7 +1297,6 @@ const renderArvore = useCallback(
                 borderRadius: "3px",
                 cursor: "pointer",
               }}
-              disabled={loading}
             >
               Resetar Modo Livre
             </button>
@@ -1289,71 +1306,15 @@ const renderArvore = useCallback(
             variant="contained"
             size="small"
             onClick={gerarArvoreAlcancabilidade}
-            disabled={expandindoArvore || loading}
+            disabled={expandindoArvore}
             sx={{ mb: 2 }}
           >
             {expandindoArvore ? "Expandindo..." : "Gerar Árvore"}
           </Button>
 
-          {loading && (
-            <Typography variant="body2" color="primary">
-              Carregando...
-            </Typography>
-          )}
-
           <p>
             <strong>Modo:</strong> {modoLivre ? "Livre" : "Normal"}
           </p>
-
-          <p>
-            <strong>Marcação Atual:</strong>
-          </p>
-          <pre
-            style={{
-              fontSize: "10px",
-              backgroundColor: "#f5f5f5",
-              padding: "5px",
-              borderRadius: "3px",
-            }}
-          >
-            {JSON.stringify(getMarcacaoAtual(), null, 2)}
-          </pre>
-
-          <p>
-            <strong>
-              Transições Habilitadas ({transicoesHabilitadas.length}):
-            </strong>
-          </p>
-          <ul
-            style={{
-              fontSize: "10px",
-              paddingLeft: "15px",
-              marginBottom: "10px",
-            }}
-          >
-            {transicoesHabilitadas.map((id) => (
-              <li key={id} style={{ marginBottom: "3px" }}>
-                {id.replace("transition_", "")}
-                <button
-                  onClick={() => testarDisparoTransicao(id)}
-                  style={{
-                    marginLeft: "10px",
-                    fontSize: "8px",
-                    padding: "2px 5px",
-                  }}
-                  disabled={loading}
-                >
-                  Disparar
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {transicoesHabilitadas.length === 0 && (
-            <Typography variant="body2" color="textSecondary">
-              Nenhuma transição habilitada no momento
-            </Typography>
-          )}
         </Box>
       </Paper>
 
@@ -1377,6 +1338,136 @@ const renderArvore = useCallback(
           </Box>
 
           <Box id="arvore-container" sx={{ width: "100%", height: "550px" }} />
+        </Paper>
+      )}
+
+      {/* Renderize a legenda */}
+      {mostrarArvore && nosArvore.length > 0 && (
+        <Paper
+          sx={{
+            p: 2,
+            mt: 2,
+            backgroundColor: "#f5f5f5",
+            maxHeight: "400px",
+            overflow: "auto",
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Estados da Árvore de Alcançabilidade
+          </Typography>
+
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: "bold", width: "60px" }}>
+                  Estado
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Marcação</TableCell>
+                <TableCell sx={{ fontWeight: "bold", width: "120px" }}>
+                  Transição
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold", width: "100px" }}>
+                  Tipo
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold", width: "80px" }}>
+                  Ação
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {nosArvore.map((no) => (
+                <TableRow
+                  key={no.id}
+                  sx={{
+                    backgroundColor:
+                      no.id === "n0"
+                        ? "#e3f2fd"
+                        : no.ciclico
+                        ? "#fff8e1"
+                        : no.terminal
+                        ? "#ffebee"
+                        : "inherit",
+                    "&:hover": { backgroundColor: "#f5f5f5" },
+                  }}
+                >
+                  <TableCell sx={{ fontWeight: "bold" }}>
+                    {no.id.replace("n", "M")}
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}
+                    >
+                      {formatarMarcacao(no.marcacao)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>{obterTransicaoParaNo(no)}</TableCell>
+                  <TableCell>
+                    {no.id === "n0"
+                      ? "Inicial"
+                      : no.ciclico
+                      ? "Cíclico"
+                      : no.terminal
+                      ? "Terminal"
+                      : "Intermediário"}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => centralizarNo(no.id)}
+                      sx={{
+                        fontSize: "0.7rem",
+                        padding: "2px 6px",
+                        minWidth: "auto",
+                      }}
+                    >
+                      Centralizar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: "#e3f2fd",
+                  mr: 1,
+                  border: "1px solid #90caf9",
+                }}
+              />
+              <Typography variant="body2">Estado Inicial</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: "#fff8e1",
+                  mr: 1,
+                  border: "1px solid #ffd54f",
+                }}
+              />
+              <Typography variant="body2">Estado Cíclico</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: "#ffebee",
+                  mr: 1,
+                  border: "1px solid #ef5350",
+                }}
+              />
+              <Typography variant="body2">Estado Terminal</Typography>
+            </Box>
+          </Box>
         </Paper>
       )}
     </Box>
