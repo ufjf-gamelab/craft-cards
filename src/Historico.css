@@ -117,3 +117,150 @@
 .action-type {
   font-size: 0.9rem;
 }
+
+/* Historico.css - Classes atualizadas para o Log com tema escuro */
+
+.historico-log-container {
+  text-align: left;
+  max-height: 500px;
+  overflow-y: auto;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  margin: 20px;
+  background-color: #1a1a2e;
+  border: 2px solid #2a2a4e;
+  color: white;
+}
+
+.historico-log-container h3 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+.turn-details {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #2a2a4e;
+  border-radius: 6px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+}
+
+.turn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.turn-item {
+  background-color: #2d2d4d;
+  padding: 15px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border-left: 4px solid #4a4a8a;
+}
+
+.turn-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #4a4a8a;
+  font-weight: bold;
+}
+
+.turn-number {
+  font-size: 1.1rem;
+  color: white;
+}
+
+.actions-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-item {
+  padding: 12px;
+  background-color: #3a3a5a;
+  border-radius: 5px;
+  border-left: 3px solid #5a5a9a;
+  transition: transform 0.2s ease;
+}
+
+.action-item:hover {
+  transform: translateX(5px);
+  background-color: #4a4a6a;
+}
+
+.action-header {
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.action-type {
+  font-size: 0.95rem;
+  color: white;
+  font-weight: 600;
+}
+
+.resource-section {
+  margin-top: 10px;
+}
+
+.resource-section h4 {
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  color: #cccccc;
+  font-weight: 500;
+}
+
+.resource-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resource-item {
+  padding: 6px 12px;
+  background-color: #2a2a4e;
+  border-radius: 4px;
+  border: 1px solid #4a4a8a;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.resource-item:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+  background-color: #3a3a5e;
+}
+
+.resource-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+}
+
+/* Scrollbar styling para o log */
+.historico-log-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.historico-log-container::-webkit-scrollbar-track {
+  background: #2a2a4e;
+  border-radius: 4px;
+}
+
+.historico-log-container::-webkit-scrollbar-thumb {
+  background: #4a4a8a;
+  border-radius: 4px;
+}
+
+.historico-log-container::-webkit-scrollbar-thumb:hover {
+  background: #5a5a9a;
+}

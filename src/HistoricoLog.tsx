@@ -7,14 +7,14 @@ export default function HistoricoLog() {
   const game = useContext(GameReducerContext);
 
   if (!game?.historico || game.historico.length === 0) {
-    return <div className="historico-container">Nenhum histórico disponível</div>;
+    return <div className="historico-log-container">Nenhum histórico disponível</div>;
   }
 
   // Cria uma cópia invertida do histórico para exibição
   const historicoInvertido = [...game.historico].reverse();
 
   return (
-    <div className="historico-container">
+    <div className="historico-log-container">
       <h3>Detalhes por Turno</h3>
       
       <div className="turn-details">
@@ -42,7 +42,10 @@ export default function HistoricoLog() {
                             <div key={i} className="resource-item">
                               <span 
                                 className="resource-name" 
-                                style={{ color: RESOURCE_COLORS[recurso.nome] || "#000" }}
+                                style={{ 
+                                  color: RESOURCE_COLORS[recurso.nome] || "#1a1a2e",
+                                  fontWeight: "bold"
+                                }}
                               >
                                 {recurso.nome}: {recurso.quantidade}
                               </span>
