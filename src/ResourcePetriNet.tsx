@@ -1234,87 +1234,140 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           backgroundColor: "#363636",
           borderRadius: "10px",
           boxShadow: "0 2px 10px rgba(0, 0, 0, 0.837)",
+          overflow: "hidden",
         }}
       >
         <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
           <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
         </Box>
 
+        {/* BARRA DE CONTROLE SUPERIOR - ESTILO ATUALIZADO */}
         <Box
           sx={{
             position: "absolute",
-            top: 10,
-            right: 10,
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
-            padding: 2,
-            borderRadius: 1,
-            maxWidth: "400px",
-            maxHeight: "500px",
-            overflow: "auto",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            top: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: "rgba(54, 54, 54, 0.95)",
+            padding: "12px 20px",
+            borderBottom: "2px solid #4CAF50",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 3,
+            backdropFilter: "blur(10px)",
+            zIndex: 10,
           }}
         >
-          <h3>Teste - Rede de Petri</h3>
-
-          <FormControlLabel
-            control={
-              <Switch
-                checked={modoLivre}
-                onChange={handleModoLivreChange}
-                color="primary"
-              />
-            }
-            label={
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Typography>Modo Livre</Typography>
-                {modoLivre && (
-                  <Box
-                    sx={{
-                      ml: 1,
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      backgroundColor: "green",
-                      animation: "pulse 1s infinite",
-                    }}
-                  />
-                )}
-              </Box>
-            }
-            sx={{ mb: 1 }}
-          />
-
-          {modoLivre && (
-            <button
-              onClick={resetModoLivre}
-              style={{
-                marginBottom: "10px",
-                padding: "5px 10px",
-                fontSize: "12px",
-                backgroundColor: "#f44336",
-                color: "white",
-                border: "none",
-                borderRadius: "3px",
-                cursor: "pointer",
+          {/* LADO ESQUERDO - TÍTULO E CONTROLES */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: "#fff",
+                fontWeight: "bold",
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                minWidth: "120px"
               }}
             >
-              Resetar Modo Livre
-            </button>
-          )}
+              Rede de Petri
+            </Typography>
 
-          <Button
-            variant="contained"
-            size="small"
-            onClick={gerarArvoreAlcancabilidade}
-            disabled={expandindoArvore}
-            sx={{ mb: 2 }}
-          >
-            {expandindoArvore ? "Expandindo..." : "Gerar Árvore"}
-          </Button>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={modoLivre}
+                  onChange={handleModoLivreChange}
+                  color="primary"
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: '#4CAF50',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: '#4CAF50',
+                    },
+                  }}
+                />
+              }
+              label={
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Typography sx={{ color: "#fff", fontWeight: "500" }}>
+                    Modo Livre
+                  </Typography>
+                  {modoLivre && (
+                    <Box
+                      sx={{
+                        ml: 1,
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        backgroundColor: "#4CAF50",
+                        animation: "pulse 1s infinite",
+                      }}
+                    />
+                  )}
+                </Box>
+              }
+            />
 
-          <p>
-            <strong>Modo:</strong> {modoLivre ? "Livre" : "Normal"}
-          </p>
+            {modoLivre && (
+              <Button
+                onClick={resetModoLivre}
+                variant="outlined"
+                size="small"
+                sx={{
+                  color: "#fff",
+                  borderColor: "#f44336",
+                  '&:hover': {
+                    borderColor: "#ff6659",
+                    backgroundColor: "rgba(244, 67, 54, 0.1)",
+                  },
+                  fontSize: "12px",
+                  padding: "4px 12px",
+                  minWidth: "auto",
+                }}
+              >
+                Resetar
+              </Button>
+            )}
+          </Box>
+
+          {/* LADO DIREITO - BOTÃO GERAR ÁRVORE */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Typography 
+              sx={{ 
+                color: "#fff",
+                fontSize: "14px",
+                fontWeight: "500",
+                minWidth: "80px"
+              }}
+            >
+              <strong>Modo:</strong> {modoLivre ? "Livre" : "Normal"}
+            </Typography>
+
+            <Button
+              variant="contained"
+              size="small"
+              onClick={gerarArvoreAlcancabilidade}
+              disabled={expandindoArvore}
+              sx={{
+                backgroundColor: "#2196F3",
+                '&:hover': {
+                  backgroundColor: "#1976D2",
+                },
+                '&:disabled': {
+                  backgroundColor: "#666",
+                },
+                fontSize: "12px",
+                padding: "6px 16px",
+                fontWeight: "bold",
+                boxShadow: "0 2px 8px rgba(33, 150, 243, 0.3)",
+              }}
+            >
+              {expandindoArvore ? "Expandindo..." : "Gerar Árvore"}
+            </Button>
+          </Box>
         </Box>
       </Paper>
 
