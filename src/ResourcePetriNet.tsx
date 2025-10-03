@@ -433,17 +433,30 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     return no;
   };
 
-  const handleNodeClick = (nodeLabel: string) => {
+  const handleNodeClick = (nodeLabel: string, event: React.MouseEvent) => {
     if (!modoLivreRef.current) return;
 
     setMarcacaoModoLivre((prevMarcacao) => {
       const novaMarcacao = { ...prevMarcacao };
       const valorAtual = novaMarcacao[nodeLabel];
 
-      if (valorAtual === OMEGA) {
-        novaMarcacao[nodeLabel] = OMEGA;
-      } else {
-        novaMarcacao[nodeLabel] = ((valorAtual as number) || 0) + 1;
+      // Right-click: diminui em 1
+      if (event.type === "contextmenu" || event.button === 2) {
+        if (valorAtual === OMEGA) {
+          // OMEGA Não muda
+          novaMarcacao[nodeLabel] = OMEGA;
+        } else {
+          const currentValue = (valorAtual as number) || 0;
+          novaMarcacao[nodeLabel] = Math.max(0, currentValue - 1);
+        }
+      }
+      // Left-click: aumenta em 1
+      else {
+        if (valorAtual === OMEGA) {
+          novaMarcacao[nodeLabel] = OMEGA;
+        } else {
+          novaMarcacao[nodeLabel] = ((valorAtual as number) || 0) + 1;
+        }
       }
 
       return novaMarcacao;
@@ -710,7 +723,11 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           .attr("stroke", "#fff")
           .attr("stroke-width", 2)
           .style("cursor", modoLivre ? "pointer" : "default")
-          .on("click", () => handleNodeClick(d.label));
+          .on("click", (event) => handleNodeClick(d.label, event))
+          .on("contextmenu", (event) => {
+            event.preventDefault(); // ← Garantir prevenção aqui também
+            handleNodeClick(d.label, event);
+          });
 
         nodeGroup
           .append("text")
@@ -721,7 +738,11 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           .style("font-weight", "bold")
           .style("cursor", modoLivre ? "pointer" : "default")
           .text(getMarcacaoAtual()[d.label] || 0)
-          .on("click", () => handleNodeClick(d.label));
+          .on("click", (event) => handleNodeClick(d.label, event))
+          .on("contextmenu", (event) => {
+            event.preventDefault(); // ← Garantir prevenção aqui também
+            handleNodeClick(d.label, event);
+          });
 
         nodeGroup
           .append("text")
