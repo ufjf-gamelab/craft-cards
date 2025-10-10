@@ -13,8 +13,8 @@ import {
   TableRow,
   TableCell,
   TableHead,
-  TextField,
   Chip,
+  Slider,
 } from "@mui/material";
 import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
@@ -920,8 +920,14 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     }, 500);
   };
 
-  // ATUALIZAR a função gerarArvoreAlcancabilidade para usar o numeroExpansoes atual
   const gerarArvoreAlcancabilidade = () => {
+    // Validação do número de expansões
+    if (numeroExpansoes < 0 || numeroExpansoes > 10) {
+      console.warn("Número de expansões deve estar entre 0 e 10");
+      setNumeroExpansoes(Math.max(0, Math.min(10, numeroExpansoes)));
+      return;
+    }
+
     if (!graphRef.current) return;
 
     setExpandindoArvore(true);
@@ -1415,39 +1421,50 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
               <strong>Modo:</strong> {modoLivre ? "Livre" : "Normal"}
             </Typography>
 
-            <TextField
-              size="small"
-              type="number"
-              label="Expansões"
-              value={numeroExpansoes}
-              onChange={(e) => setNumeroExpansoes(Number(e.target.value))}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#64b5f6',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#fff',
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
+            <Box sx={{ width: 200 }}>
+              <Typography 
+                id="expansoes-slider" 
+                gutterBottom 
+                sx={{ 
+                  color: '#fff', 
+                  fontSize: '0.875rem',
+                  textAlign: 'center'
+                }}
+              >
+                Expansões: {numeroExpansoes}
+              </Typography>
+              <Slider
+                value={numeroExpansoes}
+                onChange={(_, newValue) => setNumeroExpansoes(newValue as number)}
+                aria-labelledby="expansoes-slider"
+                valueLabelDisplay="auto"
+                step={1}
+                marks
+                min={0}
+                max={10}
+                sx={{
                   color: '#2196F3',
-                },
-                width: '100px',
-              }}
-            />
+                  '& .MuiSlider-track': {
+                    backgroundColor: '#2196F3',
+                  },
+                  '& .MuiSlider-thumb': {
+                    backgroundColor: '#2196F3',
+                  },
+                  '& .MuiSlider-valueLabel': {
+                    backgroundColor: '#2196F3',
+                  },
+                  '& .MuiSlider-mark': {
+                    backgroundColor: '#fff',
+                  },
+                }}
+              />
+            </Box>
 
             <Button
               variant="contained"
               size="small"
               onClick={gerarArvoreAlcancabilidade}
-              disabled={expandindoArvore}
+              disabled={expandindoArvore || numeroExpansoes < 0 || numeroExpansoes > 10}
               sx={{
                 backgroundColor: "#2196F3",
                 "&:hover": {
