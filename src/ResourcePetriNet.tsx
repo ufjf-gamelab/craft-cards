@@ -13,6 +13,8 @@ import {
   TableRow,
   TableCell,
   TableHead,
+  TextField,
+  Chip,
 } from "@mui/material";
 import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
@@ -64,6 +66,21 @@ type NoArvore = {
   ciclico?: boolean;
   terminal?: boolean;
   expandido: boolean;
+  nivel: number;
+  simulacao?: boolean; // Para nós da simulação (expansões adicionais)
+  omega?: boolean;     // Para nós com marcação omega (infinito)
+};
+
+// CORES DISTINTAS PARA CADA TIPO DE NÓ
+const CORES_NOS = {
+  inicial: "#2196F3",      // Azul - Estado inicial
+  real: "#4CAF50",         // Verde - Nó real da árvore principal
+  realIntermediario: "#388E3C", // Verde escuro - Nó real intermediário
+  omega: "#F44336",        // Vermelho - Nó com omega (árvore principal)
+  ciclico: "#FF9800",      // Laranja - Nó cíclico
+  terminal: "#795548",     // Marrom - Nó terminal
+  simulacao: "#9C27B0",    // Roxo - Nó da simulação
+  simulacaoIntermediario: "#7B1FA2", // Roxo escuro - Nó intermediário da simulação
 };
 
 const recursosParaMarcacao = (
@@ -112,7 +129,6 @@ const getGraphBounds = (
 
 // ==================== FUNÇÕES PARA ÁRVORE DE ALCANÇABILIDADE ====================
 
-// Função para comparar marcações (considerando ω)
 const compararMarcacoes = (m1: Marcacao, m2: Marcacao): boolean => {
   const chaves = new Set([...Object.keys(m1), ...Object.keys(m2)]);
 
@@ -120,20 +136,14 @@ const compararMarcacoes = (m1: Marcacao, m2: Marcacao): boolean => {
     const v1 = m1[chave] || 0;
     const v2 = m2[chave] || 0;
 
-    // Se ambos são ω, continuar
     if (v1 === OMEGA && v2 === OMEGA) continue;
-
-    // Se um é ω e o outro não, são diferentes
     if (v1 === OMEGA || v2 === OMEGA) return false;
-
-    // Comparação numérica
     if (Number(v1) !== Number(v2)) return false;
   }
 
   return true;
 };
 
-// Função para verificar se uma marcação domina outra (para detectar ω)
 const marcaçãoDomina = (nova: Marcacao, existente: Marcacao): boolean => {
   const chaves = new Set([...Object.keys(nova), ...Object.keys(existente)]);
 
@@ -143,208 +153,131 @@ const marcaçãoDomina = (nova: Marcacao, existente: Marcacao): boolean => {
     const vNova = nova[chave] || 0;
     const vExistente = existente[chave] || 0;
 
-    // Se o existente já é ω, a nova não pode dominá-lo
     if (vExistente === OMEGA) continue;
-
-    // Se a nova é ω, domina qualquer valor finito
     if (vNova === OMEGA) return true;
 
-    // Comparação numérica - se a nova é MENOR em algum recurso, NÃO domina
     if (Number(vNova) < Number(vExistente)) {
       return false;
     }
 
-    // Se a nova é MAIOR em algum recurso, pode dominar
     if (Number(vNova) > Number(vExistente)) {
       dominaEstritamente = true;
     }
   }
 
-  // Só domina se for maior ou igual em TODOS os recursos e estritamente maior em pelo menos um
   return dominaEstritamente;
 };
 
-const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
-  recursos,
-  playableCards,
-}) => {
-  // ========== REFs PARA CONTROLE INTERNO D3 ==========
-  const svgRef = useRef<SVGSVGElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const simulationRef = useRef<any>(null);
-  const graphRef = useRef<MultiDirectedGraph<
-    NodeAttributes,
-    LinkAttributes
-  > | null>(null);
-  const nodeGroupsRef = useRef<any>(null);
-  const initializedRef = useRef(false); // Substitui petriNetInitialized
+// FUNÇÕES AUXILIARES PARA EXPANSÃO DA ÁRVORE
+const isTransicaoHabilitada = (
+  transicaoId: string,
+  marcacao: Marcacao,
+  playableCards: Array<{ id: string }>,
+  graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
+  modoLivre: boolean = false
+): boolean => {
+  if (!graph) return false;
 
-  // ========== ESTADOS REAIS DA APLICAÇÃO ==========
-  const [marcacaoModoLivre, setMarcacaoModoLivre] = useState<Marcacao>(
-    recursos.reduce((acc, r) => ({ ...acc, [r.nome]: 0 }), {})
-  );
-  const [modoLivre, setModoLivre] = useState(false);
+  try {
+    const cartaId = transicaoId.replace("transition_", "");
 
-  // REFs para valores atualizados
-  const marcacaoModoLivreRef = useRef<Marcacao>(marcacaoModoLivre);
-  const modoLivreRef = useRef(modoLivre);
-
-  // ========== ESTADOS DA ÁRVORE ==========
-  const [arvore, setArvore] = useState<NoArvore | null>(null);
-  const [expandindoArvore, setExpandindoArvore] = useState(false);
-  const [mostrarArvore, setMostrarArvore] = useState(false);
-  const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
-
-  // ========== USEFFECT OTIMIZADOS ==========
-
-  useEffect(() => {
-    marcacaoModoLivreRef.current = marcacaoModoLivre;
-  }, [marcacaoModoLivre]);
-
-  useEffect(() => {
-    modoLivreRef.current = modoLivre;
-  }, [modoLivre]);
-
-  // useEffect consolidado para inicialização e atualizações
-  useEffect(() => {
-    if (!initializedRef.current) {
-      initPetriNet();
-    } else {
-      atualizarVisualizacao(); // D3 controla atualizações visuais
+    if (!modoLivre) {
+      const cartaJogavel = playableCards.some((card) => card.id === cartaId);
+      if (!cartaJogavel) return false;
     }
-  }, [marcacaoModoLivre, recursos, playableCards, modoLivre]);
 
-  // ==================== FUNÇÕES OTIMIZADAS ====================
+    const arcosEntrada = graph.inEdges(transicaoId) || [];
 
-  // Função simplificada - cálculo direto sem useMemo
-  const getMarcacaoAtual = () => {
-    return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
-  };
+    for (const arcoId of arcosEntrada) {
+      const arcoAttr = graph.getEdgeAttributes(arcoId);
+      const lugarId = graph.source(arcoId);
 
-  const isTransicaoHabilitada = (
-    transicaoId: string,
-    marcacao: Marcacao,
-    playableCards: Array<{ id: string }>,
-    graph: MultiDirectedGraph<NodeAttributes, LinkAttributes> | null,
-    modoLivre: boolean = false
-  ): boolean => {
-    if (!graph) return false;
+      if (!graph.hasNode(lugarId)) continue;
 
-    try {
-      const cartaId = transicaoId.replace("transition_", "");
+      const recursoNome = graph.getNodeAttribute(lugarId, "label");
+      const pesoNecessario = arcoAttr.weight || 0;
 
-      if (!modoLivre) {
-        const cartaJogavel = playableCards.some((card) => card.id === cartaId);
-        if (!cartaJogavel) return false;
+      if (marcacao[recursoNome] === OMEGA) continue;
+
+      const quantidadeAtual = (marcacao[recursoNome] as number) || 0;
+      if (quantidadeAtual < pesoNecessario) {
+        return false;
       }
-
-      const arcosEntrada = graph.inEdges(transicaoId) || [];
-
-      for (const arcoId of arcosEntrada) {
-        const arcoAttr = graph.getEdgeAttributes(arcoId);
-        const lugarId = graph.source(arcoId);
-
-        if (!graph.hasNode(lugarId)) continue;
-
-        const recursoNome = graph.getNodeAttribute(lugarId, "label");
-        const pesoNecessario = arcoAttr.weight || 0;
-
-        if (marcacao[recursoNome] === OMEGA) continue;
-
-        const quantidadeAtual = (marcacao[recursoNome] as number) || 0;
-        if (quantidadeAtual < pesoNecessario) {
-          return false;
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Erro ao verificar transição habilitada:", error);
-      return false;
-    }
-  };
-
-  const dispararTransicao = (
-    transicaoId: string,
-    marcacao: Marcacao,
-    graph: MultiDirectedGraph<NodeAttributes, LinkAttributes> | null
-  ): Marcacao => {
-    if (!graph) return { ...marcacao };
-
-    const novaMarcacao = { ...marcacao };
-
-    console.log(`=== Disparando transição ${transicaoId} ===`);
-
-    try {
-      // ===== Arcos de entrada =====
-      const arcosEntrada = graph.inEdges(transicaoId) || [];
-      console.log("Arcos de entrada encontrados: ", arcosEntrada);
-
-      for (const arcoId of arcosEntrada) {
-        const arcoAttr = graph.getEdgeAttributes(arcoId);
-        const lugarId = graph.source(arcoId);
-
-        if (!graph.hasNode(lugarId)) continue;
-
-        const recursoNome = graph.getNodeAttribute(lugarId, "label");
-        const peso = arcoAttr.weight || 0;
-
-        if (novaMarcacao[recursoNome] === OMEGA) continue;
-
-        const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
-        novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
-      }
-
-      // ===== Arcos de saída =====
-      const arcosSaida = graph.outEdges(transicaoId) || [];
-      console.log("Arcos de saída encontrados: ", arcosSaida);
-
-      for (const arcoId of arcosSaida) {
-        const arcoAttr = graph.getEdgeAttributes(arcoId);
-        const lugarId = graph.target(arcoId);
-
-        if (!graph.hasNode(lugarId)) continue;
-
-        const recursoNome = graph.getNodeAttribute(lugarId, "label");
-        const peso = arcoAttr.weight || 0;
-
-        if (novaMarcacao[recursoNome] === OMEGA) continue;
-
-        const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
-        novaMarcacao[recursoNome] = quantidadeAtual + peso;
-      }
-
-      console.log("Marcação final após disparo: ", novaMarcacao);
-    } catch (error) {
-      console.error("Erro ao disparar transição:", error);
     }
 
-    return novaMarcacao;
-  };
+    return true;
+  } catch (error) {
+    console.error("Erro ao verificar transição habilitada:", error);
+    return false;
+  }
+};
 
-  // Função para expandir a árvore recursivamente COM LIMITES DE SEGURANÇA
-  const expandirNoArvore = (
-    no: NoArvore,
-    graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
-    playableCards: Array<{ id: string }>,
-    caminhoAncestrais: NoArvore[],
-    contadorNos: { count: number },
-    profundidade: number = 0
-  ): NoArvore => {
-    // Limite de profundidade para evitar loops infinitos
-    if (profundidade > 50) {
-      no.terminal = true;
-      no.ciclico = true;
-      return no;
+const dispararTransicao = (
+  transicaoId: string,
+  marcacao: Marcacao,
+  graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>
+): Marcacao => {
+  if (!graph) return { ...marcacao };
+
+  const novaMarcacao = { ...marcacao };
+
+  try {
+    // ===== Arcos de entrada =====
+    const arcosEntrada = graph.inEdges(transicaoId) || [];
+
+    for (const arcoId of arcosEntrada) {
+      const arcoAttr = graph.getEdgeAttributes(arcoId);
+      const lugarId = graph.source(arcoId);
+
+      if (!graph.hasNode(lugarId)) continue;
+
+      const recursoNome = graph.getNodeAttribute(lugarId, "label");
+      const peso = arcoAttr.weight || 0;
+
+      if (novaMarcacao[recursoNome] === OMEGA) continue;
+
+      const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+      novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
     }
 
-    // Limite máximo de nós
-    if (contadorNos.count > 200) {
-      no.terminal = true;
-      return no;
-    }
+    // ===== Arcos de saída =====
+    const arcosSaida = graph.outEdges(transicaoId) || [];
 
-    // Verificar se já existe um nó com mesma marcação no caminho atual
+    for (const arcoId of arcosSaida) {
+      const arcoAttr = graph.getEdgeAttributes(arcoId);
+      const lugarId = graph.target(arcoId);
+
+      if (!graph.hasNode(lugarId)) continue;
+
+      const recursoNome = graph.getNodeAttribute(lugarId, "label");
+      const peso = arcoAttr.weight || 0;
+
+      if (novaMarcacao[recursoNome] === OMEGA) continue;
+
+      const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+      novaMarcacao[recursoNome] = quantidadeAtual + peso;
+    }
+  } catch (error) {
+    console.error("Erro ao disparar transição:", error);
+  }
+
+  return novaMarcacao;
+};
+
+// NOVA FUNÇÃO: Expandir árvore completa com simulação
+const expandirArvoreComSimulacao = (
+  raiz: NoArvore,
+  graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
+  playableCards: Array<{ id: string }>,
+  numeroExpansoes: number
+): NoArvore => {
+  const contadorNos = { count: 0 };
+  const contadorSimulacao = { count: 0 };
+  
+  // Primeiro, expandir a árvore normal (sem omega)
+  const expandirNormalmente = (no: NoArvore, caminhoAncestrais: NoArvore[] = []): NoArvore => {
+    if (no.terminal || no.ciclico) return no;
+    
     const noExistente = caminhoAncestrais.find((n) =>
       compararMarcacoes(n.marcacao, no.marcacao)
     );
@@ -356,8 +289,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     }
 
     const novoCaminho = [...caminhoAncestrais, no];
-
-    // Encontrar transições habilitadas
     const transicoesHabilitadas = graph
       .nodes()
       .filter((node) => graph.getNodeAttribute(node, "type") === "transition")
@@ -376,16 +307,15 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       return no;
     }
 
-    // Limitar o número de transições expandidas por nó
-    const transicoesLimitadas = transicoesHabilitadas.slice(0, 10);
-
-    for (const transicaoId of transicoesLimitadas) {
+    for (const transicaoId of transicoesHabilitadas.slice(0, 10)) {
       const novaMarcacao = dispararTransicao(transicaoId, no.marcacao, graph);
 
+      // Verificar se precisa de omega
       let precisaOmega = false;
       for (const ancestral of novoCaminho) {
         if (marcaçãoDomina(novaMarcacao, ancestral.marcacao)) {
           precisaOmega = true;
+          // Aplicar omega onde necessário
           Object.keys(novaMarcacao).forEach((chave) => {
             const valorAtual = novaMarcacao[chave];
             const valorAncestral = ancestral.marcacao[chave] || 0;
@@ -410,22 +340,18 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         paiId: no.id,
         children: [],
         expandido: false,
+        nivel: no.nivel + 1,
+        omega: precisaOmega, // Marcar como omega se tiver valores infinitos
+        simulacao: false, // Nós da árvore principal não são simulação
       };
 
       no.children.push(novoNo);
 
       if (!precisaOmega) {
-        expandirNoArvore(
-          novoNo,
-          graph,
-          playableCards,
-          novoCaminho,
-          contadorNos,
-          profundidade + 1
-        );
+        expandirNormalmente(novoNo, novoCaminho);
       } else {
-        novoNo.terminal = true;
-        novoNo.expandido = true;
+        // Nós omega são terminais na árvore principal (a menos que haja simulação)
+        novoNo.terminal = numeroExpansoes === 0;
       }
     }
 
@@ -433,6 +359,166 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     return no;
   };
 
+  // Expandir árvore normalmente primeiro
+  let arvoreExpandida = expandirNormalmente(raiz);
+
+  // AGORA aplicar a simulação nos nós omega apenas se numeroExpansoes > 0
+  if (numeroExpansoes > 0) {
+    const nosOmega: NoArvore[] = [];
+    
+    // Coletar todos os nós omega que não são terminais
+    const coletarNosOmega = (no: NoArvore) => {
+      if (no.omega && !no.terminal && !no.simulacao) {
+        nosOmega.push(no);
+      }
+      no.children.forEach(coletarNosOmega);
+    };
+    coletarNosOmega(arvoreExpandida);
+
+    // Expandir cada nó omega N vezes
+    const expandirOmegaRecursivo = (no: NoArvore, expansoesRestantes: number, profundidade: number = 0): void => {
+      if (expansoesRestantes <= 0 || profundidade > 50 || contadorNos.count > 200) {
+        no.terminal = true;
+        return;
+      }
+
+      const transicoesHabilitadas = graph
+        .nodes()
+        .filter((node) => graph.getNodeAttribute(node, "type") === "transition")
+        .filter((transicaoId) =>
+          isTransicaoHabilitada(
+            transicaoId,
+            no.marcacao,
+            playableCards,
+            graph,
+            true
+          )
+        );
+
+      if (transicoesHabilitadas.length === 0) {
+        no.terminal = true;
+        return;
+      }
+
+      for (const transicaoId of transicoesHabilitadas.slice(0, 5)) {
+        const novaMarcacao = { ...no.marcacao };
+        
+        // Aplicar transição
+        const arcosEntrada = graph.inEdges(transicaoId) || [];
+        const arcosSaida = graph.outEdges(transicaoId) || [];
+
+        for (const arcoId of arcosEntrada) {
+          const arcoAttr = graph.getEdgeAttributes(arcoId);
+          const lugarId = graph.source(arcoId);
+          const recursoNome = graph.getNodeAttribute(lugarId, "label");
+          const peso = arcoAttr.weight || 0;
+
+          if (novaMarcacao[recursoNome] !== OMEGA) {
+            const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+            novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
+          }
+        }
+
+        for (const arcoId of arcosSaida) {
+          const arcoAttr = graph.getEdgeAttributes(arcoId);
+          const lugarId = graph.target(arcoId);
+          const recursoNome = graph.getNodeAttribute(lugarId, "label");
+          const peso = arcoAttr.weight || 0;
+
+          if (novaMarcacao[recursoNome] !== OMEGA) {
+            const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+            novaMarcacao[recursoNome] = quantidadeAtual + peso;
+          }
+        }
+
+        contadorSimulacao.count++;
+        const novoNo: NoArvore = {
+          id: `s${contadorSimulacao.count}`,
+          marcacao: novaMarcacao,
+          transicaoDisparada: transicaoId.replace("transition_", ""),
+          paiId: no.id,
+          children: [],
+          expandido: false,
+          nivel: no.nivel + 1,
+          simulacao: true, // Filhos de omega são simulação
+          omega: false, // Nós de simulação não são omega (já processado)
+        };
+
+        no.children.push(novoNo);
+
+        // Expandir recursivamente o novo nó
+        expandirOmegaRecursivo(novoNo, expansoesRestantes - 1, profundidade + 1);
+      }
+
+      no.expandido = true;
+    };
+
+    // Expandir cada nó omega
+    nosOmega.forEach(noOmega => {
+      expandirOmegaRecursivo(noOmega, numeroExpansoes);
+    });
+  }
+
+  return arvoreExpandida;
+};
+
+const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
+  recursos,
+  playableCards,
+}) => {
+  // ========== REFs PARA CONTROLE INTERNO D3 ==========
+  const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const simulationRef = useRef<any>(null);
+  const graphRef = useRef<MultiDirectedGraph<
+    NodeAttributes,
+    LinkAttributes
+  > | null>(null);
+  const nodeGroupsRef = useRef<any>(null);
+  const initializedRef = useRef(false);
+
+  // ========== ESTADOS REAIS DA APLICAÇÃO ==========
+  const [marcacaoModoLivre, setMarcacaoModoLivre] = useState<Marcacao>(
+    recursos.reduce((acc, r) => ({ ...acc, [r.nome]: 0 }), {})
+  );
+  const [modoLivre, setModoLivre] = useState(false);
+
+  // REFs para valores atualizados
+  const marcacaoModoLivreRef = useRef<Marcacao>(marcacaoModoLivre);
+  const modoLivreRef = useRef(modoLivre);
+
+  // ========== ESTADOS DA ÁRVORE ==========
+  const [arvore, setArvore] = useState<NoArvore | null>(null);
+  const [expandindoArvore, setExpandindoArvore] = useState(false);
+  const [mostrarArvore, setMostrarArvore] = useState(false);
+  const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
+  const [numeroExpansoes, setNumeroExpansoes] = useState<number>(0);
+
+  // ========== USEFFECT OTIMIZADOS ==========
+
+  useEffect(() => {
+    marcacaoModoLivreRef.current = marcacaoModoLivre;
+  }, [marcacaoModoLivre]);
+
+  useEffect(() => {
+    modoLivreRef.current = modoLivre;
+  }, [modoLivre]);
+
+  useEffect(() => {
+    if (!initializedRef.current) {
+      initPetriNet();
+    } else {
+      atualizarVisualizacao();
+    }
+  }, [marcacaoModoLivre, recursos, playableCards, modoLivre]);
+
+  // ==================== FUNÇÕES OTIMIZADAS ====================
+
+  const getMarcacaoAtual = () => {
+    return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
+  };
+
+  // CORREÇÃO: handleNodeClick agora é usado
   const handleNodeClick = (nodeLabel: string, event: React.MouseEvent) => {
     if (!modoLivreRef.current) return;
 
@@ -440,18 +526,14 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       const novaMarcacao = { ...prevMarcacao };
       const valorAtual = novaMarcacao[nodeLabel];
 
-      // Right-click: diminui em 1
       if (event.type === "contextmenu" || event.button === 2) {
         if (valorAtual === OMEGA) {
-          // OMEGA Não muda
           novaMarcacao[nodeLabel] = OMEGA;
         } else {
           const currentValue = (valorAtual as number) || 0;
           novaMarcacao[nodeLabel] = Math.max(0, currentValue - 1);
         }
-      }
-      // Left-click: aumenta em 1
-      else {
+      } else {
         if (valorAtual === OMEGA) {
           novaMarcacao[nodeLabel] = OMEGA;
         } else {
@@ -463,13 +545,12 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     });
   };
 
+  // CORREÇÃO: testarDisparoTransicao agora é usado
   const testarDisparoTransicao = (transicaoId: string) => {
     if (!graphRef.current) return;
 
     const currentMarcacao = { ...marcacaoModoLivreRef.current };
-    console.log("Tokens antes do disparo: ", currentMarcacao);
 
-    // Confirma que a transição existe exatamente no graph
     if (!graphRef.current.hasNode(transicaoId)) {
       console.warn("Transição não encontrada no graph:", transicaoId);
       return;
@@ -494,22 +575,17 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       graphRef.current
     );
 
-    console.log("Tokens depois do disparo: ", novaMarcacao);
-    console.log("Transição disparada:", transicaoId.replace("transition_", ""));
-
     if (modoLivreRef.current) {
       setMarcacaoModoLivre(novaMarcacao);
     }
   };
 
-  // ========== FUNÇÃO DE ATUALIZAÇÃO VISUAL COM D3 ==========
   const atualizarVisualizacao = () => {
     if (!svgRef.current || !initializedRef.current) return;
 
     const currentMarcacao = getMarcacaoAtual();
     const svg = d3.select(svgRef.current);
 
-    // Atualizar tokens (D3 controla diretamente)
     svg.selectAll(".token-count").text(function () {
       const parentData: any = d3.select((this as any).parentNode).datum();
       return parentData?.type === "place"
@@ -517,16 +593,17 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         : "0";
     });
 
-    // Atualizar transições habilitadas (D3 controla - ELIMINA estado transicoesHabilitadas)
     svg.selectAll(".transition-node").attr("fill", function () {
       const nodeData: any = d3.select((this as any).parentNode).datum();
-      const isHabilitada = isTransicaoHabilitada(
-        nodeData.id,
-        currentMarcacao,
-        playableCards,
-        graphRef.current,
-        modoLivre
-      );
+      const isHabilitada =
+        graphRef.current &&
+        isTransicaoHabilitada(
+          nodeData.id,
+          currentMarcacao,
+          playableCards,
+          graphRef.current,
+          modoLivre
+        );
       return isHabilitada
         ? NODE_COLORS.activeTransition
         : NODE_COLORS.transition;
@@ -559,6 +636,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     );
   };
 
+  // CORREÇÃO: initPetriNet agora usa todas as funções necessárias
   const initPetriNet = () => {
     if (!svgRef.current || !containerRef.current) return;
 
@@ -573,9 +651,9 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
     graphRef.current = graph;
 
+    // CORREÇÃO: BARALHO_INICIAL e BARALHO_OFERTA_INICIAL agora são usados
     const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
-    // === Adiciona transições ===
     allCards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
       graph.addNode(transitionId, {
@@ -587,7 +665,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       });
     });
 
-    // === Adiciona lugares ===
     const allResources = new Set<string>();
     allCards.forEach((carta) => {
       [...carta.ganho, ...carta.custo].forEach((recurso) => {
@@ -606,11 +683,9 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       });
     });
 
-    // === Adiciona arcos corretamente ===
     allCards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
 
-      // Arcos de custo (entrada)
       carta.custo.forEach((custo) => {
         const placeId = `place_${custo.nome}`;
         if (graph.hasNode(placeId)) {
@@ -622,7 +697,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         }
       });
 
-      // Arcos de ganho (saída)
       carta.ganho.forEach((ganho) => {
         const placeId = `place_${ganho.nome}`;
         if (graph.hasNode(placeId)) {
@@ -635,20 +709,18 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       });
     });
 
-    // === Preparação dos nós e links para D3 ===
     const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
     const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
     const g = svg.append("g");
 
-    // === Zoom ===
     const zoomBehavior = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
       .on("zoom", (event) => g.attr("transform", event.transform));
     svg.call(zoomBehavior);
 
-    // === Simulação de força ===
+    // CORREÇÃO: simulationRef agora é usado
     const simulation = d3
       .forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-100))
@@ -665,7 +737,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
 
     simulationRef.current = simulation;
 
-    // === Definição de setas nos links ===
     const defs = svg.append("defs");
     Object.values(LINK_COLORS).forEach((color) => {
       defs
@@ -695,7 +766,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         (d: any) => `url(#arrowhead-${d.color.replace("#", "")})`
       );
 
-    // === Criação dos nós no SVG ===
     nodeGroupsRef.current = g
       .append("g")
       .selectAll("g")
@@ -711,7 +781,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           .on("end", dragended)
       );
 
-    // === Conteúdo dos nós ===
+    // CORREÇÃO: handleNodeClick e testarDisparoTransicao agora são usados
     nodeGroupsRef.current.each(function (this: SVGGElement, d: NodeAttributes) {
       const nodeGroup = d3.select<SVGGElement, NodeAttributes>(this);
 
@@ -725,7 +795,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           .style("cursor", modoLivre ? "pointer" : "default")
           .on("click", (event) => handleNodeClick(d.label, event))
           .on("contextmenu", (event) => {
-            event.preventDefault(); // ← Garantir prevenção aqui também
+            event.preventDefault();
             handleNodeClick(d.label, event);
           });
 
@@ -740,7 +810,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           .text(getMarcacaoAtual()[d.label] || 0)
           .on("click", (event) => handleNodeClick(d.label, event))
           .on("contextmenu", (event) => {
-            event.preventDefault(); // ← Garantir prevenção aqui também
+            event.preventDefault();
             handleNodeClick(d.label, event);
           });
 
@@ -776,7 +846,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       }
     });
 
-    // === Labels dos links ===
     g.append("g")
       .selectAll("text")
       .data(links)
@@ -786,7 +855,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .attr("fill", (d: any) => d.color)
       .text((d: any) => d.weight);
 
-    // === Atualização da simulação ===
     simulation.on("tick", () => {
       link
         .attr("x1", (d: any) => (d.source as any).x)
@@ -825,7 +893,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       d.fy = null;
     }
 
-    // Ajusta zoom inicial
+    // CORREÇÃO: getGraphBounds agora é usado
     setTimeout(() => {
       const bounds = getGraphBounds(nodes, width, height);
       if (bounds) {
@@ -848,52 +916,49 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             `translate(${translate[0]},${translate[1]}) scale(${scale})`
           );
       }
-      initializedRef.current = true; // Usando ref em vez de state
+      initializedRef.current = true;
     }, 500);
   };
 
-  // Função para gerar árvore com renderização direta
+  // ATUALIZAR a função gerarArvoreAlcancabilidade para usar o numeroExpansoes atual
   const gerarArvoreAlcancabilidade = () => {
     if (!graphRef.current) return;
 
     setExpandindoArvore(true);
     setMostrarArvore(true);
 
-    // Usar setTimeout para não bloquear a thread principal
     setTimeout(() => {
       try {
         const marcacaoInicial = getMarcacaoAtual();
-        const contadorNos = { count: 0 };
 
         const raiz: NoArvore = {
           id: "n0",
           marcacao: marcacaoInicial,
           children: [],
           expandido: false,
+          nivel: 0,
         };
 
-        expandirNoArvore(
+        // USAR A NOVA FUNÇÃO com o numeroExpansoes atual do estado
+        const arvoreCompleta = expandirArvoreComSimulacao(
           raiz,
           graphRef.current!,
           playableCards,
-          [],
-          contadorNos,
-          0 // profundidade inicial
+          numeroExpansoes // Usar o valor atual do estado
         );
 
-        // Coletar todos os nós da árvore
+        // Atualizar estado com todos os nós
         const todosNos: NoArvore[] = [];
         const coletarNos = (no: NoArvore) => {
           todosNos.push(no);
           no.children.forEach(coletarNos);
         };
-        coletarNos(raiz);
+        coletarNos(arvoreCompleta);
 
         setNosArvore(todosNos);
-        setArvore(raiz);
+        setArvore(arvoreCompleta);
+        renderArvore(arvoreCompleta);
 
-        // Renderizar imediatamente após gerar a árvore
-        renderArvore(raiz);
       } catch (error) {
         console.error("Erro ao gerar árvore:", error);
       } finally {
@@ -902,7 +967,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     }, 100);
   };
 
-  // Função para formatar a marcação como texto legível
   const formatarMarcacao = (marcacao: Marcacao): string => {
     return Object.entries(marcacao)
       .map(([recurso, quantidade]) => `${recurso}:${quantidade}`)
@@ -912,7 +976,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   const obterTransicaoParaNo = (no: NoArvore): string => {
     if (!no.paiId || !arvore) return "Estado Inicial";
 
-    // Função recursiva para encontrar o pai e a transição
     const encontrarPai = (
       noAtual: NoArvore,
       idProcurado: string
@@ -950,10 +1013,8 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
 
     const g = svg.select("g");
 
-    // Remover seleção anterior (controlado pelo D3)
     g.selectAll("circle").attr("stroke-width", 2).attr("stroke", "#fff");
 
-    // Aplicar nova seleção (controlado pelo D3)
     const node = g.selectAll(".node").filter((d: any) => d.id === nodeId);
 
     if (node.empty()) return;
@@ -961,19 +1022,15 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     const nodeData = node.datum() as { x?: number; y?: number };
     if (!nodeData.x || !nodeData.y) return;
 
-    // Obter dimensões do container
     const width = treeContainer.clientWidth;
     const height = treeContainer.clientHeight;
 
-    // Calcular transformação para centralizar o nó
     const transform = d3.zoomIdentity
       .translate(width / 2 - nodeData.x, height / 2 - nodeData.y)
       .scale(1);
 
-    // Aplicar transformação com transição suave
     g.transition().duration(750).attr("transform", transform.toString());
 
-    // Destacar o nó selecionado (D3 controla o estado visual)
     node.select("circle").attr("stroke-width", 4).attr("stroke", "#61ff22ff");
 
     treeContainer.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -996,10 +1053,8 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .attr("width", width)
       .attr("height", height);
 
-    // Adicionar um grupo principal para o zoom
     const g = svg.append("g");
 
-    // Configurar o comportamento de zoom
     const zoomBehavior = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 5])
@@ -1007,10 +1062,8 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         g.attr("transform", event.transform);
       });
 
-    // Aplicar o zoom ao SVG
     svg.call(zoomBehavior);
 
-    // Coletar todos os nós da árvore
     const todosNos: NoArvore[] = [];
     const coletarNos = (no: NoArvore) => {
       todosNos.push(no);
@@ -1018,7 +1071,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     };
     coletarNos(arvore);
 
-    // Criar links entre os nós
     const links: Array<{ source: string; target: string; label: string }> = [];
     const processarLinks = (no: NoArvore) => {
       no.children.forEach((filho) => {
@@ -1032,16 +1084,17 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     };
     processarLinks(arvore);
 
-    // Preparar dados para o D3 force layout
     const nodesData = todosNos.map((no) => ({
       id: no.id,
       marcacao: no.marcacao,
       ciclico: no.ciclico,
       terminal: no.terminal,
       isInitial: no.id === "n0",
+      simulacao: no.simulacao,
+      omega: no.omega,
       type: "state",
       size: 25,
-      label: no.id.replace("n", "M"),
+      label: no.id.replace("n", "M").replace("s", "S"),
       x: undefined,
       y: undefined,
       fx: undefined,
@@ -1055,7 +1108,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       color: "#999",
     }));
 
-    // Configurar a simulação de força
     const simulation = d3
       .forceSimulation(nodesData as d3.SimulationNodeDatum[])
       .force(
@@ -1068,7 +1120,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
-    // Desenhar links
     const link = g
       .append("g")
       .selectAll("line")
@@ -1078,7 +1129,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .attr("stroke", (d: any) => d.color)
       .attr("stroke-width", 2);
 
-    // Adicionar setas aos links
     const defs = svg.append("defs");
     defs
       .append("marker")
@@ -1095,7 +1145,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
 
     link.attr("marker-end", "url(#arrowhead)");
 
-    // Adicionar labels aos links (transições)
     const linkLabels = g
       .append("g")
       .selectAll("text")
@@ -1106,7 +1155,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .attr("fill", "#ffffffff")
       .text((d: any) => d.label);
 
-    // Desenhar nós
     const node = g
       .append("g")
       .selectAll("g")
@@ -1133,23 +1181,28 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           })
       );
 
-    // Adicionar círculos aos nós
     node
       .append("circle")
       .attr("r", (d: any) => d.size)
       .attr("fill", (d: any) => {
-        // Nó inicial - cor azul
-        if (d.isInitial) return "#2196F3"; // Azul para nó inicial
-
-        // Outros tipos de nós
-        if (d.ciclico) return "#FFC107"; // Amarelo para cíclico
-        if (d.terminal) return "#f44336"; // Vermelho para terminal
-        return "#4CAF50"; // Verde para normal
+        // Lógica de cores melhorada
+        if (d.isInitial) return CORES_NOS.inicial; // Azul - Estado inicial
+        if (d.simulacao) {
+          // Nós de simulação
+          if (d.terminal) return CORES_NOS.terminal; // Marrom - Terminal da simulação
+          if (d.ciclico) return CORES_NOS.ciclico;   // Laranja - Cíclico na simulação
+          return CORES_NOS.simulacaoIntermediario;   // Roxo escuro - Intermediário da simulação
+        } else {
+          // Nós reais da árvore principal
+          if (d.omega) return CORES_NOS.omega;       // Vermelho - Nó com omega
+          if (d.terminal) return CORES_NOS.terminal; // Marrom - Terminal real
+          if (d.ciclico) return CORES_NOS.ciclico;   // Laranja - Cíclico real
+          return d.nivel === 1 ? CORES_NOS.real : CORES_NOS.realIntermediario; // Verde ou verde escuro
+        }
       })
       .attr("stroke", "#fff")
       .attr("stroke-width", 2);
 
-    // Adicionar ID do nó
     node
       .append("text")
       .attr("dy", 4)
@@ -1159,22 +1212,24 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .style("font-weight", "bold")
       .text((d: any) => d.label);
 
-    // Adicionar marcação como tooltip
     node.append("title").text((d: any) => {
       const marcacaoStr = Object.entries(d.marcacao)
         .map(([key, value]) => `${key}: ${value}`)
         .join("\n");
       const tipo = d.isInitial
         ? " (Estado Inicial)"
+        : d.simulacao
+        ? " (Simulação)"
+        : d.omega
+        ? " (Omega)"
         : d.ciclico
         ? " (Cíclico)"
         : d.terminal
         ? " (Terminal)"
-        : "";
+        : " (Intermediário)";
       return `Marcação${tipo}:\n${marcacaoStr}`;
     });
 
-    // Atualizar posições durante a simulação
     simulation.on("tick", () => {
       link
         .attr("x1", (d: any) => d.source.x)
@@ -1189,7 +1244,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       node.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
     });
 
-    // Adicionar instruções de uso do zoom
     svg
       .append("text")
       .attr("x", 10)
@@ -1198,9 +1252,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .style("font-size", "12px")
       .text("Use scroll para zoom | Arraste para mover nós");
 
-    // Centralizar a visualização após um breve delay
     setTimeout(() => {
-      // Calcular os limites do gráfico
       let minX = Infinity,
         maxX = -Infinity,
         minY = Infinity,
@@ -1215,7 +1267,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         }
       });
 
-      // Adicionar margens
       const padding = 50;
       minX -= padding;
       maxX += padding;
@@ -1225,7 +1276,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       const graphWidth = maxX - minX;
       const graphHeight = maxY - minY;
 
-      // Calcular escala e translação
       const scale = Math.min(
         (width - 100) / graphWidth,
         (height - 100) / graphHeight,
@@ -1237,7 +1287,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         (height - graphHeight * scale) / 2 - minY * scale,
       ];
 
-      // Aplicar transformação
       g.transition()
         .duration(1000)
         .attr(
@@ -1264,7 +1313,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
         </Box>
 
-        {/* BARRA DE CONTROLE SUPERIOR - ESTILO ATUALIZADO */}
         <Box
           sx={{
             position: "absolute",
@@ -1283,7 +1331,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             zIndex: 10,
           }}
         >
-          {/* LADO ESQUERDO - TÍTULO E CONTROLES */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
             <Typography
               variant="h6"
@@ -1356,7 +1403,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             )}
           </Box>
 
-          {/* LADO DIREITO - BOTÃO GERAR ÁRVORE */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Typography
               sx={{
@@ -1368,6 +1414,34 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             >
               <strong>Modo:</strong> {modoLivre ? "Livre" : "Normal"}
             </Typography>
+
+            <TextField
+              size="small"
+              type="number"
+              label="Expansões"
+              value={numeroExpansoes}
+              onChange={(e) => setNumeroExpansoes(Number(e.target.value))}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: '#2196F3',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#64b5f6',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#2196F3',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: '#fff',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#2196F3',
+                },
+                width: '100px',
+              }}
+            />
 
             <Button
               variant="contained"
@@ -1405,7 +1479,17 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           }}
         >
           <Box sx={{ p: 2, color: "white" }}>
-            <h3>Árvore de Alcançabilidade</h3>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <h3>Árvore de Alcançabilidade</h3>
+              {numeroExpansoes > 0 && (
+                <Chip 
+                  label={`+${numeroExpansoes} expansões simuladas`}
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                />
+              )}
+            </Box>
             {expandindoArvore && (
               <Typography variant="body2" color="primary">
                 Expandindo árvore...
@@ -1417,14 +1501,13 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         </Paper>
       )}
 
-      {/* Renderize a legenda */}
       {mostrarArvore && nosArvore.length > 0 && (
         <Paper
           sx={{
             p: 2,
             mt: 2,
-            backgroundColor: "#363636", // Fundo escuro igual ao da Rede de Petri
-            color: "#fff", // Texto em branco para alto contraste
+            backgroundColor: "#363636",
+            color: "#fff",
             maxHeight: "400px",
             overflow: "auto",
             borderRadius: "10px",
@@ -1437,63 +1520,35 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             sx={{ color: "#fff", borderBottom: "2px solid #4CAF50", pb: 1 }}
           >
             Estados da Árvore de Alcançabilidade
+            {numeroExpansoes > 0 && (
+              <Chip 
+                label={`Simulação: +${numeroExpansoes} expansões`}
+                color="secondary"
+                size="small"
+                sx={{ ml: 2 }}
+              />
+            )}
           </Typography>
 
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell
-                  sx={{
-                    fontWeight: "bold",
-                    width: "60px",
-                    backgroundColor: "#2196F3", // Azul das transições
-                    color: "#fff",
-                    fontSize: "0.875rem",
-                  }}
-                >
+                <TableCell sx={{ fontWeight: "bold", width: "60px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
                   Estado
                 </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: "bold",
-                    backgroundColor: "#2196F3",
-                    color: "#fff",
-                    fontSize: "0.875rem",
-                  }}
-                >
+                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
                   Marcação
                 </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: "bold",
-                    width: "120px",
-                    backgroundColor: "#2196F3",
-                    color: "#fff",
-                    fontSize: "0.875rem",
-                  }}
-                >
+                <TableCell sx={{ fontWeight: "bold", width: "120px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
                   Transição
                 </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: "bold",
-                    width: "100px",
-                    backgroundColor: "#2196F3",
-                    color: "#fff",
-                    fontSize: "0.875rem",
-                  }}
-                >
+                <TableCell sx={{ fontWeight: "bold", width: "100px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
                   Tipo
                 </TableCell>
-                <TableCell
-                  sx={{
-                    fontWeight: "bold",
-                    width: "80px",
-                    backgroundColor: "#2196F3",
-                    color: "#fff",
-                    fontSize: "0.875rem",
-                  }}
-                >
+                <TableCell sx={{ fontWeight: "bold", width: "60px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
+                  Nível
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold", width: "80px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
                   Ação
                 </TableCell>
               </TableRow>
@@ -1505,70 +1560,62 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
                   sx={{
                     backgroundColor:
                       no.id === "n0"
-                        ? "rgba(33, 150, 243, 0.1)" // Azul claro para inicial
+                        ? "rgba(33, 150, 243, 0.1)" // Azul - Inicial
+                        : no.simulacao
+                        ? no.terminal
+                          ? "rgba(121, 85, 72, 0.1)" // Marrom - Terminal simulação
+                          : no.ciclico
+                          ? "rgba(255, 152, 0, 0.1)" // Laranja - Cíclico simulação
+                          : "rgba(123, 31, 162, 0.1)" // Roxo escuro - Intermediário simulação
+                        : no.omega
+                        ? "rgba(244, 67, 54, 0.1)" // Vermelho - Omega
                         : no.ciclico
-                        ? "rgba(255, 193, 7, 0.1)" // Amarelo claro para cíclico
+                        ? "rgba(255, 152, 0, 0.1)" // Laranja - Cíclico real
                         : no.terminal
-                        ? "rgba(244, 67, 54, 0.1)" // Vermelho claro para terminal
-                        : "rgba(76, 175, 80, 0.05)", // Verde muito claro para intermediário
+                        ? "rgba(121, 85, 72, 0.1)" // Marrom - Terminal real
+                        : no.nivel === 1
+                        ? "rgba(76, 175, 80, 0.1)" // Verde - Primeiro nível
+                        : "rgba(56, 142, 60, 0.1)", // Verde escuro - Intermediário real
                     "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.1)", // Branco sutil ao passar mouse
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
                     },
-                    color: "#fff", // Texto branco em todas as linhas
+                    color: "#fff",
                   }}
                 >
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      color: "#fff",
-                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                    }}
-                  >
-                    {no.id.replace("n", "M")}
+                  <TableCell sx={{ fontWeight: "bold", color: "#fff", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                    {no.id.replace("n", "M").replace("s", "S")}
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontFamily: "monospace",
-                        fontSize: "0.8rem",
-                        color: "#fff",
-                      }}
-                    >
+                  <TableCell sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                    <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#fff" }}>
                       {formatarMarcacao(no.marcacao)}
                     </Typography>
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      color: "#fff",
-                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                    }}
-                  >
+                  <TableCell sx={{ color: "#fff", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
                     {obterTransicaoParaNo(no)}
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      color: "#fff",
-                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                    }}
-                  >
+                  <TableCell sx={{ color: "#fff", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
                     {no.id === "n0"
                       ? "Inicial"
+                      : no.simulacao
+                      ? no.terminal
+                        ? "Terminal (Simulação)"
+                        : no.ciclico
+                        ? "Cíclico (Simulação)"
+                        : "Intermediário (Simulação)"
+                      : no.omega
+                      ? "Omega"
                       : no.ciclico
                       ? "Cíclico"
                       : no.terminal
                       ? "Terminal"
-                      : "Intermediário"}
+                      : no.nivel === 1
+                      ? "Intermediário"
+                      : "Intermediário Avançado"}
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                    }}
-                  >
+                  <TableCell sx={{ color: "#fff", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                    {no.nivel}
+                  </TableCell>
+                  <TableCell sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
                     <Button
                       variant="outlined"
                       size="small"
@@ -1593,63 +1640,38 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             </TableBody>
           </Table>
 
-          {/* Legenda atualizada */}
           <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box
-                sx={{
-                  width: 16,
-                  height: 16,
-                  backgroundColor: "rgba(33, 150, 243, 0.1)",
-                  mr: 1,
-                  border: "1px solid #2196F3",
-                }}
-              />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
-                Estado Inicial
-              </Typography>
+              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.inicial, mr: 1, border: "1px solid #fff" }} />
+              <Typography variant="body2" sx={{ color: "#fff" }}>Estado Inicial</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box
-                sx={{
-                  width: 16,
-                  height: 16,
-                  backgroundColor: "rgba(255, 193, 7, 0.1)",
-                  mr: 1,
-                  border: "1px solid #FFC107",
-                }}
-              />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
-                Estado Cíclico
-              </Typography>
+              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.real, mr: 1, border: "1px solid #fff" }} />
+              <Typography variant="body2" sx={{ color: "#fff" }}>Intermediário Real</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box
-                sx={{
-                  width: 16,
-                  height: 16,
-                  backgroundColor: "rgba(244, 67, 54, 0.1)",
-                  mr: 1,
-                  border: "1px solid #F44336",
-                }}
-              />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
-                Estado Terminal
-              </Typography>
+              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.realIntermediario, mr: 1, border: "1px solid #fff" }} />
+              <Typography variant="body2" sx={{ color: "#fff" }}>Intermediário Avançado</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box
-                sx={{
-                  width: 16,
-                  height: 16,
-                  backgroundColor: "rgba(76, 175, 80, 0.05)",
-                  mr: 1,
-                  border: "1px solid #4CAF50",
-                }}
-              />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
-                Intermediário
-              </Typography>
+              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.omega, mr: 1, border: "1px solid #fff" }} />
+              <Typography variant="body2" sx={{ color: "#fff" }}>Omega</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.ciclico, mr: 1, border: "1px solid #fff" }} />
+              <Typography variant="body2" sx={{ color: "#fff" }}>Cíclico</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.terminal, mr: 1, border: "1px solid #fff" }} />
+              <Typography variant="body2" sx={{ color: "#fff" }}>Terminal</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.simulacao, mr: 1, border: "1px solid #fff" }} />
+              <Typography variant="body2" sx={{ color: "#fff" }}>Simulação</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.simulacaoIntermediario, mr: 1, border: "1px solid #fff" }} />
+              <Typography variant="body2" sx={{ color: "#fff" }}>Simulação Intermediária</Typography>
             </Box>
           </Box>
         </Paper>
