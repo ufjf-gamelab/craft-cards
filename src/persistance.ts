@@ -12,7 +12,7 @@ const GAME_STORAGE_KEY = 'gameState';
 
 export const saveGameState = async (gameState: GameType): Promise<void> => {
   try {
-    const { resourceGraph, ...stateToSave } = gameState;
+    const { ...stateToSave } = gameState;
     await localforage.setItem(GAME_STORAGE_KEY, stateToSave);
     console.log('Game state saved successfully');
   } catch (error) {
