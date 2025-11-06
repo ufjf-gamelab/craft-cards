@@ -21,10 +21,6 @@ function App() {
   const game = useContext(GameReducerContext)!;
   const dispatch = useContext(GameDispatchContext)!;
 
-  if (game === null || dispatch === null) {
-    return <p>Carregando...</p>;
-  }
-
   function aumentaPonto() {
     dispatch({ type: GameActions.AUMENTA_PONTO });
   }

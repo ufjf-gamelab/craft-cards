@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useState } from "react";
+import { useReducer, useEffect } from "react";
 import {
   GameDispatchContext,
   gameReducer,
@@ -15,7 +15,6 @@ type GameProviderProps = {
 };
 
 export default function GameProvider({ children }: GameProviderProps) {
-  const [isLoading, setIsLoading] = useState(true);
   const logHistoryReducer = logHistory(gameReducer);
 
   // Estado inicial vazio - será preenchido após carregar do storage
@@ -61,8 +60,6 @@ export default function GameProvider({ children }: GameProviderProps) {
           type: GameActions.LOAD_GAME,
           payload: newGame
         });
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -71,18 +68,14 @@ export default function GameProvider({ children }: GameProviderProps) {
 
   // Salvar automaticamente quando o jogo muda
   useEffect(() => {
-    if (!isLoading && game && game.mao.length > 0) {
+    if (game && game.mao.length > 0) {
       console.log('Salvando jogo...', {
         mao: game.mao.length,
         emJogo: game.emJogo.length
       });
       saveGameState(game);
     }
-  }, [game, isLoading]);
-
-  if (isLoading) {
-    return <div className="loading">Carregando jogo...</div>;
-  }
+  }, [game]);
 
   return (
     <GameReducerContext.Provider value={game}>
