@@ -1,5 +1,5 @@
 import { createContext, Dispatch } from "react";
-import { CartaType, GameType } from "./data/cartas";
+import { CartaType, GAME_INITIAL, GameType } from "./data/cartas";
 import { MultiDirectedGraph } from "graphology";
 import { clearGameState } from "./persistance";
 
@@ -117,8 +117,7 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
     
     case GameActions.RESET_GAME:
       clearGameState();
-      window.location.reload();
-      return game;
+      return setupNewGame(GAME_INITIAL);
 
     default:
       break;
