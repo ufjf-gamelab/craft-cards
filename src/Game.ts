@@ -15,7 +15,13 @@ export enum GameActions {
   TOGGLE_ANALISES = "toggle analises",
   SET_ACTIVE_TAB = "set active tab",
   SET_GRAPH = "set graph",
+  LOAD_GAME = "load game",
 }
+
+type LoadGameActionType = {
+  type: GameActions.LOAD_GAME;
+  payload: GameType;
+};
 
 type ComprarCartaActionType = {
   type: GameActions.COMPRAR_CARTA;
@@ -61,7 +67,8 @@ type GameActionType =
   | ComprarCartaActionType
   | ToggleAnalisesActionType
   | SetActiveTabActionType
-  | SetGraphActionType;
+  | SetGraphActionType
+  | LoadGameActionType;
 
 export function gameReducer(game: GameType, action: GameActionType): GameType {
   switch (action.type) {
@@ -97,6 +104,9 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
         ...game,
         resourceGraph: action.payload,
       };
+
+    case GameActions.LOAD_GAME:
+      return action.payload;
 
     default:
       break;
@@ -303,7 +313,7 @@ function shuffleDeck(array: Array<CartaType>) {
   return array;
 }
 
-export function setupNewGame(game: GameType) {
+export function setupNewGame(game: GameType): GameType {
   const newGame = structuredClone(game);
 
   shuffleDeck(newGame.baralhoDaOferta);
@@ -320,6 +330,6 @@ export function setupNewGame(game: GameType) {
     }],
     analisesVisiveis: false,
     activeTab: "graph",
-    resourceGraph: null,
+    resourceGraph: undefined,
   };
 }

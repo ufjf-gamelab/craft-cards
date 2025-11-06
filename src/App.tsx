@@ -14,6 +14,7 @@ import ResourcePetriNet from "./ResourcePetriNet";
 import React from "react";
 import ResourceGraph from "./ResourceGraph.tsx";
 import GraphMetrics from "./GraphMetrics.tsx";
+import { clearGameState } from "./persistance";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
 
@@ -48,6 +49,11 @@ function App() {
     });
   }
 
+  function resetGame() {
+    clearGameState();
+    window.location.reload(); // Or dispatch a reset action
+  }
+
   const playableCards = React.useMemo(() => {
     return [...game.mao].filter((card) => {
       return card.custo.every((cost) => {
@@ -76,6 +82,9 @@ function App() {
           </button>
           <button className="control-button primary" onClick={passarTurno}>
             Passar Turno
+          </button>
+          <button className="control-button warning" onClick={resetGame}>
+            Reset Game
           </button>
         </div>
       </div>
