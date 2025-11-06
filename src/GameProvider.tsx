@@ -7,7 +7,7 @@ import {
   logHistory,
   GameActions,
 } from "./Game";
-import { GAME_INITIAL, GameType } from "./data/cartas";
+import { GAME_INITIAL } from "./data/cartas";
 import { loadGameState, saveGameState } from "./persistance";
 
 type GameProviderProps = {
@@ -28,7 +28,7 @@ export default function GameProvider({ children }: GameProviderProps) {
         const savedGame = await loadGameState();
         
         if (savedGame) {
-          console.log('🎮 Jogo salvo encontrado, carregando...', {
+          console.log('Jogo salvo encontrado, carregando...', {
             mao: savedGame.mao.length,
             emJogo: savedGame.emJogo.length,
             recursos: savedGame.recursos.length
@@ -45,7 +45,7 @@ export default function GameProvider({ children }: GameProviderProps) {
             }
           });
         } else {
-          console.log('🆕 Nenhum jogo salvo encontrado, iniciando novo jogo...');
+          console.log('Nenhum jogo salvo encontrado, iniciando novo jogo...');
           // Inicia um novo jogo
           const newGame = setupNewGame(GAME_INITIAL);
           dispatch({
@@ -54,7 +54,7 @@ export default function GameProvider({ children }: GameProviderProps) {
           });
         }
       } catch (error) {
-        console.error('❌ Erro ao carregar jogo:', error);
+        console.error('Erro ao carregar jogo:', error);
         // Em caso de erro, inicia um novo jogo
         const newGame = setupNewGame(GAME_INITIAL);
         dispatch({
@@ -72,7 +72,7 @@ export default function GameProvider({ children }: GameProviderProps) {
   // Salvar automaticamente quando o jogo muda
   useEffect(() => {
     if (!isLoading && game && game.mao.length > 0) {
-      console.log('💾 Salvando jogo...', {
+      console.log('Salvando jogo...', {
         mao: game.mao.length,
         emJogo: game.emJogo.length
       });

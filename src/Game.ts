@@ -1,6 +1,7 @@
 import { createContext, Dispatch } from "react";
 import { CartaType, GameType } from "./data/cartas";
 import { MultiDirectedGraph } from "graphology";
+import { clearGameState } from "./persistance";
 
 export const GameReducerContext = createContext<GameType | null>(null);
 export const GameDispatchContext =
@@ -16,6 +17,11 @@ export enum GameActions {
   SET_ACTIVE_TAB = "set active tab",
   SET_GRAPH = "set graph",
   LOAD_GAME = "load game",
+  RESET_GAME = "reset game",
+}
+
+type ResetGameActionType = {
+  type: GameActions.RESET_GAME;
 }
 
 type LoadGameActionType = {
@@ -68,7 +74,8 @@ type GameActionType =
   | ToggleAnalisesActionType
   | SetActiveTabActionType
   | SetGraphActionType
-  | LoadGameActionType;
+  | LoadGameActionType
+  | ResetGameActionType;
 
 export function gameReducer(game: GameType, action: GameActionType): GameType {
   switch (action.type) {
@@ -107,6 +114,11 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
 
     case GameActions.LOAD_GAME:
       return action.payload;
+    
+    case GameActions.RESET_GAME:
+      clearGameState();
+      window.location.reload();
+      return game;
 
     default:
       break;

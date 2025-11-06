@@ -14,7 +14,6 @@ import ResourcePetriNet from "./ResourcePetriNet";
 import React from "react";
 import ResourceGraph from "./ResourceGraph.tsx";
 import GraphMetrics from "./GraphMetrics.tsx";
-import { clearGameState } from "./persistance";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
 
@@ -50,8 +49,7 @@ function App() {
   }
 
   function resetGame() {
-    clearGameState();
-    window.location.reload(); // Or dispatch a reset action
+    dispatch({ type: GameActions.RESET_GAME });
   }
 
   const playableCards = React.useMemo(() => {

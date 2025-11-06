@@ -15,9 +15,9 @@ export const saveGameState = async (gameState: GameType): Promise<void> => {
     // Remove o resourceGraph pois não é serializável
     const { resourceGraph, ...stateToSave } = gameState;
     await localforage.setItem(GAME_STORAGE_KEY, stateToSave);
-    console.log('💾 Game state saved successfully');
+    console.log('Game state saved successfully');
   } catch (error) {
-    console.error('❌ Error saving game state:', error);
+    console.error('Error saving game state:', error);
   }
 };
 
@@ -25,11 +25,11 @@ export const loadGameState = async (): Promise<GameType | null> => {
   try {
     const savedState = await localforage.getItem(GAME_STORAGE_KEY);
     if (savedState) {
-      console.log('📥 Game state loaded successfully');
+      console.log('Game state loaded successfully');
     }
     return savedState as GameType;
   } catch (error) {
-    console.error('❌ Error loading game state:', error);
+    console.error('Error loading game state:', error);
     return null;
   }
 };
@@ -37,8 +37,8 @@ export const loadGameState = async (): Promise<GameType | null> => {
 export const clearGameState = async (): Promise<void> => {
   try {
     await localforage.removeItem(GAME_STORAGE_KEY);
-    console.log('🗑️ Game state cleared');
+    console.log('Game state cleared');
   } catch (error) {
-    console.error('❌ Error clearing game state:', error);
+    console.error('Error clearing game state:', error);
   }
 };
