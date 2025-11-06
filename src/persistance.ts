@@ -12,7 +12,6 @@ const GAME_STORAGE_KEY = 'gameState';
 
 export const saveGameState = async (gameState: GameType): Promise<void> => {
   try {
-    // Remove o resourceGraph pois não é serializável
     const { resourceGraph, ...stateToSave } = gameState;
     await localforage.setItem(GAME_STORAGE_KEY, stateToSave);
     console.log('Game state saved successfully');
