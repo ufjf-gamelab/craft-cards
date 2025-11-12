@@ -15,7 +15,13 @@ import ResourcePetriNet from "./ResourcePetriNet";
 import React from "react";
 import ResourceGraph from "./ResourceGraph.tsx";
 import GraphMetrics from "./GraphMetrics.tsx";
-import { loadGameState, saveGameState, clearGameState, saveGameToFile, loadGameFromFile } from "./persistance.ts";
+import {
+  loadGameState,
+  saveGameState,
+  clearGameState,
+  saveGameToFile,
+  loadGameFromFile,
+} from "./persistance.ts";
 import { GAME_INITIAL } from "./data/cartas.ts";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
@@ -52,17 +58,17 @@ function App() {
   const handleSaveGame = async () => {
     try {
       await saveGameState(game);
-      alert('Jogo salvo no navegador!');
+      alert("Jogo salvo no navegador!");
     } catch (error) {
-      console.error('Erro ao salvar jogo:', error);
-      alert('Erro ao salvar jogo');
+      console.error("Erro ao salvar jogo:", error);
+      alert("Erro ao salvar jogo");
     }
   };
 
   const handleLoadGame = async () => {
     try {
       const savedGame = await loadGameState();
-      
+
       if (savedGame) {
         dispatch({
           type: GameActions.LOAD_GAME,
@@ -70,16 +76,16 @@ function App() {
             ...savedGame,
             resourceGraph: undefined,
             analisesVisiveis: savedGame.analisesVisiveis || false,
-            activeTab: savedGame.activeTab || "graph"
-          }
+            activeTab: savedGame.activeTab || "graph",
+          },
         });
-        alert('Jogo carregado do navegador!');
+        alert("Jogo carregado do navegador!");
       } else {
-        alert('Nenhum jogo salvo encontrado no navegador');
+        alert("Nenhum jogo salvo encontrado no navegador");
       }
     } catch (error) {
-      console.error('Erro ao carregar jogo:', error);
-      alert('Erro ao carregar jogo');
+      console.error("Erro ao carregar jogo:", error);
+      alert("Erro ao carregar jogo");
     }
   };
 
@@ -92,13 +98,15 @@ function App() {
     fileInputRef.current?.click();
   };
 
-  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
       const savedGame = await loadGameFromFile(file);
-      
+
       if (savedGame) {
         dispatch({
           type: GameActions.LOAD_GAME,
@@ -106,31 +114,35 @@ function App() {
             ...savedGame,
             resourceGraph: undefined,
             analisesVisiveis: savedGame.analisesVisiveis || false,
-            activeTab: savedGame.activeTab || "graph"
-          }
+            activeTab: savedGame.activeTab || "graph",
+          },
         });
-        alert('Jogo carregado do arquivo!');
+        alert("Jogo carregado do arquivo!");
       } else {
-        alert('Erro ao carregar arquivo');
+        alert("Erro ao carregar arquivo");
       }
     } catch (error) {
-      console.error('Erro ao carregar jogo do arquivo:', error);
-      alert('Erro ao carregar arquivo');
+      console.error("Erro ao carregar jogo do arquivo:", error);
+      alert("Erro ao carregar arquivo");
     }
-    
+
     // Limpa o input para permitir carregar o mesmo arquivo novamente
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
   const handleResetGame = () => {
-    if (confirm('Tem certeza que deseja iniciar um novo jogo? Todo o progresso será perdido.')) {
+    if (
+      confirm(
+        "Tem certeza que deseja iniciar um novo jogo? Todo o progresso será perdido."
+      )
+    ) {
       clearGameState();
       const newGame = setupNewGame(GAME_INITIAL);
       dispatch({
         type: GameActions.LOAD_GAME,
-        payload: newGame
+        payload: newGame,
       });
     }
   };
@@ -164,7 +176,7 @@ function App() {
           <button className="control-button primary" onClick={passarTurno}>
             Passar Turno
           </button>
-          
+
           {/* Grupo de persistência */}
           <div className="persistence-controls">
             <button className="control-button success" onClick={handleSaveGame}>
@@ -173,13 +185,22 @@ function App() {
             <button className="control-button info" onClick={handleLoadGame}>
               Carregar (Navegador)
             </button>
-            <button className="control-button success" onClick={handleSaveToFile}>
+            <button
+              className="control-button success"
+              onClick={handleSaveToFile}
+            >
               Salvar (Arquivo)
             </button>
-            <button className="control-button info" onClick={handleLoadFromFile}>
+            <button
+              className="control-button info"
+              onClick={handleLoadFromFile}
+            >
               Carregar (Arquivo)
             </button>
-            <button className="control-button warning" onClick={handleResetGame}>
+            <button
+              className="control-button warning"
+              onClick={handleResetGame}
+            >
               Novo Jogo
             </button>
           </div>
@@ -190,7 +211,7 @@ function App() {
       <input
         type="file"
         accept=".json"
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
         ref={fileInputRef}
         onChange={handleFileSelected}
       />
