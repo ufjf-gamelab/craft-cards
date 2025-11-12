@@ -6,7 +6,7 @@ import {
   GameReducerContext,
   setupNewGame,
 } from "./Game.ts";
-import { useContext, useEffect } from "react";
+import { useContext } from "react";
 import Oferta from "./Oferta.tsx";
 import Historico from "./Historico.tsx";
 import HistoricoLog from "./HistoricoLog.tsx";
@@ -15,7 +15,7 @@ import ResourcePetriNet from "./ResourcePetriNet";
 import React from "react";
 import ResourceGraph from "./ResourceGraph.tsx";
 import GraphMetrics from "./GraphMetrics.tsx";
-import { loadGameState, saveGameState } from "./persistance.ts";
+import { loadGameState, saveGameState, clearGameState } from "./persistance.ts";
 import { GAME_INITIAL } from "./data/cartas.ts";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
@@ -47,66 +47,44 @@ function App() {
     });
   }
 
-  function resetGame() {
-    dispatch({ type: GameActions.RESET_GAME });
-  }
+  const handleSaveGame = async () => {
+    try {
+      await saveGameState(game);
+    } catch (error) {
+      console.error('Erro ao salvar jogo:', error);
+    }
+  };
 
-  // Carregar o jogo salvo quando o componente montar
-  useEffect(() => {
-    const loadSavedGame = async () => {
-      try {
-        const savedGame = await loadGameState();
-        
-        if (savedGame) {
-          console.log('Jogo salvo encontrado, carregando...', {
-            mao: savedGame.mao.length,
-            emJogo: savedGame.emJogo.length,
-            recursos: savedGame.recursos.length
-          });
-          
-          // Dispatch para carregar o jogo salvo
-          dispatch({
-            type: GameActions.LOAD_GAME,
-            payload: {
-              ...savedGame,
-              resourceGraph: undefined, // Não carregamos o graph
-              analisesVisiveis: savedGame.analisesVisiveis || false,
-              activeTab: savedGame.activeTab || "graph"
-            }
-          });
-        } else {
-          console.log('Nenhum jogo salvo encontrado, iniciando novo jogo...');
-          // Inicia um novo jogo
-          const newGame = setupNewGame(GAME_INITIAL);
-          dispatch({
-            type: GameActions.LOAD_GAME,
-            payload: newGame
-          });
-        }
-      } catch (error) {
-        console.error('Erro ao carregar jogo:', error);
-        // Em caso de erro, inicia um novo jogo
-        const newGame = setupNewGame(GAME_INITIAL);
+  const handleLoadGame = async () => {
+    try {
+      const savedGame = await loadGameState();
+      
+      if (savedGame) {
         dispatch({
           type: GameActions.LOAD_GAME,
-          payload: newGame
+          payload: {
+            ...savedGame,
+            resourceGraph: undefined,
+            analisesVisiveis: savedGame.analisesVisiveis || false,
+            activeTab: savedGame.activeTab || "graph"
+          }
         });
+      } else {
+        console.log('Nenhum jogo salvo encontrado');
       }
-    };
-
-    loadSavedGame();
-  }, []);
-
-  // Salvar automaticamente quando o jogo muda
-  useEffect(() => {
-    if (game && game.mao.length > 0) {
-      console.log('Salvando jogo...', {
-        mao: game.mao.length,
-        emJogo: game.emJogo.length
-      });
-      saveGameState(game);
+    } catch (error) {
+      console.error('Erro ao carregar jogo:', error);
     }
-  }, [game]);
+  };
+
+  const handleResetGame = () => {
+    clearGameState();
+    const newGame = setupNewGame(GAME_INITIAL);
+    dispatch({
+      type: GameActions.LOAD_GAME,
+      payload: newGame
+    });
+  };
 
   const playableCards = React.useMemo(() => {
     return [...game.mao].filter((card) => {
@@ -137,7 +115,13 @@ function App() {
           <button className="control-button primary" onClick={passarTurno}>
             Passar Turno
           </button>
-          <button className="control-button warning" onClick={resetGame}>
+          <button className="control-button success" onClick={handleSaveGame}>
+            Salvar
+          </button>
+          <button className="control-button info" onClick={handleLoadGame}>
+            Carregar
+          </button>
+          <button className="control-button warning" onClick={handleResetGame}>
             Reset Game
           </button>
         </div>
