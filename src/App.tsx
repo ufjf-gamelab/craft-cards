@@ -6,7 +6,7 @@ import {
   GameReducerContext,
   setupNewGame,
 } from "./Game.ts";
-import { useContext, useRef } from "react";
+import { useContext, useRef, useState } from "react";
 import Oferta from "./Oferta.tsx";
 import Historico from "./Historico.tsx";
 import HistoricoLog from "./HistoricoLog.tsx";
@@ -31,6 +31,7 @@ function App() {
   const game = useContext(GameReducerContext)!;
   const dispatch = useContext(GameDispatchContext)!;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [seedInput, setSeedInput] = useState("");
 
   function aumentaPonto() {
     dispatch({ type: GameActions.AUMENTA_PONTO });
@@ -55,7 +56,6 @@ function App() {
     });
   }
 
-  // Funções do localForage
   const handleSaveGame = async () => {
     try {
       await saveGameState(game);
@@ -84,7 +84,6 @@ function App() {
     }
   };
 
-  // Novas funções para arquivo (DOWNLOAD)
   const handleSaveToFile = () => {
     saveGameToFile(game);
   };
@@ -117,7 +116,6 @@ function App() {
       // Erro
     }
 
-    // Limpa o input para permitir carregar o mesmo arquivo novamente
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -141,6 +139,14 @@ function App() {
     });
   }, [game.recursos, game.mao, game.oferta]);
 
+  const handleNewGameWithSeed = () => {
+    const newGame = setupNewGame(GAME_INITIAL, seedInput || undefined);
+    dispatch({
+      type: GameActions.LOAD_GAME,
+      payload: newGame,
+    });
+  };
+
   return (
     <div className="game-app">
       <div className="game-header">
@@ -149,6 +155,19 @@ function App() {
           <ListaDeRecursos recursos={game.recursos} />
         </div>
         <div className="game-controls">
+          <div className="current-seed">Seed atual: {game.seed}</div>
+          <div className="seed-controls">
+            <input
+              type="text"
+              placeholder="Seed do jogo"
+              value={seedInput}
+              onChange={(e) => setSeedInput(e.target.value)}
+              className="seed-input"
+            />
+            <button className="control-button" onClick={handleNewGameWithSeed}>
+              Novo Jogo com Seed
+            </button>
+          </div>
           <button className="control-button" onClick={aumentaPonto}>
             Aumenta Ponto
           </button>
