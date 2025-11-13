@@ -197,7 +197,7 @@ function reporMao(game: GameType) {
         if (game.descarte.length === 0) {
           break;
         }
-        game.baralho.push(...shuffleDeck(game.descarte.splice(0)));
+        game.baralho.push(...shuffleDeck(game.descarte.splice(0), game.seed));
       }
     }
   }
@@ -212,7 +212,7 @@ function reporOferta(game: GameType) {
         break;
       }
       game.baralhoDaOferta.push(
-        ...shuffleDeck(game.descarteDaOferta.splice(0))
+        ...shuffleDeck(game.descarteDaOferta.splice(0), game.seed)
       );
     }
   }
@@ -291,19 +291,20 @@ function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
   return newGame;
 }
 
-function shuffleDeck(array: Array<CartaType>) {
-  for (let i = array.length - 1; i >= 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
+function shuffleDeck(array: Array<CartaType>, seed: string) {
+  const seededRandom = new SeededRandom(seed);
+  return seededRandom.shuffle(array);
 }
 
-export function setupNewGame(game: GameType): GameType {
+export function setupNewGame(game: GameType, seed?: string): GameType {
   const newGame = structuredClone(game);
+  const gameSeed = seed || Math.random().toString(36).substring(2, 15);
+  
+  newGame.seed = gameSeed;
 
-  shuffleDeck(newGame.baralhoDaOferta);
-  shuffleDeck(newGame.baralho);
+  const seededRandom = new SeededRandom(gameSeed);
+  newGame.baralhoDaOferta = seededRandom.shuffle(newGame.baralhoDaOferta);
+  newGame.baralho = seededRandom.shuffle(newGame.baralho);
 
   reporOferta(newGame);
   reporMao(newGame);
@@ -318,4 +319,50 @@ export function setupNewGame(game: GameType): GameType {
     activeTab: "graph",
     resourceGraph: undefined,
   };
+}
+
+export class SeededRandom {
+  private seed: number;
+
+  constructor(seed: string) {
+    this.seed = this.hashString(seed);
+  }
+
+  private hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  // Gerador de números pseudoaleatórios (Mulberry32)
+  private mulberry32(): number {
+    let t = (this.seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  // Retorna um número entre 0 (inclusive) e 1 (exclusive)
+  random(): number {
+    return this.mulberry32();
+  }
+
+  // Retorna um número inteiro entre min (inclusive) e max (inclusive)
+  randomInt(min: number, max: number): number {
+    return Math.floor(this.random() * (max - min + 1)) + min;
+  }
+
+  // Embaralha um array usando a seed
+  shuffle<T>(array: T[]): T[] {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = this.randomInt(0, i);
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }
 }
