@@ -387,3 +387,22 @@
     width: 100%;
   }
 }
+
+.seed-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.seed-input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.current-seed {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
