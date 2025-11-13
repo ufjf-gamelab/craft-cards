@@ -236,6 +236,105 @@
   overflow-y: auto;
 }
 
+/* Estilos para o dropdown de persistência */
+.persistence-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #2a2a4a;
+  border: 1px solid #4a4a8a;
+  border-radius: 6px;
+  padding: 0.5rem;
+  z-index: 1000;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  margin-top: 0.3rem;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: none;
+  background: transparent;
+  color: #f0f0f0;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-item.warning {
+  color: #ffa500;
+}
+
+.dropdown-item.warning:hover {
+  background: rgba(255, 165, 0, 0.1);
+}
+
+/* Ajustes para os controles do jogo */
+.game-controls {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Media queries para responsividade */
+@media (max-width: 1200px) {
+  .game-controls {
+    gap: 0.6rem;
+  }
+  
+  .control-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .game-controls {
+    justify-content: flex-start;
+  }
+  
+  .persistence-dropdown {
+    order: 1; /* Coloca o dropdown no final em telas menores */
+  }
+}
+
+@media (max-width: 768px) {
+  .game-header {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+  
+  .game-controls {
+    justify-content: center;
+  }
+  
+  .dropdown-menu {
+    right: auto;
+    left: 0;
+    min-width: 180px;
+  }
+}
+
 /* Responsividade */
 @media (max-width: 1200px) {
   .top-row,

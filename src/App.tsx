@@ -23,6 +23,7 @@ import {
   loadGameFromFile,
 } from "./persistance.ts";
 import { GAME_INITIAL } from "./data/cartas.ts";
+import PersistenceDropdown from "./PersistanceDropdown.tsx";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
 
@@ -54,12 +55,12 @@ function App() {
     });
   }
 
-  // Funções existentes do localForage
+  // Funções do localForage
   const handleSaveGame = async () => {
     try {
       await saveGameState(game);
     } catch (error) {
-      // Error handling sem console.log
+      // Erro
     }
   };
 
@@ -79,11 +80,11 @@ function App() {
         });
       }
     } catch (error) {
-      // Error handling sem console.log
+      // Erro
     }
   };
 
-  // Novas funções para arquivo
+  // Novas funções para arquivo (DOWNLOAD)
   const handleSaveToFile = () => {
     saveGameToFile(game);
   };
@@ -113,7 +114,7 @@ function App() {
         });
       }
     } catch (error) {
-      // Error handling sem console.log
+      // Erro
     }
 
     // Limpa o input para permitir carregar o mesmo arquivo novamente
@@ -160,38 +161,16 @@ function App() {
           <button className="control-button primary" onClick={passarTurno}>
             Passar Turno
           </button>
-
-          {/* Grupo de persistência */}
-          <div className="persistence-controls">
-            <button className="control-button success" onClick={handleSaveGame}>
-              Salvar (Navegador)
-            </button>
-            <button className="control-button info" onClick={handleLoadGame}>
-              Carregar (Navegador)
-            </button>
-            <button
-              className="control-button success"
-              onClick={handleSaveToFile}
-            >
-              Salvar (Arquivo)
-            </button>
-            <button
-              className="control-button info"
-              onClick={handleLoadFromFile}
-            >
-              Carregar (Arquivo)
-            </button>
-            <button
-              className="control-button warning"
-              onClick={handleResetGame}
-            >
-              Novo Jogo
-            </button>
-          </div>
+          <PersistenceDropdown
+            onSaveGame={handleSaveGame}
+            onLoadGame={handleLoadGame}
+            onSaveToFile={handleSaveToFile}
+            onLoadFromFile={handleLoadFromFile}
+            onResetGame={handleResetGame}
+          />
         </div>
       </div>
 
-      {/* Input oculto para seleção de arquivo */}
       <input
         type="file"
         accept=".json"
