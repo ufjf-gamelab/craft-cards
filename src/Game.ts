@@ -120,13 +120,10 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
     const estadoAntigo = structuredClone(state);
     const novoEstado = reducer(state, action);
     
-    // Não registramos no histórico a ação de passar turno
-    // pois ela já é tratada no passarTurnoAction
     if (action.type === GameActions.PASSAR_TURNO) {
       return novoEstado;
     }
 
-    // Verifica se os recursos mudaram
     if (JSON.stringify(estadoAntigo.recursos) !== JSON.stringify(novoEstado.recursos)) {
       const gameHistoryEntry = {
         tipo: action.type,
@@ -136,7 +133,6 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
         }))
       };
 
-      // Se não houver histórico, cria o primeiro turno
       if (!novoEstado.historico || novoEstado.historico.length === 0) {
         const newTurn = {
           turno: 1,
@@ -148,7 +144,6 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
         };
       }
 
-      // Adiciona a ação ao último turno
       const lastIndex = novoEstado.historico.length - 1;
       const updatedHistorico = [...novoEstado.historico];
       updatedHistorico[lastIndex] = {
@@ -167,7 +162,6 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
 }
 
 function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
-  console.log("carta clicada", action.carta);
   const carta = action.carta;
   const newGame = structuredClone(game);
 
@@ -177,12 +171,10 @@ function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
       recurso.quantidade -= custo.quantidade;
     } else {
       newGame.recursos.push(structuredClone(custo));
-      console.log("Não pode jogar essa carta");
       return game;
     }
   });
   if (newGame.recursos.some((r) => r.quantidade < 0)) {
-    console.log("Não pode jogar essa carta");
     return game;
   }
 
@@ -234,7 +226,6 @@ function passarTurnoAction(game: GameType, _action: PassarTurnoActionType) {
 
   reporMao(newGame);
 
-  // Cria um novo turno vazio no histórico
   const novoTurno = {
     turno: (newGame.historico?.length || 0) + 1,
     acoes: []
@@ -263,22 +254,18 @@ function diminuiAcaoAction(game: GameType, _action: DiminuiAcaoActionType) {
 }
 
 function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
-  console.log("carta clicada", action.carta);
   const carta = action.carta;
   const newGame = structuredClone(game);
 
-  //verificação de recursos para os custos
   const temRecursos = carta.custo.every((custo) => {
     const recurso = newGame.recursos.find((r) => r.nome === custo.nome);
     return recurso ? recurso.quantidade >= custo.quantidade : false;
   });
 
   if (!temRecursos) {
-    console.log("Não pode jogar essa carta");
     return game;
   }
 
-  //Aplicar custos
   carta.custo.forEach((custo) => {
     const recurso = newGame.recursos.find((r) => r.nome === custo.nome);
     if (recurso) {
@@ -288,7 +275,6 @@ function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
     }
   });
 
-  //aplicar ganhos
   carta.ganho.forEach((ganho) => {
     const recurso = newGame.recursos.find((r) => r.nome === ganho.nome);
     if (recurso) {

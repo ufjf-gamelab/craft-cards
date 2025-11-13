@@ -58,10 +58,8 @@ function App() {
   const handleSaveGame = async () => {
     try {
       await saveGameState(game);
-      alert("Jogo salvo no navegador!");
     } catch (error) {
-      console.error("Erro ao salvar jogo:", error);
-      alert("Erro ao salvar jogo");
+      // Error handling sem console.log
     }
   };
 
@@ -79,13 +77,9 @@ function App() {
             activeTab: savedGame.activeTab || "graph",
           },
         });
-        alert("Jogo carregado do navegador!");
-      } else {
-        alert("Nenhum jogo salvo encontrado no navegador");
       }
     } catch (error) {
-      console.error("Erro ao carregar jogo:", error);
-      alert("Erro ao carregar jogo");
+      // Error handling sem console.log
     }
   };
 
@@ -117,13 +111,9 @@ function App() {
             activeTab: savedGame.activeTab || "graph",
           },
         });
-        alert("Jogo carregado do arquivo!");
-      } else {
-        alert("Erro ao carregar arquivo");
       }
     } catch (error) {
-      console.error("Erro ao carregar jogo do arquivo:", error);
-      alert("Erro ao carregar arquivo");
+      // Error handling sem console.log
     }
 
     // Limpa o input para permitir carregar o mesmo arquivo novamente
@@ -133,18 +123,12 @@ function App() {
   };
 
   const handleResetGame = () => {
-    if (
-      confirm(
-        "Tem certeza que deseja iniciar um novo jogo? Todo o progresso será perdido."
-      )
-    ) {
-      clearGameState();
-      const newGame = setupNewGame(GAME_INITIAL);
-      dispatch({
-        type: GameActions.LOAD_GAME,
-        payload: newGame,
-      });
-    }
+    clearGameState();
+    const newGame = setupNewGame(GAME_INITIAL);
+    dispatch({
+      type: GameActions.LOAD_GAME,
+      payload: newGame,
+    });
   };
 
   const playableCards = React.useMemo(() => {
