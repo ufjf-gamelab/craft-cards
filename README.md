@@ -99,7 +99,9 @@ npm run dev
 | **End Turn**       | Advances to next turn                                             |
 | **Increase Point** | Increments score (debug)                                          |
 | **Decrease Action**| Decrements available actions (debug)                              |
-| **Show/Hide Analysis** | Toggles analysis panel                                 |
+| **Show/Hide Analysis** | Toggles analysis panel                                        |
+| **New Game with Seed** | Start a new game with seed code                               |
+| **Persistence**        | Shows pesistence options (save/load)                          |
 
 ### Analysis Tabs
 
@@ -116,13 +118,16 @@ npm run dev
 | **Left Click**        | Increments tokens in a resource                                   |
 | **Right Click**       | Decrements tokens in a resource                                   |
 | **Click Transition**  | Fires the transition if enabled                                   |
+| **Mode Free/Normal**  | Toggle the analysis mode                                          |
+| **Expansios**         | Select the number of simulations of the Reachability Tree         |
+| **Generate Tree**     | Start simulation of the Reachability Tree                         |
 
 ## Developers
 
 | Name                      | Student ID  | E‑mail                                                                      |
 | ------------------------- | ----------- | --------------------------------------------------------------------------- |
 | Isabela Coelho Oliveira   | 202365226AB | [isabela.coelho@estudante.ufjf.br](mailto:isabela.coelho@estudante.ufjf.br) |
-| Igor de Oliveira Knop     | XXXXXXXXX   | [xxx@ufjf.br](mailto:teste@gmail.com)                                       |
+| Igor de Oliveira Knop     | XXXXXXXXX   | [igor.knop@ufjf.br](mailto:igor.knop@ufjf.br)                                       |
 
 ## Publications and Presentations
 
