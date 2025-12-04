@@ -294,6 +294,7 @@ export const MINECRAFT_CARDS: Array<CartaType> = [
         
         if resources:
             ts += f"""
+];
 // Recursos usados nas cartas
 export const RECURSOS_MINECRAFT: Array<string> = [
 """

@@ -565,8 +565,9 @@ export const MINECRAFT_CARDS: Array<CartaType> = [
       { nome: "machado", quantidade: 4 },
     ],
   }
-  ];
 
+
+    ];
 // Recursos usados nas cartas
 export const RECURSOS_MINECRAFT: Array<string> = [
   "enxada",
