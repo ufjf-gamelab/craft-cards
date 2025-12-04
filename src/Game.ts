@@ -170,7 +170,7 @@ function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
     if (recurso) {
       recurso.quantidade -= custo.quantidade;
     } else {
-      newGame.recursos.push(structuredClone(custo));
+      // Se não tem o recurso, não pode comprar
       return game;
     }
   });
@@ -179,10 +179,12 @@ function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
   }
 
   const index = newGame.oferta.findIndex((c) => c.id === carta.id);
-
+  if (index === -1) {
+    return game;
+  }
   newGame.descarte.push(...newGame.oferta.splice(index, 1));
 
-  reporMao(newGame);
+  // Repor a oferta
   reporOferta(newGame);
 
   return newGame;
