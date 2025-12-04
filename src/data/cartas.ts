@@ -1,4 +1,5 @@
 import { MultiDirectedGraph } from "graphology";
+import { MINECRAFT_CARDS } from "./minecraft_cards";
 
 export type GameHistoryType = {
   turno: number;
@@ -206,6 +207,7 @@ export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
     custo: [],
     ganho: [{ nome: "madeira bruta", quantidade: 2 }],
   },
+  ...MINECRAFT_CARDS.slice(0, 50),
 ];
 
 export const GAME_INITIAL = {
