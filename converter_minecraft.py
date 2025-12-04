@@ -212,6 +212,26 @@ class RecipeProcessor:
             "ganho": [{"nome": result_resource, "quantidade": result_count}]
         }
     
+    def process_recipe_file(self, file_path: Path) -> List[Dict[str, Any]]:
+        """Processa um arquivo de receita"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                recipe = json.load(f)
+        except Exception as e:
+            print(f"Erro ao ler {file_path.name}: {e}")
+            return []
+        
+        # Determina tipo da receita
+        recipe_type = recipe.get("type", "")
+        
+        if recipe_type == "minecraft:crafting_shaped":
+            card = self.process_shaped_recipe(recipe)
+        elif recipe_type == "minecraft:crafting_shapeless":
+            card = self.process_shapeless_recipe(recipe)
+        else:
+            return []  # Ignora outros tipos por enquanto
+        
+        return [card] if card and card["custo"] else []
     
     def filter_cards(self, cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Filtra cartas mantendo apenas as mais simples"""
@@ -244,7 +264,7 @@ export const MINECRAFT_CARDS: Array<CartaType> = [
 """
         
         for i, card in enumerate(cards):
-            ts += f""" 
+            ts += f""" {{
     id: "minecraft_{card['id']}",
     titulo: "{card['titulo']}",
     texto: "{card['texto']}",
@@ -262,7 +282,7 @@ export const MINECRAFT_CARDS: Array<CartaType> = [
             ts += """    ],
   }""" + ("," if i < len(cards) - 1 else "") + "\n"
         
-            ts += "];\n"
+            ts += "\n"
 
         # Lista recursos únicos
         resources = set()
