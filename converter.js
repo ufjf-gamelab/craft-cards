@@ -1,4 +1,3 @@
-// converter.js
 import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
@@ -6,33 +5,6 @@ import { createHash } from 'crypto';
 const RECIPES_DIR = './src/data/recipe';
 const TAGS_DIR = './src/data/tags';
 const OUTPUT_FILE = './src/data/minecraft_cards.ts';
-
-// Vamos primeiro inspecionar algumas receitas para entender a estrutura.
-function inspectSampleRecipes(allRecipes, count = 5) {
-  console.log('\n=== INSPECTING SAMPLE RECIPES ===');
-  for (let i = 0; i < Math.min(count, allRecipes.length); i++) {
-    const recipe = allRecipes[i];
-    console.log(`\nRecipe ${i+1}: ${recipe.name}`);
-    console.log('Type:', recipe.data.type);
-    console.log('Keys:', Object.keys(recipe.data));
-    if (recipe.data.result) {
-      console.log('Result:', recipe.data.result);
-    }
-    if (recipe.data.pattern) {
-      console.log('Pattern:', recipe.data.pattern);
-    }
-    if (recipe.data.key) {
-      console.log('Key:', recipe.data.key);
-    }
-    if (recipe.data.ingredients) {
-      console.log('Ingredients:', recipe.data.ingredients);
-    }
-    if (recipe.data.ingredient) {
-      console.log('Ingredient:', recipe.data.ingredient);
-    }
-  }
-  console.log('=== END INSPECTION ===\n');
-}
 
 // Carrega todas as tags
 function loadTags() {
@@ -325,9 +297,6 @@ async function convertRecipes() {
   console.log('Loading recipes...');
   const allRecipes = readAllRecipes();
   console.log(`Found ${allRecipes.length} recipes`);
-  
-  // Inspeciona algumas receitas
-  inspectSampleRecipes(allRecipes, 3);
   
   const allCards = [];
   let processedCount = 0;
