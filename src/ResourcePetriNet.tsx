@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect} from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
 import {
@@ -15,6 +15,9 @@ import {
   TableHead,
   Chip,
   Slider,
+  Collapse,
+  Alert,
+  LinearProgress,
 } from "@mui/material";
 import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
 
@@ -67,20 +70,27 @@ type NoArvore = {
   terminal?: boolean;
   expandido: boolean;
   nivel: number;
-  simulacao?: boolean; // Para nós da simulação (expansões adicionais)
-  omega?: boolean;     // Para nós com marcação omega (infinito)
+  simulacao?: boolean;
+  omega?: boolean;
+  depth?: number;
 };
+
+// CONSTANTES DE LIMITE PARA PERFORMANCE
+const MAX_DEPTH = 3; // Profundidade máxima da árvore
+const MAX_EXPANSIONS = 50; // Número máximo de expansões totais
+const MAX_CHILDREN_PER_NODE = 3; // Máximo de filhos por nó
+const MAX_PATHS_TO_FIND = 10; // Máximo de caminhos a encontrar
 
 // CORES DISTINTAS PARA CADA TIPO DE NÓ
 const CORES_NOS = {
-  inicial: "#2196F3",      // Azul - Estado inicial
-  real: "#4CAF50",         // Verde - Nó real da árvore principal
-  realIntermediario: "#388E3C", // Verde escuro - Nó real intermediário
-  omega: "#F44336",        // Vermelho - Nó com omega (árvore principal)
-  ciclico: "#FF9800",      // Laranja - Nó cíclico
-  terminal: "#795548",     // Marrom - Nó terminal
-  simulacao: "#9C27B0",    // Roxo - Nó da simulação
-  simulacaoIntermediario: "#7B1FA2", // Roxo escuro - Nó intermediário da simulação
+  inicial: "#2196F3",
+  real: "#4CAF50",
+  realIntermediario: "#388E3C",
+  omega: "#F44336",
+  ciclico: "#FF9800",
+  terminal: "#795548",
+  simulacao: "#9C27B0",
+  simulacaoIntermediario: "#7B1FA2",
 };
 
 const recursosParaMarcacao = (
@@ -127,7 +137,7 @@ const getGraphBounds = (
   };
 };
 
-// ==================== FUNÇÕES PARA ÁRVORE DE ALCANÇABILIDADE ====================
+// ==================== FUNÇÕES OTIMIZADAS PARA ÁRVORE ====================
 
 const compararMarcacoes = (m1: Marcacao, m2: Marcacao): boolean => {
   const chaves = new Set([...Object.keys(m1), ...Object.keys(m2)]);
@@ -168,7 +178,7 @@ const marcaçãoDomina = (nova: Marcacao, existente: Marcacao): boolean => {
   return dominaEstritamente;
 };
 
-// FUNÇÕES AUXILIARES PARA EXPANSÃO DA ÁRVORE
+// FUNÇÕES AUXILIARES OTIMIZADAS
 const isTransicaoHabilitada = (
   transicaoId: string,
   marcacao: Marcacao,
@@ -176,8 +186,6 @@ const isTransicaoHabilitada = (
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
   modoLivre: boolean = false
 ): boolean => {
-  if (!graph) return false;
-
   try {
     const cartaId = transicaoId.replace("transition_", "");
 
@@ -192,8 +200,6 @@ const isTransicaoHabilitada = (
       const arcoAttr = graph.getEdgeAttributes(arcoId);
       const lugarId = graph.source(arcoId);
 
-      if (!graph.hasNode(lugarId)) continue;
-
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const pesoNecessario = arcoAttr.weight || 0;
 
@@ -207,7 +213,6 @@ const isTransicaoHabilitada = (
 
     return true;
   } catch (error) {
-    console.error("Erro ao verificar transição habilitada:", error);
     return false;
   }
 };
@@ -217,55 +222,88 @@ const dispararTransicao = (
   marcacao: Marcacao,
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>
 ): Marcacao => {
-  if (!graph) return { ...marcacao };
-
   const novaMarcacao = { ...marcacao };
 
   try {
-    // ===== Arcos de entrada =====
+    // Arcos de entrada
     const arcosEntrada = graph.inEdges(transicaoId) || [];
-
     for (const arcoId of arcosEntrada) {
       const arcoAttr = graph.getEdgeAttributes(arcoId);
       const lugarId = graph.source(arcoId);
-
-      if (!graph.hasNode(lugarId)) continue;
-
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const peso = arcoAttr.weight || 0;
 
-      if (novaMarcacao[recursoNome] === OMEGA) continue;
-
-      const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
-      novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
+      if (novaMarcacao[recursoNome] !== OMEGA) {
+        const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+        novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
+      }
     }
 
-    // ===== Arcos de saída =====
+    // Arcos de saída
     const arcosSaida = graph.outEdges(transicaoId) || [];
-
     for (const arcoId of arcosSaida) {
       const arcoAttr = graph.getEdgeAttributes(arcoId);
       const lugarId = graph.target(arcoId);
-
-      if (!graph.hasNode(lugarId)) continue;
-
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const peso = arcoAttr.weight || 0;
 
-      if (novaMarcacao[recursoNome] === OMEGA) continue;
-
-      const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
-      novaMarcacao[recursoNome] = quantidadeAtual + peso;
+      if (novaMarcacao[recursoNome] !== OMEGA) {
+        const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
+        novaMarcacao[recursoNome] = quantidadeAtual + peso;
+      }
     }
   } catch (error) {
-    console.error("Erro ao disparar transição:", error);
+    // Ignorar erro
   }
 
   return novaMarcacao;
 };
 
-// NOVA FUNÇÃO: Expandir árvore completa com simulação
-const expandirArvoreComSimulacao = (
+// ALGORITMO BFS OTIMIZADO PARA ENCONTRAR CAMINHOS
+const encontrarCaminhosBFS = (
+  start: string,
+  end: string,
+  graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
+  maxDepth: number = 3
+): string[][] => {
+  const paths: string[][] = [];
+  const visited = new Set<string>();
+  const queue: { node: string; path: string[]; depth: number }[] = [{ 
+    node: start, 
+    path: [], 
+    depth: 0 
+  }];
+  
+  while (queue.length > 0 && paths.length < MAX_PATHS_TO_FIND) {
+    const { node, path, depth } = queue.shift()!;
+    
+    if (depth > maxDepth) continue;
+    
+    if (node === end) {
+      paths.push([...path, node]);
+      continue;
+    }
+    
+    // Limitar expansão - apenas primeiros vizinhos
+    const neighbors = graph.outNeighbors(node).slice(0, 3);
+    
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor) && !path.includes(neighbor)) {
+        visited.add(neighbor);
+        queue.push({
+          node: neighbor,
+          path: [...path, node],
+          depth: depth + 1
+        });
+      }
+    }
+  }
+  
+  return paths;
+};
+
+// FUNÇÃO DE EXPANSÃO OTIMIZADA COM LIMITES
+const expandirArvoreComLimites = (
   raiz: NoArvore,
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
   playableCards: Array<{ id: string }>,
@@ -274,10 +312,15 @@ const expandirArvoreComSimulacao = (
   const contadorNos = { count: 0 };
   const contadorSimulacao = { count: 0 };
   
-  // Primeiro, expandir a árvore normal (sem omega)
-  const expandirNormalmente = (no: NoArvore, caminhoAncestrais: NoArvore[] = []): NoArvore => {
-    if (no.terminal || no.ciclico) return no;
+  // Primeiro, expandir a árvore normal com limites
+  const expandirNormalmente = (no: NoArvore, caminhoAncestrais: NoArvore[] = [], depth: number = 0): NoArvore => {
+    // Verificar limites
+    if (no.terminal || no.ciclico || depth >= MAX_DEPTH || contadorNos.count >= MAX_EXPANSIONS) {
+      no.terminal = true;
+      return no;
+    }
     
+    // Verificar se já existe um estado igual no caminho
     const noExistente = caminhoAncestrais.find((n) =>
       compararMarcacoes(n.marcacao, no.marcacao)
     );
@@ -289,6 +332,8 @@ const expandirArvoreComSimulacao = (
     }
 
     const novoCaminho = [...caminhoAncestrais, no];
+    
+    // Obter transições habilitadas com limite
     const transicoesHabilitadas = graph
       .nodes()
       .filter((node) => graph.getNodeAttribute(node, "type") === "transition")
@@ -300,14 +345,15 @@ const expandirArvoreComSimulacao = (
           graph,
           true
         )
-      );
+      )
+      .slice(0, MAX_CHILDREN_PER_NODE); // LIMITE DE FILHOS POR NÓ
 
     if (transicoesHabilitadas.length === 0) {
       no.terminal = true;
       return no;
     }
 
-    for (const transicaoId of transicoesHabilitadas.slice(0, 10)) {
+    for (const transicaoId of transicoesHabilitadas) {
       const novaMarcacao = dispararTransicao(transicaoId, no.marcacao, graph);
 
       // Verificar se precisa de omega
@@ -341,16 +387,16 @@ const expandirArvoreComSimulacao = (
         children: [],
         expandido: false,
         nivel: no.nivel + 1,
-        omega: precisaOmega, // Marcar como omega se tiver valores infinitos
-        simulacao: false, // Nós da árvore principal não são simulação
+        depth: depth + 1,
+        omega: precisaOmega,
+        simulacao: false,
       };
 
       no.children.push(novoNo);
 
       if (!precisaOmega) {
-        expandirNormalmente(novoNo, novoCaminho);
+        expandirNormalmente(novoNo, novoCaminho, depth + 1);
       } else {
-        // Nós omega são terminais na árvore principal (a menos que haja simulação)
         novoNo.terminal = numeroExpansoes === 0;
       }
     }
@@ -362,7 +408,7 @@ const expandirArvoreComSimulacao = (
   // Expandir árvore normalmente primeiro
   let arvoreExpandida = expandirNormalmente(raiz);
 
-  // AGORA aplicar a simulação nos nós omega apenas se numeroExpansoes > 0
+  // Aplicar simulação nos nós omega apenas se numeroExpansoes > 0
   if (numeroExpansoes > 0) {
     const nosOmega: NoArvore[] = [];
     
@@ -375,7 +421,7 @@ const expandirArvoreComSimulacao = (
     };
     coletarNosOmega(arvoreExpandida);
 
-    // Expandir cada nó omega N vezes
+    // Expandir cada nó omega N vezes com limites
     const expandirOmegaRecursivo = (no: NoArvore, expansoesRestantes: number, profundidade: number = 0): void => {
       if (expansoesRestantes <= 0 || profundidade > 50 || contadorNos.count > 200) {
         no.terminal = true;
@@ -393,14 +439,15 @@ const expandirArvoreComSimulacao = (
             graph,
             true
           )
-        );
+        )
+        .slice(0, MAX_CHILDREN_PER_NODE); // Limitar expansão
 
       if (transicoesHabilitadas.length === 0) {
         no.terminal = true;
         return;
       }
 
-      for (const transicaoId of transicoesHabilitadas.slice(0, 5)) {
+      for (const transicaoId of transicoesHabilitadas) {
         const novaMarcacao = { ...no.marcacao };
         
         // Aplicar transição
@@ -440,8 +487,9 @@ const expandirArvoreComSimulacao = (
           children: [],
           expandido: false,
           nivel: no.nivel + 1,
-          simulacao: true, // Filhos de omega são simulação
-          omega: false, // Nós de simulação não são omega (já processado)
+          depth: profundidade + 1,
+          simulacao: true,
+          omega: false,
         };
 
         no.children.push(novoNo);
@@ -462,7 +510,7 @@ const expandirArvoreComSimulacao = (
   return arvoreExpandida;
 };
 
-const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
+const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   recursos,
   playableCards,
 }) => {
@@ -493,9 +541,10 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   const [mostrarArvore, setMostrarArvore] = useState(false);
   const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
   const [numeroExpansoes, setNumeroExpansoes] = useState<number>(0);
+  const [caminhosEncontrados, setCaminhosEncontrados] = useState<string[][]>([]);
+  const [showPerformanceWarning, setShowPerformanceWarning] = useState(false);
 
   // ========== USEFFECT OTIMIZADOS ==========
-
   useEffect(() => {
     marcacaoModoLivreRef.current = marcacaoModoLivre;
   }, [marcacaoModoLivre]);
@@ -513,12 +562,10 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   }, [marcacaoModoLivre, recursos, playableCards, modoLivre]);
 
   // ==================== FUNÇÕES OTIMIZADAS ====================
-
   const getMarcacaoAtual = () => {
     return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
   };
 
-  // CORREÇÃO: handleNodeClick agora é usado
   const handleNodeClick = (nodeLabel: string, event: React.MouseEvent) => {
     if (!modoLivreRef.current) return;
 
@@ -545,14 +592,12 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     });
   };
 
-  // CORREÇÃO: testarDisparoTransicao agora é usado
   const testarDisparoTransicao = (transicaoId: string) => {
     if (!graphRef.current) return;
 
     const currentMarcacao = { ...marcacaoModoLivreRef.current };
 
     if (!graphRef.current.hasNode(transicaoId)) {
-      console.warn("Transição não encontrada no graph:", transicaoId);
       return;
     }
 
@@ -565,7 +610,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     );
 
     if (!habilitada) {
-      console.log("Transição não habilitada:", transicaoId);
       return;
     }
 
@@ -636,7 +680,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     );
   };
 
-  // CORREÇÃO: initPetriNet agora usa todas as funções necessárias
   const initPetriNet = () => {
     if (!svgRef.current || !containerRef.current) return;
 
@@ -651,7 +694,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
     graphRef.current = graph;
 
-    // CORREÇÃO: BARALHO_INICIAL e BARALHO_OFERTA_INICIAL agora são usados
     const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
     allCards.forEach((carta) => {
@@ -720,7 +762,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .on("zoom", (event) => g.attr("transform", event.transform));
     svg.call(zoomBehavior);
 
-    // CORREÇÃO: simulationRef agora é usado
     const simulation = d3
       .forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-100))
@@ -781,7 +822,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           .on("end", dragended)
       );
 
-    // CORREÇÃO: handleNodeClick e testarDisparoTransicao agora são usados
     nodeGroupsRef.current.each(function (this: SVGGElement, d: NodeAttributes) {
       const nodeGroup = d3.select<SVGGElement, NodeAttributes>(this);
 
@@ -893,7 +933,6 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       d.fy = null;
     }
 
-    // CORREÇÃO: getGraphBounds agora é usado
     setTimeout(() => {
       const bounds = getGraphBounds(nodes, width, height);
       if (bounds) {
@@ -921,7 +960,11 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   };
 
   const gerarArvoreAlcancabilidade = () => {
-    // Validação do número de expansões
+    // Verificar limites de performance
+    if (numeroExpansoes > 5) {
+      setShowPerformanceWarning(true);
+    }
+
     if (numeroExpansoes < 0 || numeroExpansoes > 10) {
       console.warn("Número de expansões deve estar entre 0 e 10");
       setNumeroExpansoes(Math.max(0, Math.min(10, numeroExpansoes)));
@@ -933,6 +976,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
     setExpandindoArvore(true);
     setMostrarArvore(true);
 
+    // Usar setTimeout para não bloquear a UI
     setTimeout(() => {
       try {
         const marcacaoInicial = getMarcacaoAtual();
@@ -943,17 +987,18 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
           children: [],
           expandido: false,
           nivel: 0,
+          depth: 0
         };
 
-        // USAR A NOVA FUNÇÃO com o numeroExpansoes atual do estado
-        const arvoreCompleta = expandirArvoreComSimulacao(
+        // Usar a função otimizada com limites
+        const arvoreCompleta = expandirArvoreComLimites(
           raiz,
           graphRef.current!,
           playableCards,
-          numeroExpansoes // Usar o valor atual do estado
+          numeroExpansoes
         );
 
-        // Atualizar estado com todos os nós
+        // Coletar todos os nós
         const todosNos: NoArvore[] = [];
         const coletarNos = (no: NoArvore) => {
           todosNos.push(no);
@@ -964,6 +1009,21 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         setNosArvore(todosNos);
         setArvore(arvoreCompleta);
         renderArvore(arvoreCompleta);
+
+        // Buscar alguns caminhos usando BFS como demonstração
+        if (graphRef.current) {
+          const resourceNodes = graphRef.current
+            .nodes()
+            .filter(node => graphRef.current!.getNodeAttribute(node, "type") === "place")
+            .map(node => graphRef.current!.getNodeAttribute(node, "label"));
+          
+          if (resourceNodes.length >= 2) {
+            const start = resourceNodes[0];
+            const end = resourceNodes[1];
+            const caminhos = encontrarCaminhosBFS(start, end, graphRef.current, 3);
+            setCaminhosEncontrados(caminhos);
+          }
+        }
 
       } catch (error) {
         console.error("Erro ao gerar árvore:", error);
@@ -1191,19 +1251,16 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
       .append("circle")
       .attr("r", (d: any) => d.size)
       .attr("fill", (d: any) => {
-        // Lógica de cores melhorada
-        if (d.isInitial) return CORES_NOS.inicial; // Azul - Estado inicial
+        if (d.isInitial) return CORES_NOS.inicial;
         if (d.simulacao) {
-          // Nós de simulação
-          if (d.terminal) return CORES_NOS.terminal; // Marrom - Terminal da simulação
-          if (d.ciclico) return CORES_NOS.ciclico;   // Laranja - Cíclico na simulação
-          return CORES_NOS.simulacaoIntermediario;   // Roxo escuro - Intermediário da simulação
+          if (d.terminal) return CORES_NOS.terminal;
+          if (d.ciclico) return CORES_NOS.ciclico;
+          return CORES_NOS.simulacaoIntermediario;
         } else {
-          // Nós reais da árvore principal
-          if (d.omega) return CORES_NOS.omega;       // Vermelho - Nó com omega
-          if (d.terminal) return CORES_NOS.terminal; // Marrom - Terminal real
-          if (d.ciclico) return CORES_NOS.ciclico;   // Laranja - Cíclico real
-          return d.nivel === 1 ? CORES_NOS.real : CORES_NOS.realIntermediario; // Verde ou verde escuro
+          if (d.omega) return CORES_NOS.omega;
+          if (d.terminal) return CORES_NOS.terminal;
+          if (d.ciclico) return CORES_NOS.ciclico;
+          return d.nivel === 1 ? CORES_NOS.real : CORES_NOS.realIntermediario;
         }
       })
       .attr("stroke", "#fff")
@@ -1485,6 +1542,54 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         </Box>
       </Paper>
 
+      {/* Aviso de Performance */}
+      <Collapse in={showPerformanceWarning}>
+        <Alert 
+          severity="warning" 
+          onClose={() => setShowPerformanceWarning(false)}
+          sx={{ mb: 2 }}
+        >
+          <Typography variant="body2">
+            <strong>Atenção:</strong> Expansões acima de 5 podem impactar a performance. 
+            Limites aplicados: Profundidade máxima = {MAX_DEPTH}, Expansões máximas = {MAX_EXPANSIONS}
+          </Typography>
+        </Alert>
+      </Collapse>
+
+      {/* Indicador de progresso durante expansão */}
+      {expandindoArvore && (
+        <Box sx={{ width: '100%' }}>
+          <LinearProgress />
+          <Typography variant="caption" sx={{ color: '#fff', textAlign: 'center', display: 'block', mt: 1 }}>
+            Expandindo árvore de alcançabilidade com limites otimizados...
+          </Typography>
+        </Box>
+      )}
+
+      {/* Resultados de caminhos BFS */}
+      {caminhosEncontrados.length > 0 && (
+        <Paper sx={{ p: 2, backgroundColor: '#363636', color: '#fff' }}>
+          <Typography variant="h6" gutterBottom>
+            Caminhos Encontrados (BFS)
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2, color: '#ccc' }}>
+            {caminhosEncontrados.length} caminhos encontrados usando algoritmo BFS otimizado:
+          </Typography>
+          {caminhosEncontrados.slice(0, 3).map((caminho, idx) => (
+            <Box key={idx} sx={{ 
+              p: 1, 
+              mb: 1, 
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              borderRadius: 1
+            }}>
+              <Typography variant="body2" fontFamily="monospace">
+                {caminho.join(' → ')}
+              </Typography>
+            </Box>
+          ))}
+        </Paper>
+      )}
+
       {mostrarArvore && (
         <Paper
           sx={{
@@ -1497,7 +1602,13 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
         >
           <Box sx={{ p: 2, color: "white" }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <h3>Árvore de Alcançabilidade</h3>
+              <h3>Árvore de Alcançabilidade (Otimizada)</h3>
+              <Chip 
+                label={`Limites: Profundidade=${MAX_DEPTH}, Expansões=${MAX_EXPANSIONS}`}
+                color="info"
+                size="small"
+                variant="outlined"
+              />
               {numeroExpansoes > 0 && (
                 <Chip 
                   label={`+${numeroExpansoes} expansões simuladas`}
@@ -1509,7 +1620,7 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             </Box>
             {expandindoArvore && (
               <Typography variant="body2" color="primary">
-                Expandindo árvore...
+                Expandindo árvore com algoritmos otimizados...
               </Typography>
             )}
           </Box>
@@ -1537,6 +1648,12 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
             sx={{ color: "#fff", borderBottom: "2px solid #4CAF50", pb: 1 }}
           >
             Estados da Árvore de Alcançabilidade
+            <Chip 
+              label={`${nosArvore.length} nós gerados`}
+              color="info"
+              size="small"
+              sx={{ ml: 2 }}
+            />
             {numeroExpansoes > 0 && (
               <Chip 
                 label={`Simulação: +${numeroExpansoes} expansões`}
@@ -1571,28 +1688,28 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {nosArvore.map((no) => (
+              {nosArvore.slice(0, 100).map((no) => ( // Limitar exibição a 100 nós
                 <TableRow
                   key={no.id}
                   sx={{
                     backgroundColor:
                       no.id === "n0"
-                        ? "rgba(33, 150, 243, 0.1)" // Azul - Inicial
+                        ? "rgba(33, 150, 243, 0.1)"
                         : no.simulacao
                         ? no.terminal
-                          ? "rgba(121, 85, 72, 0.1)" // Marrom - Terminal simulação
+                          ? "rgba(121, 85, 72, 0.1)"
                           : no.ciclico
-                          ? "rgba(255, 152, 0, 0.1)" // Laranja - Cíclico simulação
-                          : "rgba(123, 31, 162, 0.1)" // Roxo escuro - Intermediário simulação
+                          ? "rgba(255, 152, 0, 0.1)"
+                          : "rgba(123, 31, 162, 0.1)"
                         : no.omega
-                        ? "rgba(244, 67, 54, 0.1)" // Vermelho - Omega
+                        ? "rgba(244, 67, 54, 0.1)"
                         : no.ciclico
-                        ? "rgba(255, 152, 0, 0.1)" // Laranja - Cíclico real
+                        ? "rgba(255, 152, 0, 0.1)"
                         : no.terminal
-                        ? "rgba(121, 85, 72, 0.1)" // Marrom - Terminal real
+                        ? "rgba(121, 85, 72, 0.1)"
                         : no.nivel === 1
-                        ? "rgba(76, 175, 80, 0.1)" // Verde - Primeiro nível
-                        : "rgba(56, 142, 60, 0.1)", // Verde escuro - Intermediário real
+                        ? "rgba(76, 175, 80, 0.1)"
+                        : "rgba(56, 142, 60, 0.1)",
                     "&:hover": {
                       backgroundColor: "rgba(255, 255, 255, 0.1)",
                     },
@@ -1654,6 +1771,15 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
                   </TableCell>
                 </TableRow>
               ))}
+              {nosArvore.length > 100 && (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ textAlign: 'center', color: '#ccc', py: 2 }}>
+                    <Typography variant="body2">
+                      ... e mais {nosArvore.length - 100} nós (exibição limitada para performance)
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
 
@@ -1697,4 +1823,4 @@ const ResourcePetriNetComArvore: React.FC<ResourcePetriNetProps> = ({
   );
 };
 
-export default ResourcePetriNetComArvore;
+export default ResourcePetriNet;
