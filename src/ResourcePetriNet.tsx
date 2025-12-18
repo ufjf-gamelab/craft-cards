@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect} from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
 import {
@@ -268,37 +268,39 @@ const encontrarCaminhosBFS = (
 ): string[][] => {
   const paths: string[][] = [];
   const visited = new Set<string>();
-  const queue: { node: string; path: string[]; depth: number }[] = [{ 
-    node: start, 
-    path: [], 
-    depth: 0 
-  }];
-  
+  const queue: { node: string; path: string[]; depth: number }[] = [
+    {
+      node: start,
+      path: [],
+      depth: 0,
+    },
+  ];
+
   while (queue.length > 0 && paths.length < MAX_PATHS_TO_FIND) {
     const { node, path, depth } = queue.shift()!;
-    
+
     if (depth > maxDepth) continue;
-    
+
     if (node === end) {
       paths.push([...path, node]);
       continue;
     }
-    
+
     // Limitar expansão - apenas primeiros vizinhos
     const neighbors = graph.outNeighbors(node).slice(0, 3);
-    
+
     for (const neighbor of neighbors) {
       if (!visited.has(neighbor) && !path.includes(neighbor)) {
         visited.add(neighbor);
         queue.push({
           node: neighbor,
           path: [...path, node],
-          depth: depth + 1
+          depth: depth + 1,
         });
       }
     }
   }
-  
+
   return paths;
 };
 
@@ -311,15 +313,24 @@ const expandirArvoreComLimites = (
 ): NoArvore => {
   const contadorNos = { count: 0 };
   const contadorSimulacao = { count: 0 };
-  
+
   // Primeiro, expandir a árvore normal com limites
-  const expandirNormalmente = (no: NoArvore, caminhoAncestrais: NoArvore[] = [], depth: number = 0): NoArvore => {
+  const expandirNormalmente = (
+    no: NoArvore,
+    caminhoAncestrais: NoArvore[] = [],
+    depth: number = 0
+  ): NoArvore => {
     // Verificar limites
-    if (no.terminal || no.ciclico || depth >= MAX_DEPTH || contadorNos.count >= MAX_EXPANSIONS) {
+    if (
+      no.terminal ||
+      no.ciclico ||
+      depth >= MAX_DEPTH ||
+      contadorNos.count >= MAX_EXPANSIONS
+    ) {
       no.terminal = true;
       return no;
     }
-    
+
     // Verificar se já existe um estado igual no caminho
     const noExistente = caminhoAncestrais.find((n) =>
       compararMarcacoes(n.marcacao, no.marcacao)
@@ -332,7 +343,7 @@ const expandirArvoreComLimites = (
     }
 
     const novoCaminho = [...caminhoAncestrais, no];
-    
+
     // Obter transições habilitadas com limite
     const transicoesHabilitadas = graph
       .nodes()
@@ -411,7 +422,7 @@ const expandirArvoreComLimites = (
   // Aplicar simulação nos nós omega apenas se numeroExpansoes > 0
   if (numeroExpansoes > 0) {
     const nosOmega: NoArvore[] = [];
-    
+
     // Coletar todos os nós omega que não são terminais
     const coletarNosOmega = (no: NoArvore) => {
       if (no.omega && !no.terminal && !no.simulacao) {
@@ -422,8 +433,16 @@ const expandirArvoreComLimites = (
     coletarNosOmega(arvoreExpandida);
 
     // Expandir cada nó omega N vezes com limites
-    const expandirOmegaRecursivo = (no: NoArvore, expansoesRestantes: number, profundidade: number = 0): void => {
-      if (expansoesRestantes <= 0 || profundidade > 50 || contadorNos.count > 200) {
+    const expandirOmegaRecursivo = (
+      no: NoArvore,
+      expansoesRestantes: number,
+      profundidade: number = 0
+    ): void => {
+      if (
+        expansoesRestantes <= 0 ||
+        profundidade > 50 ||
+        contadorNos.count > 200
+      ) {
         no.terminal = true;
         return;
       }
@@ -449,7 +468,7 @@ const expandirArvoreComLimites = (
 
       for (const transicaoId of transicoesHabilitadas) {
         const novaMarcacao = { ...no.marcacao };
-        
+
         // Aplicar transição
         const arcosEntrada = graph.inEdges(transicaoId) || [];
         const arcosSaida = graph.outEdges(transicaoId) || [];
@@ -495,14 +514,18 @@ const expandirArvoreComLimites = (
         no.children.push(novoNo);
 
         // Expandir recursivamente o novo nó
-        expandirOmegaRecursivo(novoNo, expansoesRestantes - 1, profundidade + 1);
+        expandirOmegaRecursivo(
+          novoNo,
+          expansoesRestantes - 1,
+          profundidade + 1
+        );
       }
 
       no.expandido = true;
     };
 
     // Expandir cada nó omega
-    nosOmega.forEach(noOmega => {
+    nosOmega.forEach((noOmega) => {
       expandirOmegaRecursivo(noOmega, numeroExpansoes);
     });
   }
@@ -541,7 +564,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   const [mostrarArvore, setMostrarArvore] = useState(false);
   const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
   const [numeroExpansoes, setNumeroExpansoes] = useState<number>(0);
-  const [caminhosEncontrados, setCaminhosEncontrados] = useState<string[][]>([]);
+  const [caminhosEncontrados, setCaminhosEncontrados] = useState<string[][]>(
+    []
+  );
   const [showPerformanceWarning, setShowPerformanceWarning] = useState(false);
 
   // ========== USEFFECT OTIMIZADOS ==========
@@ -987,7 +1012,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           children: [],
           expandido: false,
           nivel: 0,
-          depth: 0
+          depth: 0,
         };
 
         // Usar a função otimizada com limites
@@ -1014,17 +1039,24 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
         if (graphRef.current) {
           const resourceNodes = graphRef.current
             .nodes()
-            .filter(node => graphRef.current!.getNodeAttribute(node, "type") === "place")
-            .map(node => graphRef.current!.getNodeAttribute(node, "label"));
-          
+            .filter(
+              (node) =>
+                graphRef.current!.getNodeAttribute(node, "type") === "place"
+            )
+            .map((node) => graphRef.current!.getNodeAttribute(node, "label"));
+
           if (resourceNodes.length >= 2) {
             const start = resourceNodes[0];
             const end = resourceNodes[1];
-            const caminhos = encontrarCaminhosBFS(start, end, graphRef.current, 3);
+            const caminhos = encontrarCaminhosBFS(
+              start,
+              end,
+              graphRef.current,
+              3
+            );
             setCaminhosEncontrados(caminhos);
           }
         }
-
       } catch (error) {
         console.error("Erro ao gerar árvore:", error);
       } finally {
@@ -1479,20 +1511,22 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
             </Typography>
 
             <Box sx={{ width: 200 }}>
-              <Typography 
-                id="expansoes-slider" 
-                gutterBottom 
-                sx={{ 
-                  color: '#fff', 
-                  fontSize: '0.875rem',
-                  textAlign: 'center'
+              <Typography
+                id="expansoes-slider"
+                gutterBottom
+                sx={{
+                  color: "#fff",
+                  fontSize: "0.875rem",
+                  textAlign: "center",
                 }}
               >
                 Expansões: {numeroExpansoes}
               </Typography>
               <Slider
                 value={numeroExpansoes}
-                onChange={(_, newValue) => setNumeroExpansoes(newValue as number)}
+                onChange={(_, newValue) =>
+                  setNumeroExpansoes(newValue as number)
+                }
                 aria-labelledby="expansoes-slider"
                 valueLabelDisplay="auto"
                 step={1}
@@ -1500,18 +1534,18 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                 min={0}
                 max={10}
                 sx={{
-                  color: '#2196F3',
-                  '& .MuiSlider-track': {
-                    backgroundColor: '#2196F3',
+                  color: "#2196F3",
+                  "& .MuiSlider-track": {
+                    backgroundColor: "#2196F3",
                   },
-                  '& .MuiSlider-thumb': {
-                    backgroundColor: '#2196F3',
+                  "& .MuiSlider-thumb": {
+                    backgroundColor: "#2196F3",
                   },
-                  '& .MuiSlider-valueLabel': {
-                    backgroundColor: '#2196F3',
+                  "& .MuiSlider-valueLabel": {
+                    backgroundColor: "#2196F3",
                   },
-                  '& .MuiSlider-mark': {
-                    backgroundColor: '#fff',
+                  "& .MuiSlider-mark": {
+                    backgroundColor: "#fff",
                   },
                 }}
               />
@@ -1521,7 +1555,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               variant="contained"
               size="small"
               onClick={gerarArvoreAlcancabilidade}
-              disabled={expandindoArvore || numeroExpansoes < 0 || numeroExpansoes > 10}
+              disabled={
+                expandindoArvore || numeroExpansoes < 0 || numeroExpansoes > 10
+              }
               sx={{
                 backgroundColor: "#2196F3",
                 "&:hover": {
@@ -1544,23 +1580,27 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
       {/* Aviso de Performance */}
       <Collapse in={showPerformanceWarning}>
-        <Alert 
-          severity="warning" 
+        <Alert
+          severity="warning"
           onClose={() => setShowPerformanceWarning(false)}
           sx={{ mb: 2 }}
         >
           <Typography variant="body2">
-            <strong>Atenção:</strong> Expansões acima de 5 podem impactar a performance. 
-            Limites aplicados: Profundidade máxima = {MAX_DEPTH}, Expansões máximas = {MAX_EXPANSIONS}
+            <strong>Atenção:</strong> Expansões acima de 5 podem impactar a
+            performance. Limites aplicados: Profundidade máxima = {MAX_DEPTH},
+            Expansões máximas = {MAX_EXPANSIONS}
           </Typography>
         </Alert>
       </Collapse>
 
       {/* Indicador de progresso durante expansão */}
       {expandindoArvore && (
-        <Box sx={{ width: '100%' }}>
+        <Box sx={{ width: "100%" }}>
           <LinearProgress />
-          <Typography variant="caption" sx={{ color: '#fff', textAlign: 'center', display: 'block', mt: 1 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: "#fff", textAlign: "center", display: "block", mt: 1 }}
+          >
             Expandindo árvore de alcançabilidade com limites otimizados...
           </Typography>
         </Box>
@@ -1568,22 +1608,26 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
       {/* Resultados de caminhos BFS */}
       {caminhosEncontrados.length > 0 && (
-        <Paper sx={{ p: 2, backgroundColor: '#363636', color: '#fff' }}>
+        <Paper sx={{ p: 2, backgroundColor: "#363636", color: "#fff" }}>
           <Typography variant="h6" gutterBottom>
             Caminhos Encontrados (BFS)
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2, color: '#ccc' }}>
-            {caminhosEncontrados.length} caminhos encontrados usando algoritmo BFS otimizado:
+          <Typography variant="body2" sx={{ mb: 2, color: "#ccc" }}>
+            {caminhosEncontrados.length} caminhos encontrados usando algoritmo
+            BFS otimizado:
           </Typography>
           {caminhosEncontrados.slice(0, 3).map((caminho, idx) => (
-            <Box key={idx} sx={{ 
-              p: 1, 
-              mb: 1, 
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              borderRadius: 1
-            }}>
+            <Box
+              key={idx}
+              sx={{
+                p: 1,
+                mb: 1,
+                backgroundColor: "rgba(255,255,255,0.05)",
+                borderRadius: 1,
+              }}
+            >
               <Typography variant="body2" fontFamily="monospace">
-                {caminho.join(' → ')}
+                {caminho.join(" → ")}
               </Typography>
             </Box>
           ))}
@@ -1601,16 +1645,16 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           }}
         >
           <Box sx={{ p: 2, color: "white" }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <h3>Árvore de Alcançabilidade (Otimizada)</h3>
-              <Chip 
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <h3>Árvore de Alcançabilidade</h3>
+              <Chip
                 label={`Limites: Profundidade=${MAX_DEPTH}, Expansões=${MAX_EXPANSIONS}`}
                 color="info"
                 size="small"
                 variant="outlined"
               />
               {numeroExpansoes > 0 && (
-                <Chip 
+                <Chip
                   label={`+${numeroExpansoes} expansões simuladas`}
                   color="primary"
                   variant="outlined"
@@ -1648,14 +1692,14 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
             sx={{ color: "#fff", borderBottom: "2px solid #4CAF50", pb: 1 }}
           >
             Estados da Árvore de Alcançabilidade
-            <Chip 
+            <Chip
               label={`${nosArvore.length} nós gerados`}
               color="info"
               size="small"
               sx={{ ml: 2 }}
             />
             {numeroExpansoes > 0 && (
-              <Chip 
+              <Chip
                 label={`Simulação: +${numeroExpansoes} expansões`}
                 color="secondary"
                 size="small"
@@ -1667,115 +1711,206 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold", width: "60px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "60px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Estado
                 </TableCell>
-                <TableCell sx={{ fontWeight: "bold", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Marcação
                 </TableCell>
-                <TableCell sx={{ fontWeight: "bold", width: "120px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "120px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Transição
                 </TableCell>
-                <TableCell sx={{ fontWeight: "bold", width: "100px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "100px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Tipo
                 </TableCell>
-                <TableCell sx={{ fontWeight: "bold", width: "60px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "60px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Nível
                 </TableCell>
-                <TableCell sx={{ fontWeight: "bold", width: "80px", backgroundColor: "#2196F3", color: "#fff", fontSize: "0.875rem" }}>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "80px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
                   Ação
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {nosArvore.slice(0, 100).map((no) => ( // Limitar exibição a 100 nós
-                <TableRow
-                  key={no.id}
-                  sx={{
-                    backgroundColor:
-                      no.id === "n0"
-                        ? "rgba(33, 150, 243, 0.1)"
-                        : no.simulacao
-                        ? no.terminal
-                          ? "rgba(121, 85, 72, 0.1)"
+              {nosArvore.slice(0, 100).map(
+                (
+                  no // Limitar exibição a 100 nós
+                ) => (
+                  <TableRow
+                    key={no.id}
+                    sx={{
+                      backgroundColor:
+                        no.id === "n0"
+                          ? "rgba(33, 150, 243, 0.1)"
+                          : no.simulacao
+                          ? no.terminal
+                            ? "rgba(121, 85, 72, 0.1)"
+                            : no.ciclico
+                            ? "rgba(255, 152, 0, 0.1)"
+                            : "rgba(123, 31, 162, 0.1)"
+                          : no.omega
+                          ? "rgba(244, 67, 54, 0.1)"
                           : no.ciclico
                           ? "rgba(255, 152, 0, 0.1)"
-                          : "rgba(123, 31, 162, 0.1)"
-                        : no.omega
-                        ? "rgba(244, 67, 54, 0.1)"
-                        : no.ciclico
-                        ? "rgba(255, 152, 0, 0.1)"
-                        : no.terminal
-                        ? "rgba(121, 85, 72, 0.1)"
-                        : no.nivel === 1
-                        ? "rgba(76, 175, 80, 0.1)"
-                        : "rgba(56, 142, 60, 0.1)",
-                    "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                    },
-                    color: "#fff",
-                  }}
-                >
-                  <TableCell sx={{ fontWeight: "bold", color: "#fff", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
-                    {no.id.replace("n", "M").replace("s", "S")}
-                  </TableCell>
-                  <TableCell sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
-                    <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#fff" }}>
-                      {formatarMarcacao(no.marcacao)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ color: "#fff", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
-                    {obterTransicaoParaNo(no)}
-                  </TableCell>
-                  <TableCell sx={{ color: "#fff", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
-                    {no.id === "n0"
-                      ? "Inicial"
-                      : no.simulacao
-                      ? no.terminal
-                        ? "Terminal (Simulação)"
-                        : no.ciclico
-                        ? "Cíclico (Simulação)"
-                        : "Intermediário (Simulação)"
-                      : no.omega
-                      ? "Omega"
-                      : no.ciclico
-                      ? "Cíclico"
-                      : no.terminal
-                      ? "Terminal"
-                      : no.nivel === 1
-                      ? "Intermediário"
-                      : "Intermediário Avançado"}
-                  </TableCell>
-                  <TableCell sx={{ color: "#fff", borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
-                    {no.nivel}
-                  </TableCell>
-                  <TableCell sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => centralizarNo(no.id)}
+                          : no.terminal
+                          ? "rgba(121, 85, 72, 0.1)"
+                          : no.nivel === 1
+                          ? "rgba(76, 175, 80, 0.1)"
+                          : "rgba(56, 142, 60, 0.1)",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      },
+                      color: "#fff",
+                    }}
+                  >
+                    <TableCell
                       sx={{
-                        fontSize: "0.7rem",
-                        padding: "2px 6px",
-                        minWidth: "auto",
-                        color: "#2196F3",
-                        borderColor: "#2196F3",
-                        "&:hover": {
-                          backgroundColor: "rgba(33, 150, 243, 0.1)",
-                          borderColor: "#64b5f6",
-                        },
+                        fontWeight: "bold",
+                        color: "#fff",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
                       }}
                     >
-                      Centralizar
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      {no.id.replace("n", "M").replace("s", "S")}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontFamily: "monospace",
+                          fontSize: "0.8rem",
+                          color: "#fff",
+                        }}
+                      >
+                        {formatarMarcacao(no.marcacao)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        color: "#fff",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      {obterTransicaoParaNo(no)}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        color: "#fff",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      {no.id === "n0"
+                        ? "Inicial"
+                        : no.simulacao
+                        ? no.terminal
+                          ? "Terminal (Simulação)"
+                          : no.ciclico
+                          ? "Cíclico (Simulação)"
+                          : "Intermediário (Simulação)"
+                        : no.omega
+                        ? "Omega"
+                        : no.ciclico
+                        ? "Cíclico"
+                        : no.terminal
+                        ? "Terminal"
+                        : no.nivel === 1
+                        ? "Intermediário"
+                        : "Intermediário Avançado"}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        color: "#fff",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      {no.nivel}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => centralizarNo(no.id)}
+                        sx={{
+                          fontSize: "0.7rem",
+                          padding: "2px 6px",
+                          minWidth: "auto",
+                          color: "#2196F3",
+                          borderColor: "#2196F3",
+                          "&:hover": {
+                            backgroundColor: "rgba(33, 150, 243, 0.1)",
+                            borderColor: "#64b5f6",
+                          },
+                        }}
+                      >
+                        Centralizar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              )}
               {nosArvore.length > 100 && (
                 <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: 'center', color: '#ccc', py: 2 }}>
+                  <TableCell
+                    colSpan={6}
+                    sx={{ textAlign: "center", color: "#ccc", py: 2 }}
+                  >
                     <Typography variant="body2">
-                      ... e mais {nosArvore.length - 100} nós (exibição limitada para performance)
+                      ... e mais {nosArvore.length - 100} nós (exibição limitada
+                      para performance)
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -1785,36 +1920,116 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
           <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.inicial, mr: 1, border: "1px solid #fff" }} />
-              <Typography variant="body2" sx={{ color: "#fff" }}>Estado Inicial</Typography>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.inicial,
+                  mr: 1,
+                  border: "1px solid #fff",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Estado Inicial
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.real, mr: 1, border: "1px solid #fff" }} />
-              <Typography variant="body2" sx={{ color: "#fff" }}>Intermediário Real</Typography>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.real,
+                  mr: 1,
+                  border: "1px solid #fff",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Intermediário Real
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.realIntermediario, mr: 1, border: "1px solid #fff" }} />
-              <Typography variant="body2" sx={{ color: "#fff" }}>Intermediário Avançado</Typography>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.realIntermediario,
+                  mr: 1,
+                  border: "1px solid #fff",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Intermediário Avançado
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.omega, mr: 1, border: "1px solid #fff" }} />
-              <Typography variant="body2" sx={{ color: "#fff" }}>Omega</Typography>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.omega,
+                  mr: 1,
+                  border: "1px solid #fff",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Omega
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.ciclico, mr: 1, border: "1px solid #fff" }} />
-              <Typography variant="body2" sx={{ color: "#fff" }}>Cíclico</Typography>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.ciclico,
+                  mr: 1,
+                  border: "1px solid #fff",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Cíclico
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.terminal, mr: 1, border: "1px solid #fff" }} />
-              <Typography variant="body2" sx={{ color: "#fff" }}>Terminal</Typography>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.terminal,
+                  mr: 1,
+                  border: "1px solid #fff",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Terminal
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.simulacao, mr: 1, border: "1px solid #fff" }} />
-              <Typography variant="body2" sx={{ color: "#fff" }}>Simulação</Typography>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.simulacao,
+                  mr: 1,
+                  border: "1px solid #fff",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Simulação
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: CORES_NOS.simulacaoIntermediario, mr: 1, border: "1px solid #fff" }} />
-              <Typography variant="body2" sx={{ color: "#fff" }}>Simulação Intermediária</Typography>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.simulacaoIntermediario,
+                  mr: 1,
+                  border: "1px solid #fff",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "#fff" }}>
+                Simulação Intermediária
+              </Typography>
             </Box>
           </Box>
         </Paper>
