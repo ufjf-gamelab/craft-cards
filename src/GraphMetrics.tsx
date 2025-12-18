@@ -92,6 +92,394 @@ type Problem = {
   fix?: string;
 }
 
+const getStrategicResourceSample = (
+  graph: MultiDirectedGraph
+): string[] => {
+  const resourceNodes = graph.filterNodes(
+    node => graph.getNodeAttributes(node).type === "resource"
+  );
+  
+  // Se poucos recursos, retorna todos
+  if (resourceNodes.length <= 40) {
+    return resourceNodes;
+  }
+  
+  // Calcular scores de importância
+  const scoredResources = resourceNodes.map(node => {
+    const attrs = graph.getNodeAttributes(node);
+    const degree = graph.degree(node);
+    const outDegree = graph.outDegree(node); 
+    const inDegree = graph.inDegree(node);  
+    
+    // Score composto
+    const score = 
+      degree * 2 +           // Conexões totais
+      outDegree * 1.5 +      // Alta demanda (mais crítico)
+      inDegree * 1.0 +       // Produção
+      (attrs.quantity || 0) * 0.1; // Quantidade disponível
+    
+    return { node, score, outDegree, inDegree };
+  });
+  
+  // Ordenar por score (mais importante primeiro)
+  scoredResources.sort((a, b) => b.score - a.score);
+  
+  // Categorizar para diversidade
+  const categories: Record<string, string[]> = {
+    high_demand: [],      // Demanda > Produção×2
+    high_supply: [],      // Produção > Demanda×2
+    balanced: [],         // Demanda ≈ Produção
+    producer_only: [],    // Só produz, não consome
+    consumer_only: []     // Só consome, não produz
+  };
+  
+  scoredResources.forEach(({ node, outDegree, inDegree }) => {
+    if (outDegree > inDegree * 2) categories.high_demand.push(node);
+    else if (inDegree > outDegree * 2) categories.high_supply.push(node);
+    else if (outDegree === 0 && inDegree > 0) categories.producer_only.push(node);
+    else if (inDegree === 0 && outDegree > 0) categories.consumer_only.push(node);
+    else categories.balanced.push(node);
+  });
+  
+  // Amostrar proporcionalmente de cada categoria
+  const sampled = new Set<string>();
+  const maxPerCategory = 8;
+  
+  Object.values(categories).forEach(category => {
+    category.slice(0, maxPerCategory).forEach(node => {
+      if (sampled.size < 40) sampled.add(node);
+    });
+  });
+  
+  return Array.from(sampled);
+};
+
+// ============================================================================
+// FUNÇÕES DE CÁLCULO
+// ============================================================================
+
+const findAllPathsBetweenResources = (
+  graph: MultiDirectedGraph
+): Record<string, Record<string, string[][]>> => {
+  // Usar amostra estratégica para evitar explosão combinatória
+  const sampledResources = getStrategicResourceSample(graph);
+  
+  const allPaths: Record<string, Record<string, string[][]>> = {};
+  
+  // Cache de vizinhança para performance
+  const adjacencyCache = new Map<string, string[]>();
+  sampledResources.forEach((node) => {
+    const neighbors: string[] = [];
+    graph.forEachOutEdge(node, (edge) => {
+      const neighbor = graph.target(edge);
+      if (!neighbors.includes(neighbor)) {
+        neighbors.push(neighbor);
+      }
+    });
+    adjacencyCache.set(node, neighbors);
+  });
+
+  // BFS limitado para encontrar caminhos
+  const maxDepth = 5;
+  const maxPaths = 3;
+  
+  for (const start of sampledResources) {
+    allPaths[start] = {};
+    
+    for (const end of sampledResources) {
+      if (start === end) continue;
+      
+      const paths: string[][] = [];
+      const queue: Array<{ node: string; path: string[]; depth: number }> = [
+        { node: start, path: [], depth: 0 }
+      ];
+      
+      while (queue.length > 0 && paths.length < maxPaths) {
+        const current = queue.shift()!;
+        
+        if (current.depth > maxDepth) continue;
+        if (current.node === end) {
+          paths.push([...current.path, current.node]);
+          continue;
+        }
+        
+        // Evitar ciclos
+        if (current.path.includes(current.node)) continue;
+        
+        const neighbors = adjacencyCache.get(current.node) || [];
+        for (const neighbor of neighbors) {
+          if (!current.path.includes(neighbor)) {
+            queue.push({
+              node: neighbor,
+              path: [...current.path, current.node],
+              depth: current.depth + 1
+            });
+          }
+        }
+      }
+      
+      if (paths.length > 0) {
+        allPaths[start][end] = paths;
+      }
+    }
+  }
+  
+  return allPaths;
+};
+
+const findMostDemandedResource = (
+  graph: MultiDirectedGraph
+): ResourceDegreeInfo | null => {
+  const sampledResources = getStrategicResourceSample(graph);
+  
+  let maxDemand = -1;
+  let mostDemanded: ResourceDegreeInfo | null = null;
+
+  sampledResources.forEach((node) => {
+    const attrs = graph.getNodeAttributes(node);
+    const outDegree = graph.outDegree(node);
+    
+    if (outDegree > maxDemand) {
+      maxDemand = outDegree;
+      mostDemanded = {
+        name: node,
+        degree: graph.degree(node),
+        inDegree: graph.inDegree(node),
+        outDegree,
+        type: attrs.type,
+        quantity: attrs.quantity || 0
+      };
+    }
+  });
+
+  return mostDemanded;
+};
+
+const calculateProductionConsumption = (
+  graph: MultiDirectedGraph
+): ProductionConsumptionStats => {
+  const resources: ResourceDegreeInfo[] = [];
+  let totalProduction = 0;
+  let totalConsumption = 0;
+
+  // Usar amostra estratégica para análise
+  const sampledResources = getStrategicResourceSample(graph);
+
+  sampledResources.forEach((node) => {
+    const attrs = graph.getNodeAttributes(node);
+    const inDegree = graph.inDegree(node);
+    const outDegree = graph.outDegree(node);
+    
+    let production = 0;
+    let consumption = 0;
+
+    graph.forEachInEdge(node, (edge) => {
+      const edgeAttrs = graph.getEdgeAttributes(edge);
+      if (edgeAttrs.color === LINK_COLORS.gain) {
+        const quantity = parseInt(edgeAttrs.label.replace("+", "")) || 0;
+        production += quantity;
+        totalProduction += quantity;
+      }
+    });
+
+    graph.forEachOutEdge(node, (edge) => {
+      const edgeAttrs = graph.getEdgeAttributes(edge);
+      if (edgeAttrs.color === LINK_COLORS.cost) {
+        const quantity = parseInt(edgeAttrs.label.replace("-", "")) || 0;
+        consumption += quantity;
+        totalConsumption += quantity;
+      }
+    });
+
+    resources.push({
+      name: node,
+      degree: graph.degree(node),
+      inDegree,
+      outDegree,
+      type: attrs.type,
+      quantity: attrs.quantity || 0,
+      production,
+      consumption
+    });
+  });
+
+  const producedResources = resources.filter(r => (r.production ?? 0) > 0)
+    .sort((a, b) => (b.production ?? 0) - (a.production ?? 0));
+  
+  const consumedResources = resources.filter(r => (r.consumption ?? 0) > 0)
+    .sort((a, b) => (b.consumption ?? 0) - (a.consumption ?? 0));
+
+  return {
+    producedResources,
+    consumedResources,
+    topProducers: producedResources.slice(0, 5),
+    topConsumers: consumedResources.slice(0, 5),
+    totalProduction,
+    totalConsumption
+  };
+};
+
+const calculateAverageDegree = (graph: MultiDirectedGraph): string => {
+  const degrees = graph.mapNodes((node) => graph.degree(node));
+  const sum = degrees.reduce((acc, val) => acc + val, 0);
+  return (sum / degrees.length).toFixed(2);
+};
+
+const calculateDegreeDistribution = (
+  graph: MultiDirectedGraph
+): Record<number, number> => {
+  const distribution: Record<number, number> = {};
+  graph.forEachNode((node) => {
+    const degree = graph.degree(node);
+    distribution[degree] = (distribution[degree] || 0) + 1;
+  });
+  return distribution;
+};
+
+const calculateWeightedDegreeDistribution = (
+  graph: MultiDirectedGraph
+): Record<number, number> => {
+  const distribution: Record<number, number> = {};
+  graph.forEachNode((node) => {
+    const wDegree = weightedDegree(graph, node);
+    distribution[wDegree] = (distribution[wDegree] || 0) + 1;
+  });
+  return distribution;
+};
+
+const calculateAverageEccentricity = (graph: MultiDirectedGraph): string => {
+  const eccs = graph.mapNodes((node) => eccentricity(graph, node));
+  const sum = eccs.reduce((acc, val) => acc + val, 0);
+  return (sum / eccs.length).toFixed(2);
+};
+
+const calculateNodeTypeStats = (graph: MultiDirectedGraph) => {
+  const stats = {
+    resource: { count: 0, totalQuantity: 0 },
+    card: { count: 0 },
+  };
+
+  graph.forEachNode((node) => {
+    const attrs = graph.getNodeAttributes(node);
+    if (attrs.type === "resource") {
+      stats.resource.count++;
+      stats.resource.totalQuantity += attrs.quantity || 0;
+    } else if (attrs.type === "card") {
+      stats.card.count++;
+    }
+  });
+
+  return stats;
+};
+
+const calculateResourceDegrees = (graph: MultiDirectedGraph): ResourceDegreeInfo[] => {
+  const resources: ResourceDegreeInfo[] = [];
+  
+  graph.forEachNode((node) => {
+    const attrs = graph.getNodeAttributes(node);
+    if (attrs.type === "resource") {
+      resources.push({
+        name: node,
+        degree: graph.degree(node),
+        inDegree: graph.inDegree(node),
+        outDegree: graph.outDegree(node),
+        type: attrs.type,
+        quantity: attrs.quantity || 0
+      });
+    }
+  });
+  
+  resources.sort((a, b) => b.degree - a.degree);
+  
+  return resources;
+};
+
+const calculateEdgeTypeStats = (graph: MultiDirectedGraph) => {
+  const stats = {
+    gain: { count: 0, totalQuantity: 0 },
+    cost: { count: 0, totalQuantity: 0 },
+  };
+
+  graph.forEachEdge((edge) => {
+    const attrs = graph.getEdgeAttributes(edge);
+    if (attrs.color === LINK_COLORS.gain) {
+      stats.gain.count++;
+      const quantity = parseInt(attrs.label.replace("+", "")) || 0;
+      stats.gain.totalQuantity += quantity;
+    } else if (attrs.color === LINK_COLORS.cost) {
+      stats.cost.count++;
+      const quantity = parseInt(attrs.label.replace("-", "")) || 0;
+      stats.cost.totalQuantity += quantity;
+    }
+  });
+
+  return stats;
+};
+
+const findShortestPaths = (
+  allPaths: Record<string, Record<string, string[][]>>
+): Record<string, Record<string, string[]>> => {
+  const shortestPaths: Record<string, Record<string, string[]>> = {};
+
+  for (const [start, ends] of Object.entries(allPaths)) {
+    shortestPaths[start] = {};
+    
+    for (const [end, paths] of Object.entries(ends)) {
+      if (paths.length > 0) {
+        shortestPaths[start][end] = paths.reduce((shortest, current) => 
+          current.length < shortest.length ? current : shortest
+        );
+      }
+    }
+  }
+
+  return shortestPaths;
+};
+
+export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | null => {
+  if (graph.order === 0) return null;
+
+  try {
+    const allPaths = findAllPathsBetweenResources(graph);
+    const shortestPaths = findShortestPaths(allPaths);
+
+    return {
+      basic: {
+        order: graph.order,
+        size: simpleSize(graph),
+        density: density(graph).toFixed(4),
+        isDirected: true,
+        isMultiGraph: true,
+      },
+      centrality: {
+        averageDegree: calculateAverageDegree(graph),
+        degreeDistribution: calculateDegreeDistribution(graph),
+        weightedDegreeDistribution: calculateWeightedDegreeDistribution(graph),
+      },
+      connectivity: {
+        diameter: diameter(graph),
+        averageEccentricity: calculateAverageEccentricity(graph),
+        isConnected: connectedComponents(graph).length === 1,
+        stronglyConnectedComponents: connectedComponents(graph).length,
+      },
+      nodeTypeStats: calculateNodeTypeStats(graph),
+      edgeTypeStats: calculateEdgeTypeStats(graph),
+      resourceDegrees: calculateResourceDegrees(graph),
+      productionConsumption: calculateProductionConsumption(graph),
+      pathAnalysis: {
+        allPaths,
+        shortestPaths,
+        mostDemandedResource: findMostDemandedResource(graph),
+        hasCycles: false, // Cálculo simplificado para performance
+        cycleExamples: []
+      }
+    };
+  } catch (error) {
+    console.error("Error calculating graph metrics:", error);
+    return null;
+  }
+};
+//icones visuais
 const ExpandIcon = ({ expanded }: { expanded: boolean }) => (
   <span style={{ 
     display: 'inline-block',
@@ -200,351 +588,16 @@ const ErrorIcon = () => <span style={{ color: '#F44336', fontWeight: 'bold' }}>�
 const WarningIcon = () => <span style={{ color: '#FF9800', fontWeight: 'bold' }}>⚠</span>;
 const LightbulbIcon = () => <span style={{ color: '#2196F3', fontWeight: 'bold' }}>💡</span>;
 
-const findAllPaths = (
-  graph: MultiDirectedGraph,
-  start: string,
-  end: string,
-  maxDepth = 10
-): string[][] => {
-  const paths: string[][] = [];
-  const visited = new Set<string>();
-
-  function dfs(current: string, path: string[], depth: number) {
-    if (depth > maxDepth) return;
-    if (current === end) {
-      paths.push([...path, current]);
-      return;
-    }
-
-    visited.add(current);
-    graph.forEachOutEdge(current, (edge) => {
-      const neighbor = graph.target(edge);
-      if (!visited.has(neighbor)) {
-        dfs(neighbor, [...path, current], depth + 1);
-      }
-    });
-    visited.delete(current);
-  }
-
-  dfs(start, [], 0);
-  return paths;
-};
-
-const findMostDemandedResource = (graph: MultiDirectedGraph): ResourceDegreeInfo | null => {
-  let maxDemand = -1;
-  let mostDemanded: ResourceDegreeInfo | null = null;
-
-  graph.forEachNode((node) => {
-    const attrs = graph.getNodeAttributes(node);
-    if (attrs.type === "resource") {
-      const outDegree = graph.outDegree(node);
-      if (outDegree > maxDemand) {
-        maxDemand = outDegree;
-        mostDemanded = {
-          name: node,
-          degree: graph.degree(node),
-          inDegree: graph.inDegree(node),
-          outDegree,
-          type: attrs.type,
-          quantity: attrs.quantity || 0
-        };
-      }
-    }
-  });
-
-  return mostDemanded;
-};
-
-const findCycles = (graph: MultiDirectedGraph): string[][] => {
-  const cycles: string[][] = [];
-  const visited = new Set<string>();
-  const path: string[] = [];
-
-  function dfs(node: string) {
-    visited.add(node);
-    path.push(node);
-
-    graph.forEachOutEdge(node, (edge) => {
-      const neighbor = graph.target(edge);
-      
-      if (!visited.has(neighbor)) {
-        dfs(neighbor);
-      } else if (path.includes(neighbor)) {
-        const cycleStart = path.indexOf(neighbor);
-        cycles.push(path.slice(cycleStart));
-      }
-    });
-
-    path.pop();
-  }
-
-  graph.forEachNode((node) => {
-    if (!visited.has(node)) {
-      dfs(node);
-    }
-  });
-
-  return Array.from(new Set(cycles.map(cycle => JSON.stringify(cycle))))
-    .map(str => JSON.parse(str))
-    .slice(0, 3);
-};
-
-const findAllPathsBetweenResources = (
-  graph: MultiDirectedGraph
-): Record<string, Record<string, string[][]>> => {
-  const resourceNodes = graph.filterNodes(node => 
-    graph.getNodeAttributes(node).type === "resource"
-  );
-  
-  const allPaths: Record<string, Record<string, string[][]>> = {};
-
-  for (const start of resourceNodes) {
-    allPaths[start] = {};
-    
-    for (const end of resourceNodes) {
-      if (start !== end) {
-        const paths = findAllPaths(graph, start, end);
-        if (paths.length > 0) {
-          allPaths[start][end] = paths;
-        }
-      }
-    }
-  }
-
-  return allPaths;
-};
-
-const findShortestPaths = (
-  allPaths: Record<string, Record<string, string[][]>>
-): Record<string, Record<string, string[]>> => {
-  const shortestPaths: Record<string, Record<string, string[]>> = {};
-
-  for (const [start, ends] of Object.entries(allPaths)) {
-    shortestPaths[start] = {};
-    
-    for (const [end, paths] of Object.entries(ends)) {
-      if (paths.length > 0) {
-        shortestPaths[start][end] = paths.reduce((shortest, current) => 
-          current.length < shortest.length ? current : shortest
-        );
-      }
-    }
-  }
-
-  return shortestPaths;
-};
-
-const calculateProductionConsumption = (graph: MultiDirectedGraph): ProductionConsumptionStats => {
-  const resources: ResourceDegreeInfo[] = [];
-  let totalProduction = 0;
-  let totalConsumption = 0;
-
-  graph.forEachNode((node) => {
-    const attrs = graph.getNodeAttributes(node);
-    if (attrs.type === "resource") {
-      const inDegree = graph.inDegree(node);
-      const outDegree = graph.outDegree(node);
-      
-      let production = 0;
-      let consumption = 0;
-
-      graph.forEachInEdge(node, (edge) => {
-        const edgeAttrs = graph.getEdgeAttributes(edge);
-        if (edgeAttrs.color === LINK_COLORS.gain) {
-          const quantity = parseInt(edgeAttrs.label.replace("+", "")) || 0;
-          production += quantity;
-          totalProduction += quantity;
-        }
-      });
-
-      graph.forEachOutEdge(node, (edge) => {
-        const edgeAttrs = graph.getEdgeAttributes(edge);
-        if (edgeAttrs.color === LINK_COLORS.cost) {
-          const quantity = parseInt(edgeAttrs.label.replace("-", "")) || 0;
-          consumption += quantity;
-          totalConsumption += quantity;
-        }
-      });
-
-      resources.push({
-        name: node,
-        degree: graph.degree(node),
-        inDegree,
-        outDegree,
-        type: attrs.type,
-        quantity: attrs.quantity || 0,
-        production,
-        consumption
-      });
-    }
-  });
-
-  const producedResources = resources.filter(r => (r.production ?? 0) > 0)
-    .sort((a, b) => (b.production ?? 0) - (a.production ?? 0));
-  
-  const consumedResources = resources.filter(r => (r.consumption ?? 0) > 0)
-    .sort((a, b) => (b.consumption ?? 0) - (a.consumption ?? 0));
-
-  return {
-    producedResources,
-    consumedResources,
-    topProducers: producedResources.slice(0, 5),
-    topConsumers: consumedResources.slice(0, 5),
-    totalProduction,
-    totalConsumption
-  };
-};
-
-const calculateAverageDegree = (graph: MultiDirectedGraph): string => {
-  const degrees = graph.mapNodes((node) => graph.degree(node));
-  const sum = degrees.reduce((acc, val) => acc + val, 0);
-  return (sum / degrees.length).toFixed(2);
-};
-
-const calculateDegreeDistribution = (graph: MultiDirectedGraph): Record<number, number> => {
-  const distribution: Record<number, number> = {};
-  graph.forEachNode((node) => {
-    const degree = graph.degree(node);
-    distribution[degree] = (distribution[degree] || 0) + 1;
-  });
-  return distribution;
-};
-
-const calculateWeightedDegreeDistribution = (graph: MultiDirectedGraph): Record<number, number> => {
-  const distribution: Record<number, number> = {};
-  graph.forEachNode((node) => {
-    const wDegree = weightedDegree(graph, node);
-    distribution[wDegree] = (distribution[wDegree] || 0) + 1;
-  });
-  return distribution;
-};
-
-const calculateAverageEccentricity = (graph: MultiDirectedGraph): string => {
-  const eccs = graph.mapNodes((node) => eccentricity(graph, node));
-  const sum = eccs.reduce((acc, val) => acc + val, 0);
-  return (sum / eccs.length).toFixed(2);
-};
-
-const calculateNodeTypeStats = (graph: MultiDirectedGraph) => {
-  const stats = {
-    resource: { count: 0, totalQuantity: 0 },
-    card: { count: 0 },
-  };
-
-  graph.forEachNode((node) => {
-    const attrs = graph.getNodeAttributes(node);
-    if (attrs.type === "resource") {
-      stats.resource.count++;
-      stats.resource.totalQuantity += attrs.quantity || 0;
-    } else if (attrs.type === "card") {
-      stats.card.count++;
-    }
-  });
-
-  return stats;
-};
-
-const calculateResourceDegrees = (graph: MultiDirectedGraph): ResourceDegreeInfo[] => {
-  const resources: ResourceDegreeInfo[] = [];
-  
-  graph.forEachNode((node) => {
-    const attrs = graph.getNodeAttributes(node);
-    if (attrs.type === "resource") {
-      resources.push({
-        name: node,
-        degree: graph.degree(node),
-        inDegree: graph.inDegree(node),
-        outDegree: graph.outDegree(node),
-        type: attrs.type,
-        quantity: attrs.quantity || 0
-      });
-    }
-  });
-  
-  resources.sort((a, b) => b.degree - a.degree);
-  
-  return resources;
-};
-
-const calculateEdgeTypeStats = (graph: MultiDirectedGraph) => {
-  const stats = {
-    gain: { count: 0, totalQuantity: 0 },
-    cost: { count: 0, totalQuantity: 0 },
-  };
-
-  graph.forEachEdge((edge) => {
-    const attrs = graph.getEdgeAttributes(edge);
-    if (attrs.color === LINK_COLORS.gain) {
-      stats.gain.count++;
-      const quantity = parseInt(attrs.label.replace("+", "")) || 0;
-      stats.gain.totalQuantity += quantity;
-    } else if (attrs.color === LINK_COLORS.cost) {
-      stats.cost.count++;
-      const quantity = parseInt(attrs.label.replace("-", "")) || 0;
-      stats.cost.totalQuantity += quantity;
-    }
-  });
-
-  return stats;
-};
-
-export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | null => {
-  if (graph.order === 0) return null;
-
-  try {
-    const allPaths = findAllPathsBetweenResources(graph);
-    const shortestPaths = findShortestPaths(allPaths);
-    const cycles = findCycles(graph);
-
-    return {
-      basic: {
-        order: graph.order,
-        size: simpleSize(graph),
-        density: density(graph).toFixed(4),
-        isDirected: true,
-        isMultiGraph: true,
-      },
-      centrality: {
-        averageDegree: calculateAverageDegree(graph),
-        degreeDistribution: calculateDegreeDistribution(graph),
-        weightedDegreeDistribution: calculateWeightedDegreeDistribution(graph),
-      },
-      connectivity: {
-        diameter: diameter(graph),
-        averageEccentricity: calculateAverageEccentricity(graph),
-        isConnected: connectedComponents(graph).length === 1,
-        stronglyConnectedComponents: connectedComponents(graph).length,
-      },
-      nodeTypeStats: calculateNodeTypeStats(graph),
-      edgeTypeStats: calculateEdgeTypeStats(graph),
-      resourceDegrees: calculateResourceDegrees(graph),
-      productionConsumption: calculateProductionConsumption(graph),
-      pathAnalysis: {
-        allPaths,
-        shortestPaths,
-        mostDemandedResource: findMostDemandedResource(graph),
-        hasCycles: cycles.length > 0,
-        cycleExamples: cycles
-      }
-    };
-  } catch (error) {
-    console.error("Error calculating graph metrics:", error);
-    return null;
-  }
-};
-
 const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics }) => {
   const [activeTab, setActiveTab] = useState<'problems' | 'warnings' | 'suggestions'>('problems');
   
   const generateProblems = (): Problem[] => {
     const problems: Problem[] = [];
-    const coOccurrenceMap = new Map<string, number>();
-    const patternMap = new Map<string, number>();
 
-    // 1. Problemas críticos
-    Object.entries(metrics.pathAnalysis.shortestPaths).forEach(([start, paths]) => {
+    // Problemas críticos (verificação limitada)
+    Object.entries(metrics.pathAnalysis.shortestPaths).slice(0, 5).forEach(([start, paths]) => {
       const allResources = Object.keys(metrics.pathAnalysis.allPaths);
-      allResources.forEach(end => {
+      allResources.slice(0, 10).forEach(end => {
         if (start !== end && !paths[end]) {
           problems.push({
             id: `unreachable-${start}-${end}`,
@@ -558,8 +611,8 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       });
     });
 
-    // 2. Warnings
-    metrics.resourceDegrees.forEach(resource => {
+    // Warnings (verificação limitada)
+    metrics.resourceDegrees.slice(0, 20).forEach(resource => {
       if (resource.outDegree === 0 && resource.inDegree > 0) {
         problems.push({
           id: `unused-${resource.name}`,
@@ -594,18 +647,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       });
     }
 
-    if (metrics.pathAnalysis.hasCycles) {
-      problems.push({
-        id: 'cycles-detected',
-        type: metrics.pathAnalysis.cycleExamples.length > 2 ? 'warning' : 'info',
-        message: `${metrics.pathAnalysis.cycleExamples.length} ciclos de dependência detectados`,
-        details: `Exemplo: ${metrics.pathAnalysis.cycleExamples[0].join(' → ')} → ${metrics.pathAnalysis.cycleExamples[0][0]}`,
-        fix: 'Ciclos podem criar loops infinitos - verifique se são intencionais'
-      });
-    }
-
-    // 3. Análise para sugestões
-    // 3.1. Densidade do grafo
+    // Sugestões
     if (parseFloat(metrics.basic.density) > 0.5) {
       problems.push({
         id: 'high-density',
@@ -616,109 +658,11 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       });
     }
 
-    // 3.2. Balanceamento econômico
-    metrics.resourceDegrees.forEach(resource => {
-      if (resource.inDegree > 0 && resource.outDegree > 0) {
-        const ratio = resource.outDegree / resource.inDegree;
-        if (ratio > 2) {
-          problems.push({
-            id: `high-demand-ratio-${resource.name}`,
-            type: 'suggestion',
-            message: `Recurso "${resource.name}" tem alta relação demanda/produção`,
-            details: `É consumido ${resource.outDegree} vezes mas produzido apenas ${resource.inDegree} vezes (razão ${ratio.toFixed(1)})`,
-            fix: `Considere adicionar mais fontes de "${resource.name}" ou reduzir suas dependências`
-          });
-        } else if (ratio < 0.5) {
-          problems.push({
-            id: `low-demand-ratio-${resource.name}`,
-            type: 'suggestion',
-            message: `Recurso "${resource.name}" tem baixa utilização`,
-            details: `É produzido ${resource.inDegree} vezes mas consumido apenas ${resource.outDegree} vezes`,
-            fix: `Considere adicionar mais usos para "${resource.name}" ou reduzir sua produção`
-          });
-        }
-      }
-    });
-
-    // 3.3. Caminhos longos
-    Object.entries(metrics.pathAnalysis.shortestPaths).forEach(([start, paths]) => {
-      Object.entries(paths).forEach(([end, path]) => {
-        if (path.length > 4) {
-          problems.push({
-            id: `long-path-${start}-${end}`,
-            type: 'suggestion',
-            message: `Caminho muito longo entre ${start} e ${end}`,
-            details: `Requer ${path.length-1} passos: ${path.join(" → ")}`,
-            fix: `Considere adicionar um atalho direto ou recurso intermediário`
-          });
-        }
-      });
-    });
-
-    // 3.4. Padrões de co-ocorrência
-    Object.values(metrics.pathAnalysis.shortestPaths).forEach(paths => {
-      Object.values(paths).forEach(path => {
-        // Mapeia pares de recursos consecutivos
-        path.forEach((node, i) => {
-          if (i < path.length-1) {
-            const pair = `${node}→${path[i+1]}`;
-            coOccurrenceMap.set(pair, (coOccurrenceMap.get(pair) || 0) + 1);
-          }
-        });
-
-        // Mapeia padrões de 3 recursos
-        for (let i = 0; i < path.length-2; i++) {
-          const sequence = path.slice(i, i+3).join('→');
-          patternMap.set(sequence, (patternMap.get(sequence) || 0) + 1);
-        }
-      });
-    });
-
-    // Sugere combinar recursos frequentemente pareados
-    coOccurrenceMap.forEach((count, pair) => {
-      if (count > 3) {
-        const [resA, resB] = pair.split('→');
-        problems.push({
-          id: `co-occurrence-${pair}`,
-          type: 'suggestion',
-          message: `Recursos ${resA} e ${resB} são frequentemente usados juntos`,
-          details: `Aparecem juntos em ${count} caminhos diferentes`,
-          fix: `Considere criar um recurso composto "${resA}+${resB}" ou uma carta que os produza/consuma juntos`
-        });
-      }
-    });
-
-    // Sugere formalizar padrões recorrentes
-    patternMap.forEach((count, sequence) => {
-      if (count >= 3) {
-        problems.push({
-          id: `pattern-${sequence}`,
-          type: 'suggestion',
-          message: `Padrão recorrente detectado: ${sequence.replace(/→/g, ' → ')}`,
-          details: `Aparece ${count} vezes em diferentes caminhos`,
-          fix: `Considere criar uma mecânica ou carta que encapsule este padrão`
-        });
-      }
-    });
-
-    // 3.5. Recursos subutilizados
-    metrics.resourceDegrees.forEach(resource => {
-      if (resource.inDegree === 1 && resource.outDegree === 1) {
-        problems.push({
-          id: `underutilized-${resource.name}`,
-          type: 'suggestion',
-          message: `Recurso "${resource.name}" tem apenas uma fonte e um uso`,
-          details: 'Pode ser um ponto desnecessário na cadeia de produção',
-          fix: `Considere remover "${resource.name}" ou dar mais utilidades a ele`
-        });
-      }
-    });
-
-    // 3.6. Balanceamento produção/consumo global
-    const globalRatio = metrics.productionConsumption.totalProduction / 
-                       (metrics.productionConsumption.totalConsumption || 1);
+    // Balanceamento produção/consumo
+    const productionRatio = metrics.productionConsumption.totalProduction / 
+                           (metrics.productionConsumption.totalConsumption || 1);
     
-    if (globalRatio > 1.5) {
+    if (productionRatio > 1.5) {
       problems.push({
         id: 'global-production-excess',
         type: 'suggestion',
@@ -726,7 +670,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         details: `Produção total: +${metrics.productionConsumption.totalProduction} | Consumo total: -${metrics.productionConsumption.totalConsumption}`,
         fix: 'Ajuste as quantidades para evitar acúmulo excessivo de recursos'
       });
-    } else if (globalRatio < 0.67) {
+    } else if (productionRatio < 0.67) {
       problems.push({
         id: 'global-consumption-excess',
         type: 'suggestion',
@@ -742,7 +686,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
   const problems = generateProblems();
   const errors = problems.filter(p => p.type === 'error');
   const warnings = problems.filter(p => p.type === 'warning');
-  const suggestions = problems.filter(p => p.type === 'suggestion' || p.type === 'info');
+  const suggestions = problems.filter(p => p.type === 'suggestion');
 
   return (
     <Paper style={{ 
@@ -1123,7 +1067,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
 
             <MetricSection
               title="Análise de Caminhos e Ciclos"
-              description="Mostra como os recursos estão conectados e dependentes entre si. Caminhos longos podem indicar cadeias complexas, ciclos podem criar loops infinitos."
+              description="Mostra como os recursos estão conectados e dependentes entre si. Caminhos longos podem indicar cadeias complexas."
               expanded={expandedSections.pathAnalysis}
               onToggle={() => toggleSection('pathAnalysis')}
             >
@@ -1151,36 +1095,8 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                 </>
               )}
 
-              {metrics.pathAnalysis.hasCycles && (
-                <>
-                  <Typography variant="subtitle2" gutterBottom sx={{ color: '#FFC107' }}>
-                    Ciclos Detectados
-                  </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography sx={{ color: 'white' }}>
-                      <strong>Total:</strong> {metrics.pathAnalysis.cycleExamples.length} ciclos
-                    </Typography>
-                    <Typography variant="body2" sx={{ mb: 1, color: '#ccc' }}>
-                      Ciclos podem criar loops infinitos ou combos poderosos. Verifique se são intencionais.
-                    </Typography>
-                    {metrics.pathAnalysis.cycleExamples.map((cycle, i) => (
-                      <Paper key={i} sx={{ 
-                        p: 1, 
-                        mb: 1, 
-                        backgroundColor: 'rgba(255, 193, 7, 0.05)',
-                        border: '1px solid rgba(255, 193, 7, 0.3)'
-                      }}>
-                        <Typography variant="body2" fontFamily="monospace" sx={{ color: '#FFC107' }}>
-                          {cycle.join(" → ")} → {cycle[0]}
-                        </Typography>
-                      </Paper>
-                    ))}
-                  </Box>
-                </>
-              )}
-
               <Typography variant="subtitle2" gutterBottom sx={{ color: '#FFC107' }}>
-                Caminhos Mais Curtos Entre Recursos
+                Caminhos Mais Curtos Entre Recursos (amostra)
               </Typography>
               {Object.keys(metrics.pathAnalysis.shortestPaths).length > 0 ? (
                 <Box sx={{ 
@@ -1191,7 +1107,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                   overflow: 'auto',
                   p: 1
                 }}>
-                  {Object.entries(metrics.pathAnalysis.shortestPaths).map(([start, ends]) => (
+                  {Object.entries(metrics.pathAnalysis.shortestPaths).slice(0, 3).map(([start, ends]) => (
                     <Paper key={start} sx={{ 
                       p: 2, 
                       backgroundColor: '#424242',
@@ -1200,7 +1116,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                       <Typography variant="subtitle2" sx={{ mb: 1, color: '#2196F3' }}>
                         De: {start}
                       </Typography>
-                      {Object.entries(ends).map(([end, path]) => (
+                      {Object.entries(ends).slice(0, 2).map(([end, path]) => (
                         <Box key={end} sx={{ mb: 1 }}>
                           <Typography variant="body2" sx={{ color: 'white' }}>
                             <strong>Para {end}:</strong>

@@ -1,4 +1,4 @@
-import React, { useContext, useRef, useState } from "react";
+import React, { useContext, useRef, useState, useEffect } from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
 import { GameReducerContext } from "./Game.ts";
@@ -72,7 +72,37 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
     const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
-    // Adiciona nós de CARTAS e RECURSOS
+    // Otimização: usar Map para nós de recurso únicos
+    const resourceNodes = new Map<string, { nome: string, quantidade: number }>();
+
+    // Primeira passagem: coletar todos os recursos únicos
+    allCards.forEach((carta) => {
+      carta.ganho.forEach((ganho) => {
+        if (!resourceNodes.has(ganho.nome)) {
+          resourceNodes.set(ganho.nome, ganho);
+        }
+      });
+
+      carta.custo.forEach((custo) => {
+        if (!resourceNodes.has(custo.nome)) {
+          resourceNodes.set(custo.nome, custo);
+        }
+      });
+    });
+
+    // Adiciona nós de RECURSOS primeiro
+    resourceNodes.forEach((recurso) => {
+      graph.addNode(recurso.nome, {
+        id: recurso.nome,
+        label: recurso.nome,
+        type: "resource",
+        quantity: recurso.quantidade,
+        size: Math.log(recurso.quantidade + 1) * 5 + 10,
+        color: NODE_COLORS.resource,
+      });
+    });
+
+    // Adiciona nós de CARTAS e conexões
     allCards.forEach((carta) => {
       const cardId = `card_${carta.id}`;
       graph.addNode(cardId, {
@@ -83,36 +113,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         color: NODE_COLORS.card,
       });
 
-      carta.ganho.forEach((ganho) => {
-        if (!graph.hasNode(ganho.nome)) {
-          graph.addNode(ganho.nome, {
-            id: ganho.nome,
-            label: ganho.nome,
-            type: "resource",
-            quantity: ganho.quantidade,
-            size: Math.log(ganho.quantidade + 1) * 5 + 10,
-            color: NODE_COLORS.resource,
-          });
-        }
-      });
-
-      carta.custo.forEach((custo) => {
-        if (!graph.hasNode(custo.nome)) {
-          graph.addNode(custo.nome, {
-            id: custo.nome,
-            label: custo.nome,
-            type: "resource",
-            quantity: custo.quantidade,
-            size: Math.log(custo.quantidade + 1) * 5 + 10,
-            color: NODE_COLORS.resource,
-          });
-        }
-      });
-    });
-
-    // Adiciona arcos de GANHO e CUSTO
-    allCards.forEach((carta) => {
-      const cardId = `card_${carta.id}`;
+      // Adiciona arcos de GANHO
       carta.ganho.forEach((ganho) => {
         if (graph.hasNode(ganho.nome)) {
           graph.addDirectedEdge(cardId, ganho.nome, {
@@ -124,6 +125,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         }
       });
 
+      // Adiciona arcos de CUSTO
       carta.custo.forEach((custo) => {
         if (graph.hasNode(custo.nome)) {
           graph.addDirectedEdge(custo.nome, cardId, {
@@ -207,17 +209,17 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       .attr("fill", (d) => d.color)
       .attr("stroke", "#fff")
       .attr("stroke-width", 2)
-      .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"); // Sombra para destaque
+      .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.5))");
 
     // Texto dos nós
     node.append("text")
       .text((d) => d.type === "resource" ? `${d.label} (${d.quantity})` : d.label)
       .attr("dy", (d) => d.size + 15)
       .attr("text-anchor", "middle")
-      .attr("fill", "#fff") // Texto branco para contraste
+      .attr("fill", "#fff")
       .style("font-size", "10px")
       .style("font-weight", "bold")
-      .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)"); // Sombra no texto
+      .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)");
 
     // Rótulos das conexões
     const linkLabels = g.append("g")
@@ -228,7 +230,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       .attr("font-size", 10)
       .attr("fill", (d) => d.color)
       .attr("font-weight", "bold")
-      .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)") // Sombra nos rótulos
+      .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)")
       .text((d) => d.label);
 
     // Atualização da simulação
@@ -255,7 +257,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       // Efeito visual ao arrastar
       d3.select(this).select("circle")
         .attr("stroke-width", 4)
-        .attr("stroke", "#FFC107"); // Destaque amarelo ao arrastar
+        .attr("stroke", "#FFC107");
     }
 
     function dragged(this: SVGGElement, event: any, d: any) {
@@ -321,8 +323,32 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
   };
 
   // Chama a inicialização do gráfico quando o container estiver montado
-  React.useLayoutEffect(() => {
+  useEffect(() => {
     initializeGraph();
+
+    // Adiciona listener para redimensionamento
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (svgRef.current && containerRef.current) {
+          d3.select(svgRef.current).selectAll("*").remove();
+          setGraphInitialized(false);
+          initializeGraph();
+        }
+      }, 250);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
+      // Limpa o gráfico ao desmontar
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
+    };
   }, []);
 
   return (

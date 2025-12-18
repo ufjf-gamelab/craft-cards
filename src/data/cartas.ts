@@ -211,7 +211,7 @@ export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
     ganho: [{ nome: "madeira bruta", quantidade: 2 }],
   },
   */
-  ...MINECRAFT_CARDS.slice(0, 500),
+  ...MINECRAFT_CARDS.slice(0, 1336),
 ];
 
 export const GAME_INITIAL = {
