@@ -184,6 +184,8 @@ const isTransicaoHabilitada = (
   modoLivre: boolean = false
 ): boolean => {
   try {
+    if (!graph.hasNode(transicaoId)) return false;
+
     const cartaId = transicaoId.replace("transition_", "");
 
     if (!modoLivre) {
@@ -196,7 +198,6 @@ const isTransicaoHabilitada = (
     for (const arcoId of arcosEntrada) {
       const arcoAttr = graph.getEdgeAttributes(arcoId);
       const lugarId = graph.source(arcoId);
-
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const pesoNecessario = arcoAttr.weight || 0;
 
@@ -219,6 +220,8 @@ const dispararTransicao = (
   marcacao: Marcacao,
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>
 ): Marcacao => {
+  if (!graph.hasNode(transicaoId)) return marcacao;
+
   const novaMarcacao = { ...marcacao };
 
   try {
@@ -226,6 +229,7 @@ const dispararTransicao = (
     for (const arcoId of arcosEntrada) {
       const arcoAttr = graph.getEdgeAttributes(arcoId);
       const lugarId = graph.source(arcoId);
+      if (!graph.hasNode(lugarId)) continue;
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const peso = arcoAttr.weight || 0;
 
@@ -239,6 +243,7 @@ const dispararTransicao = (
     for (const arcoId of arcosSaida) {
       const arcoAttr = graph.getEdgeAttributes(arcoId);
       const lugarId = graph.target(arcoId);
+      if (!graph.hasNode(lugarId)) continue;
       const recursoNome = graph.getNodeAttribute(lugarId, "label");
       const peso = arcoAttr.weight || 0;
 
@@ -258,14 +263,14 @@ const encontrarCaminhosBFS = (
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
   maxDepth: number = 3
 ): string[][] => {
+  if (!graph.hasNode(start) || !graph.hasNode(end)) {
+    return [];
+  }
+
   const paths: string[][] = [];
   const visited = new Set<string>();
   const queue: { node: string; path: string[]; depth: number }[] = [
-    {
-      node: start,
-      path: [],
-      depth: 0,
-    },
+    { node: start, path: [], depth: 0 },
   ];
 
   while (queue.length > 0 && paths.length < MAX_PATHS_TO_FIND) {
@@ -955,6 +960,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     }, 500);
   };
 
+  function isValidGraph(graph: any): graph is MultiDirectedGraph {
+    return graph && typeof graph.filterNodes === 'function' && typeof graph.forEachNode === 'function';
+  }
+
   const gerarArvoreAlcancabilidade = () => {
     if (numeroExpansoes > 5) {
       setShowPerformanceWarning(true);
@@ -963,6 +972,12 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     if (numeroExpansoes < 0 || numeroExpansoes > 10) {
       console.warn("Número de expansões deve estar entre 0 e 10");
       setNumeroExpansoes(Math.max(0, Math.min(10, numeroExpansoes)));
+      return;
+    }
+
+    if (!graphRef.current || !isValidGraph(graphRef.current)) {
+      console.error('Grafo inválido ou não inicializado');
+      setExpandindoArvore(false);
       return;
     }
 

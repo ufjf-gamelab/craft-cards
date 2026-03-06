@@ -92,9 +92,19 @@ type Problem = {
   fix?: string;
 }
 
+// Verifica se o grafo é uma instância válida de MultiDirectedGraph
+function isValidGraph(graph: any): graph is MultiDirectedGraph {
+  return graph && typeof graph.filterNodes === 'function' && typeof graph.forEachNode === 'function';
+}
+
 const getStrategicResourceSample = (
   graph: MultiDirectedGraph
 ): string[] => {
+  if (!isValidGraph(graph)) {
+    console.warn('Graph is not a valid graphology instance – returning empty sample');
+    return [];
+  }
+
   const resourceNodes = graph.filterNodes(
     node => graph.getNodeAttributes(node).type === "resource"
   );
@@ -161,6 +171,8 @@ const getStrategicResourceSample = (
 const findAllPathsBetweenResources = (
   graph: MultiDirectedGraph
 ): Record<string, Record<string, string[][]>> => {
+  if (!isValidGraph(graph)) return {};
+
   // Usar amostra estratégica para evitar explosão combinatória
   const sampledResources = getStrategicResourceSample(graph);
   
@@ -169,6 +181,7 @@ const findAllPathsBetweenResources = (
   // Cache de vizinhança para performance
   const adjacencyCache = new Map<string, string[]>();
   sampledResources.forEach((node) => {
+    if (!graph.hasNode(node)) return;
     const neighbors: string[] = [];
     graph.forEachOutEdge(node, (edge) => {
       const neighbor = graph.target(edge);
@@ -230,12 +243,15 @@ const findAllPathsBetweenResources = (
 const findMostDemandedResource = (
   graph: MultiDirectedGraph
 ): ResourceDegreeInfo | null => {
+  if (!isValidGraph(graph)) return null;
+
   const sampledResources = getStrategicResourceSample(graph);
   
   let maxDemand = -1;
   let mostDemanded: ResourceDegreeInfo | null = null;
 
   sampledResources.forEach((node) => {
+    if (!graph.hasNode(node)) return;
     const attrs = graph.getNodeAttributes(node);
     const outDegree = graph.outDegree(node);
     
@@ -258,6 +274,17 @@ const findMostDemandedResource = (
 const calculateProductionConsumption = (
   graph: MultiDirectedGraph
 ): ProductionConsumptionStats => {
+  if (!isValidGraph(graph)) {
+    return {
+      producedResources: [],
+      consumedResources: [],
+      topProducers: [],
+      topConsumers: [],
+      totalProduction: 0,
+      totalConsumption: 0
+    };
+  }
+
   const resources: ResourceDegreeInfo[] = [];
   let totalProduction = 0;
   let totalConsumption = 0;
@@ -266,6 +293,7 @@ const calculateProductionConsumption = (
   const sampledResources = getStrategicResourceSample(graph);
 
   sampledResources.forEach((node) => {
+    if (!graph.hasNode(node)) return;
     const attrs = graph.getNodeAttributes(node);
     const inDegree = graph.inDegree(node);
     const outDegree = graph.outDegree(node);
@@ -320,6 +348,7 @@ const calculateProductionConsumption = (
 };
 
 const calculateAverageDegree = (graph: MultiDirectedGraph): string => {
+  if (!isValidGraph(graph) || graph.order === 0) return "0.00";
   const degrees = graph.mapNodes((node) => graph.degree(node));
   const sum = degrees.reduce((acc, val) => acc + val, 0);
   return (sum / degrees.length).toFixed(2);
@@ -328,6 +357,7 @@ const calculateAverageDegree = (graph: MultiDirectedGraph): string => {
 const calculateDegreeDistribution = (
   graph: MultiDirectedGraph
 ): Record<number, number> => {
+  if (!isValidGraph(graph)) return {};
   const distribution: Record<number, number> = {};
   graph.forEachNode((node) => {
     const degree = graph.degree(node);
@@ -339,6 +369,7 @@ const calculateDegreeDistribution = (
 const calculateWeightedDegreeDistribution = (
   graph: MultiDirectedGraph
 ): Record<number, number> => {
+  if (!isValidGraph(graph)) return {};
   const distribution: Record<number, number> = {};
   graph.forEachNode((node) => {
     const wDegree = weightedDegree(graph, node);
@@ -348,6 +379,7 @@ const calculateWeightedDegreeDistribution = (
 };
 
 const calculateAverageEccentricity = (graph: MultiDirectedGraph): string => {
+  if (!isValidGraph(graph) || graph.order === 0) return "0.00";
   const eccs = graph.mapNodes((node) => eccentricity(graph, node));
   const sum = eccs.reduce((acc, val) => acc + val, 0);
   return (sum / eccs.length).toFixed(2);
@@ -358,6 +390,8 @@ const calculateNodeTypeStats = (graph: MultiDirectedGraph) => {
     resource: { count: 0, totalQuantity: 0 },
     card: { count: 0 },
   };
+
+  if (!isValidGraph(graph)) return stats;
 
   graph.forEachNode((node) => {
     const attrs = graph.getNodeAttributes(node);
@@ -374,6 +408,7 @@ const calculateNodeTypeStats = (graph: MultiDirectedGraph) => {
 
 const calculateResourceDegrees = (graph: MultiDirectedGraph): ResourceDegreeInfo[] => {
   const resources: ResourceDegreeInfo[] = [];
+  if (!isValidGraph(graph)) return resources;
   
   graph.forEachNode((node) => {
     const attrs = graph.getNodeAttributes(node);
@@ -399,6 +434,8 @@ const calculateEdgeTypeStats = (graph: MultiDirectedGraph) => {
     gain: { count: 0, totalQuantity: 0 },
     cost: { count: 0, totalQuantity: 0 },
   };
+
+  if (!isValidGraph(graph)) return stats;
 
   graph.forEachEdge((edge) => {
     const attrs = graph.getEdgeAttributes(edge);
@@ -437,7 +474,10 @@ const findShortestPaths = (
 };
 
 export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | null => {
-  if (graph.order === 0) return null;
+  if (!isValidGraph(graph) || graph.order === 0) {
+    console.warn('Invalid or empty graph – cannot calculate metrics');
+    return null;
+  }
 
   try {
     const allPaths = findAllPathsBetweenResources(graph);
@@ -833,7 +873,8 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
 };
 
 const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
-  const currentGraph = graph || new MultiDirectedGraph();
+  // Garantir que temos uma instância válida de MultiDirectedGraph
+  const currentGraph = graph && isValidGraph(graph) ? graph : new MultiDirectedGraph();
   const metrics = calculateMetrics(currentGraph);
   const [activeTab, setActiveTab] = useState<'metrics' | 'balance'>('metrics');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
