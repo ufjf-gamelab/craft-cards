@@ -76,12 +76,11 @@ type NoArvore = {
 };
 
 // CONSTANTES DE LIMITE PARA PERFORMANCE
-const MAX_DEPTH = 3; // Profundidade máxima da árvore
-const MAX_EXPANSIONS = 50; // Número máximo de expansões totais
-const MAX_CHILDREN_PER_NODE = 3; // Máximo de filhos por nó
-const MAX_PATHS_TO_FIND = 10; // Máximo de caminhos a encontrar
+const MAX_DEPTH = 3;
+const MAX_EXPANSIONS = 50;
+const MAX_CHILDREN_PER_NODE = 3;
+const MAX_PATHS_TO_FIND = 10;
 
-// CORES DISTINTAS PARA CADA TIPO DE NÓ
 const CORES_NOS = {
   inicial: "#2196F3",
   real: "#4CAF50",
@@ -138,7 +137,6 @@ const getGraphBounds = (
 };
 
 // ==================== FUNÇÕES OTIMIZADAS PARA ÁRVORE ====================
-
 const compararMarcacoes = (m1: Marcacao, m2: Marcacao): boolean => {
   const chaves = new Set([...Object.keys(m1), ...Object.keys(m2)]);
 
@@ -178,7 +176,6 @@ const marcaçãoDomina = (nova: Marcacao, existente: Marcacao): boolean => {
   return dominaEstritamente;
 };
 
-// FUNÇÕES AUXILIARES OTIMIZADAS
 const isTransicaoHabilitada = (
   transicaoId: string,
   marcacao: Marcacao,
@@ -225,7 +222,6 @@ const dispararTransicao = (
   const novaMarcacao = { ...marcacao };
 
   try {
-    // Arcos de entrada
     const arcosEntrada = graph.inEdges(transicaoId) || [];
     for (const arcoId of arcosEntrada) {
       const arcoAttr = graph.getEdgeAttributes(arcoId);
@@ -239,7 +235,6 @@ const dispararTransicao = (
       }
     }
 
-    // Arcos de saída
     const arcosSaida = graph.outEdges(transicaoId) || [];
     for (const arcoId of arcosSaida) {
       const arcoAttr = graph.getEdgeAttributes(arcoId);
@@ -252,14 +247,11 @@ const dispararTransicao = (
         novaMarcacao[recursoNome] = quantidadeAtual + peso;
       }
     }
-  } catch (error) {
-    // Ignorar erro
-  }
+  } catch (error) {}
 
   return novaMarcacao;
 };
 
-// ALGORITMO BFS OTIMIZADO PARA ENCONTRAR CAMINHOS
 const encontrarCaminhosBFS = (
   start: string,
   end: string,
@@ -286,7 +278,6 @@ const encontrarCaminhosBFS = (
       continue;
     }
 
-    // Limitar expansão - apenas primeiros vizinhos
     const neighbors = graph.outNeighbors(node).slice(0, 3);
 
     for (const neighbor of neighbors) {
@@ -304,7 +295,6 @@ const encontrarCaminhosBFS = (
   return paths;
 };
 
-// FUNÇÃO DE EXPANSÃO OTIMIZADA COM LIMITES
 const expandirArvoreComLimites = (
   raiz: NoArvore,
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
@@ -314,13 +304,11 @@ const expandirArvoreComLimites = (
   const contadorNos = { count: 0 };
   const contadorSimulacao = { count: 0 };
 
-  // Primeiro, expandir a árvore normal com limites
   const expandirNormalmente = (
     no: NoArvore,
     caminhoAncestrais: NoArvore[] = [],
     depth: number = 0
   ): NoArvore => {
-    // Verificar limites
     if (
       no.terminal ||
       no.ciclico ||
@@ -331,7 +319,6 @@ const expandirArvoreComLimites = (
       return no;
     }
 
-    // Verificar se já existe um estado igual no caminho
     const noExistente = caminhoAncestrais.find((n) =>
       compararMarcacoes(n.marcacao, no.marcacao)
     );
@@ -344,7 +331,6 @@ const expandirArvoreComLimites = (
 
     const novoCaminho = [...caminhoAncestrais, no];
 
-    // Obter transições habilitadas com limite
     const transicoesHabilitadas = graph
       .nodes()
       .filter((node) => graph.getNodeAttribute(node, "type") === "transition")
@@ -357,7 +343,7 @@ const expandirArvoreComLimites = (
           true
         )
       )
-      .slice(0, MAX_CHILDREN_PER_NODE); // LIMITE DE FILHOS POR NÓ
+      .slice(0, MAX_CHILDREN_PER_NODE);
 
     if (transicoesHabilitadas.length === 0) {
       no.terminal = true;
@@ -367,12 +353,10 @@ const expandirArvoreComLimites = (
     for (const transicaoId of transicoesHabilitadas) {
       const novaMarcacao = dispararTransicao(transicaoId, no.marcacao, graph);
 
-      // Verificar se precisa de omega
       let precisaOmega = false;
       for (const ancestral of novoCaminho) {
         if (marcaçãoDomina(novaMarcacao, ancestral.marcacao)) {
           precisaOmega = true;
-          // Aplicar omega onde necessário
           Object.keys(novaMarcacao).forEach((chave) => {
             const valorAtual = novaMarcacao[chave];
             const valorAncestral = ancestral.marcacao[chave] || 0;
@@ -416,14 +400,11 @@ const expandirArvoreComLimites = (
     return no;
   };
 
-  // Expandir árvore normalmente primeiro
   let arvoreExpandida = expandirNormalmente(raiz);
 
-  // Aplicar simulação nos nós omega apenas se numeroExpansoes > 0
   if (numeroExpansoes > 0) {
     const nosOmega: NoArvore[] = [];
 
-    // Coletar todos os nós omega que não são terminais
     const coletarNosOmega = (no: NoArvore) => {
       if (no.omega && !no.terminal && !no.simulacao) {
         nosOmega.push(no);
@@ -432,7 +413,6 @@ const expandirArvoreComLimites = (
     };
     coletarNosOmega(arvoreExpandida);
 
-    // Expandir cada nó omega N vezes com limites
     const expandirOmegaRecursivo = (
       no: NoArvore,
       expansoesRestantes: number,
@@ -459,7 +439,7 @@ const expandirArvoreComLimites = (
             true
           )
         )
-        .slice(0, MAX_CHILDREN_PER_NODE); // Limitar expansão
+        .slice(0, MAX_CHILDREN_PER_NODE);
 
       if (transicoesHabilitadas.length === 0) {
         no.terminal = true;
@@ -469,7 +449,6 @@ const expandirArvoreComLimites = (
       for (const transicaoId of transicoesHabilitadas) {
         const novaMarcacao = { ...no.marcacao };
 
-        // Aplicar transição
         const arcosEntrada = graph.inEdges(transicaoId) || [];
         const arcosSaida = graph.outEdges(transicaoId) || [];
 
@@ -513,7 +492,6 @@ const expandirArvoreComLimites = (
 
         no.children.push(novoNo);
 
-        // Expandir recursivamente o novo nó
         expandirOmegaRecursivo(
           novoNo,
           expansoesRestantes - 1,
@@ -524,7 +502,6 @@ const expandirArvoreComLimites = (
       no.expandido = true;
     };
 
-    // Expandir cada nó omega
     nosOmega.forEach((noOmega) => {
       expandirOmegaRecursivo(noOmega, numeroExpansoes);
     });
@@ -537,7 +514,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   recursos,
   playableCards,
 }) => {
-  // ========== REFs PARA CONTROLE INTERNO D3 ==========
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<any>(null);
@@ -548,17 +524,14 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   const nodeGroupsRef = useRef<any>(null);
   const initializedRef = useRef(false);
 
-  // ========== ESTADOS REAIS DA APLICAÇÃO ==========
   const [marcacaoModoLivre, setMarcacaoModoLivre] = useState<Marcacao>(
     recursos.reduce((acc, r) => ({ ...acc, [r.nome]: 0 }), {})
   );
   const [modoLivre, setModoLivre] = useState(false);
 
-  // REFs para valores atualizados
   const marcacaoModoLivreRef = useRef<Marcacao>(marcacaoModoLivre);
   const modoLivreRef = useRef(modoLivre);
 
-  // ========== ESTADOS DA ÁRVORE ==========
   const [arvore, setArvore] = useState<NoArvore | null>(null);
   const [expandindoArvore, setExpandindoArvore] = useState(false);
   const [mostrarArvore, setMostrarArvore] = useState(false);
@@ -569,7 +542,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   );
   const [showPerformanceWarning, setShowPerformanceWarning] = useState(false);
 
-  // ========== USEFFECT OTIMIZADOS ==========
   useEffect(() => {
     marcacaoModoLivreRef.current = marcacaoModoLivre;
   }, [marcacaoModoLivre]);
@@ -586,7 +558,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     }
   }, [marcacaoModoLivre, recursos, playableCards, modoLivre]);
 
-  // ==================== FUNÇÕES OTIMIZADAS ====================
   const getMarcacaoAtual = () => {
     return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
   };
@@ -855,7 +826,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           .append("circle")
           .attr("r", d.size)
           .attr("fill", d.color)
-          .attr("stroke", "#fff")
+          .attr("stroke", "var(--text-primary)")
           .attr("stroke-width", 2)
           .style("cursor", modoLivre ? "pointer" : "default")
           .on("click", (event) => handleNodeClick(d.label, event))
@@ -869,7 +840,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           .attr("class", "token-count")
           .attr("dy", 4)
           .attr("text-anchor", "middle")
-          .attr("fill", "#fff")
+          .attr("fill", "var(--text-primary)")
           .style("font-weight", "bold")
           .style("cursor", modoLivre ? "pointer" : "default")
           .text(getMarcacaoAtual()[d.label] || 0)
@@ -883,7 +854,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           .append("text")
           .attr("dy", d.size + 15)
           .attr("text-anchor", "middle")
-          .attr("fill", "#fff")
+          .attr("fill", "var(--text-primary)")
           .style("font-size", "10px")
           .text(d.label);
       } else {
@@ -896,7 +867,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           .attr("y", -20)
           .attr("rx", 2)
           .attr("fill", d.color)
-          .attr("stroke", "#fff")
+          .attr("stroke", "var(--text-primary)")
           .attr("stroke-width", 2)
           .style("cursor", "pointer")
           .on("click", () => testarDisparoTransicao(d.id));
@@ -905,7 +876,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           .append("text")
           .attr("dy", 25)
           .attr("text-anchor", "middle")
-          .attr("fill", "#fff")
+          .attr("fill", "var(--text-primary)")
           .style("font-size", "10px")
           .text(d.label);
       }
@@ -985,7 +956,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   };
 
   const gerarArvoreAlcancabilidade = () => {
-    // Verificar limites de performance
     if (numeroExpansoes > 5) {
       setShowPerformanceWarning(true);
     }
@@ -1001,7 +971,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     setExpandindoArvore(true);
     setMostrarArvore(true);
 
-    // Usar setTimeout para não bloquear a UI
     setTimeout(() => {
       try {
         const marcacaoInicial = getMarcacaoAtual();
@@ -1015,7 +984,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           depth: 0,
         };
 
-        // Usar a função otimizada com limites
         const arvoreCompleta = expandirArvoreComLimites(
           raiz,
           graphRef.current!,
@@ -1023,7 +991,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           numeroExpansoes
         );
 
-        // Coletar todos os nós
         const todosNos: NoArvore[] = [];
         const coletarNos = (no: NoArvore) => {
           todosNos.push(no);
@@ -1035,7 +1002,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
         setArvore(arvoreCompleta);
         renderArvore(arvoreCompleta);
 
-        // Buscar alguns caminhos usando BFS como demonstração
         if (graphRef.current) {
           const resourceNodes = graphRef.current
             .nodes()
@@ -1111,7 +1077,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
     const g = svg.select("g");
 
-    g.selectAll("circle").attr("stroke-width", 2).attr("stroke", "#fff");
+    g.selectAll("circle").attr("stroke-width", 2).attr("stroke", "var(--text-primary)");
 
     const node = g.selectAll(".node").filter((d: any) => d.id === nodeId);
 
@@ -1129,7 +1095,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
     g.transition().duration(750).attr("transform", transform.toString());
 
-    node.select("circle").attr("stroke-width", 4).attr("stroke", "#61ff22ff");
+    node.select("circle").attr("stroke-width", 4).attr("stroke", "var(--accent-color)");
 
     treeContainer.scrollIntoView({ behavior: "smooth", block: "center" });
   };
@@ -1250,7 +1216,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       .enter()
       .append("text")
       .attr("font-size", 12)
-      .attr("fill", "#ffffffff")
+      .attr("fill", "var(--text-primary)")
       .text((d: any) => d.label);
 
     const node = g
@@ -1295,14 +1261,14 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           return d.nivel === 1 ? CORES_NOS.real : CORES_NOS.realIntermediario;
         }
       })
-      .attr("stroke", "#fff")
+      .attr("stroke", "var(--text-primary)")
       .attr("stroke-width", 2);
 
     node
       .append("text")
       .attr("dy", 4)
       .attr("text-anchor", "middle")
-      .attr("fill", "#fff")
+      .attr("fill", "var(--text-primary)")
       .style("font-size", "10px")
       .style("font-weight", "bold")
       .text((d: any) => d.label);
@@ -1343,7 +1309,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       .append("text")
       .attr("x", 10)
       .attr("y", 20)
-      .attr("fill", "white")
+      .attr("fill", "var(--text-primary)")
       .style("font-size", "12px")
       .text("Use scroll para zoom | Arraste para mover nós");
 
@@ -1398,9 +1364,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           height: "600px",
           minWidth: "800px",
           position: "relative",
-          backgroundColor: "#363636",
+          backgroundColor: "var(--bg-secondary)",
           borderRadius: "10px",
-          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.837)",
+          boxShadow: "0 2px 10px var(--shadow-color)",
           overflow: "hidden",
         }}
       >
@@ -1414,10 +1380,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
             top: 0,
             left: 0,
             right: 0,
-            backgroundColor: "rgba(54, 54, 54, 0.95)",
+            backgroundColor: "rgba(var(--bg-primary-rgb), 0.95)",
             padding: "12px 20px",
-            borderBottom: "2px solid #4CAF50",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+            borderBottom: "2px solid var(--accent-color)",
+            boxShadow: "0 4px 12px var(--shadow-color)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1430,9 +1396,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
             <Typography
               variant="h6"
               sx={{
-                color: "#fff",
+                color: "var(--text-primary)",
                 fontWeight: "bold",
-                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                textShadow: "0 2px 4px var(--shadow-color)",
                 minWidth: "120px",
               }}
             >
@@ -1457,7 +1423,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               }
               label={
                 <Box sx={{ display: "flex", alignItems: "center" }}>
-                  <Typography sx={{ color: "#fff", fontWeight: "500" }}>
+                  <Typography sx={{ color: "var(--text-primary)", fontWeight: "500" }}>
                     Modo Livre
                   </Typography>
                   {modoLivre && (
@@ -1482,10 +1448,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                 variant="outlined"
                 size="small"
                 sx={{
-                  color: "#fff",
-                  borderColor: "#f44336",
+                  color: "var(--text-primary)",
+                  borderColor: "var(--error-color)",
                   "&:hover": {
-                    borderColor: "#ff6659",
+                    borderColor: "var(--error-color)",
                     backgroundColor: "rgba(244, 67, 54, 0.1)",
                   },
                   fontSize: "12px",
@@ -1501,7 +1467,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Typography
               sx={{
-                color: "#fff",
+                color: "var(--text-primary)",
                 fontSize: "14px",
                 fontWeight: "500",
                 minWidth: "80px",
@@ -1515,7 +1481,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                 id="expansoes-slider"
                 gutterBottom
                 sx={{
-                  color: "#fff",
+                  color: "var(--text-primary)",
                   fontSize: "0.875rem",
                   textAlign: "center",
                 }}
@@ -1545,7 +1511,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                     backgroundColor: "#2196F3",
                   },
                   "& .MuiSlider-mark": {
-                    backgroundColor: "#fff",
+                    backgroundColor: "var(--text-primary)",
                   },
                 }}
               />
@@ -1578,12 +1544,16 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
         </Box>
       </Paper>
 
-      {/* Aviso de Performance */}
       <Collapse in={showPerformanceWarning}>
         <Alert
           severity="warning"
           onClose={() => setShowPerformanceWarning(false)}
-          sx={{ mb: 2 }}
+          sx={{
+            mb: 2,
+            backgroundColor: "var(--bg-secondary)",
+            color: "var(--text-primary)",
+            "& .MuiAlert-icon": { color: "var(--warning-color)" }
+          }}
         >
           <Typography variant="body2">
             <strong>Atenção:</strong> Expansões acima de 5 podem impactar a
@@ -1593,26 +1563,24 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
         </Alert>
       </Collapse>
 
-      {/* Indicador de progresso durante expansão */}
       {expandindoArvore && (
         <Box sx={{ width: "100%" }}>
           <LinearProgress />
           <Typography
             variant="caption"
-            sx={{ color: "#fff", textAlign: "center", display: "block", mt: 1 }}
+            sx={{ color: "var(--text-primary)", textAlign: "center", display: "block", mt: 1 }}
           >
             Expandindo árvore de alcançabilidade com limites otimizados...
           </Typography>
         </Box>
       )}
 
-      {/* Resultados de caminhos BFS */}
       {caminhosEncontrados.length > 0 && (
-        <Paper sx={{ p: 2, backgroundColor: "#363636", color: "#fff" }}>
+        <Paper sx={{ p: 2, backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }}>
           <Typography variant="h6" gutterBottom>
             Caminhos Encontrados (BFS)
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2, color: "#ccc" }}>
+          <Typography variant="body2" sx={{ mb: 2, color: "var(--text-secondary)" }}>
             {caminhosEncontrados.length} caminhos encontrados usando algoritmo
             BFS otimizado:
           </Typography>
@@ -1622,7 +1590,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               sx={{
                 p: 1,
                 mb: 1,
-                backgroundColor: "rgba(255,255,255,0.05)",
+                backgroundColor: "var(--bg-elevated)",
                 borderRadius: 1,
               }}
             >
@@ -1639,12 +1607,12 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           sx={{
             height: "600px",
             minWidth: "800px",
-            backgroundColor: "#363636",
+            backgroundColor: "var(--bg-secondary)",
             borderRadius: "10px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.8)",
+            boxShadow: "0 2px 10px var(--shadow-color)",
           }}
         >
-          <Box sx={{ p: 2, color: "white" }}>
+          <Box sx={{ p: 2, color: "var(--text-primary)" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <h3>Árvore de Alcançabilidade</h3>
               <Chip
@@ -1678,18 +1646,18 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           sx={{
             p: 2,
             mt: 2,
-            backgroundColor: "#363636",
-            color: "#fff",
+            backgroundColor: "var(--bg-secondary)",
+            color: "var(--text-primary)",
             maxHeight: "400px",
             overflow: "auto",
             borderRadius: "10px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.8)",
+            boxShadow: "0 2px 10px var(--shadow-color)",
           }}
         >
           <Typography
             variant="h6"
             gutterBottom
-            sx={{ color: "#fff", borderBottom: "2px solid #4CAF50", pb: 1 }}
+            sx={{ color: "var(--text-primary)", borderBottom: "2px solid var(--accent-color)", pb: 1 }}
           >
             Estados da Árvore de Alcançabilidade
             <Chip
@@ -1779,134 +1747,129 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {nosArvore.slice(0, 100).map(
-                (
-                  no // Limitar exibição a 100 nós
-                ) => (
-                  <TableRow
-                    key={no.id}
-                    sx={{
-                      backgroundColor:
-                        no.id === "n0"
-                          ? "rgba(33, 150, 243, 0.1)"
-                          : no.simulacao
-                          ? no.terminal
-                            ? "rgba(121, 85, 72, 0.1)"
-                            : no.ciclico
-                            ? "rgba(255, 152, 0, 0.1)"
-                            : "rgba(123, 31, 162, 0.1)"
-                          : no.omega
-                          ? "rgba(244, 67, 54, 0.1)"
-                          : no.ciclico
-                          ? "rgba(255, 152, 0, 0.1)"
-                          : no.terminal
-                          ? "rgba(121, 85, 72, 0.1)"
-                          : no.nivel === 1
-                          ? "rgba(76, 175, 80, 0.1)"
-                          : "rgba(56, 142, 60, 0.1)",
-                      "&:hover": {
-                        backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      },
-                      color: "#fff",
-                    }}
-                  >
-                    <TableCell
-                      sx={{
-                        fontWeight: "bold",
-                        color: "#fff",
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                      }}
-                    >
-                      {no.id.replace("n", "M").replace("s", "S")}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontFamily: "monospace",
-                          fontSize: "0.8rem",
-                          color: "#fff",
-                        }}
-                      >
-                        {formatarMarcacao(no.marcacao)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        color: "#fff",
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                      }}
-                    >
-                      {obterTransicaoParaNo(no)}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        color: "#fff",
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                      }}
-                    >
-                      {no.id === "n0"
-                        ? "Inicial"
+              {nosArvore.slice(0, 100).map((no) => (
+                <TableRow
+                  key={no.id}
+                  sx={{
+                    backgroundColor:
+                      no.id === "n0"
+                        ? "rgba(33, 150, 243, 0.1)"
                         : no.simulacao
                         ? no.terminal
-                          ? "Terminal (Simulação)"
+                          ? "rgba(121, 85, 72, 0.1)"
                           : no.ciclico
-                          ? "Cíclico (Simulação)"
-                          : "Intermediário (Simulação)"
+                          ? "rgba(255, 152, 0, 0.1)"
+                          : "rgba(123, 31, 162, 0.1)"
                         : no.omega
-                        ? "Omega"
+                        ? "rgba(244, 67, 54, 0.1)"
                         : no.ciclico
-                        ? "Cíclico"
+                        ? "rgba(255, 152, 0, 0.1)"
                         : no.terminal
-                        ? "Terminal"
+                        ? "rgba(121, 85, 72, 0.1)"
                         : no.nivel === 1
-                        ? "Intermediário"
-                        : "Intermediário Avançado"}
-                    </TableCell>
-                    <TableCell
+                        ? "rgba(76, 175, 80, 0.1)"
+                        : "rgba(56, 142, 60, 0.1)",
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    },
+                  }}
+                >
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      color: "var(--text-primary)",
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                  >
+                    {no.id.replace("n", "M").replace("s", "S")}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
                       sx={{
-                        color: "#fff",
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        fontFamily: "monospace",
+                        fontSize: "0.8rem",
+                        color: "var(--text-primary)",
                       }}
                     >
-                      {no.nivel}
-                    </TableCell>
-                    <TableCell
+                      {formatarMarcacao(no.marcacao)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "var(--text-primary)",
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                  >
+                    {obterTransicaoParaNo(no)}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "var(--text-primary)",
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                  >
+                    {no.id === "n0"
+                      ? "Inicial"
+                      : no.simulacao
+                      ? no.terminal
+                        ? "Terminal (Simulação)"
+                        : no.ciclico
+                        ? "Cíclico (Simulação)"
+                        : "Intermediário (Simulação)"
+                      : no.omega
+                      ? "Omega"
+                      : no.ciclico
+                      ? "Cíclico"
+                      : no.terminal
+                      ? "Terminal"
+                      : no.nivel === 1
+                      ? "Intermediário"
+                      : "Intermediário Avançado"}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "var(--text-primary)",
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                  >
+                    {no.nivel}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                  >
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => centralizarNo(no.id)}
                       sx={{
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        fontSize: "0.7rem",
+                        padding: "2px 6px",
+                        minWidth: "auto",
+                        color: "#2196F3",
+                        borderColor: "#2196F3",
+                        "&:hover": {
+                          backgroundColor: "rgba(33, 150, 243, 0.1)",
+                          borderColor: "#64b5f6",
+                        },
                       }}
                     >
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => centralizarNo(no.id)}
-                        sx={{
-                          fontSize: "0.7rem",
-                          padding: "2px 6px",
-                          minWidth: "auto",
-                          color: "#2196F3",
-                          borderColor: "#2196F3",
-                          "&:hover": {
-                            backgroundColor: "rgba(33, 150, 243, 0.1)",
-                            borderColor: "#64b5f6",
-                          },
-                        }}
-                      >
-                        Centralizar
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              )}
+                      Centralizar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
               {nosArvore.length > 100 && (
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    sx={{ textAlign: "center", color: "#ccc", py: 2 }}
+                    sx={{ textAlign: "center", color: "var(--text-secondary)", py: 2 }}
                   >
                     <Typography variant="body2">
                       ... e mais {nosArvore.length - 100} nós (exibição limitada
@@ -1926,10 +1889,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   height: 16,
                   backgroundColor: CORES_NOS.inicial,
                   mr: 1,
-                  border: "1px solid #fff",
+                  border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Estado Inicial
               </Typography>
             </Box>
@@ -1940,10 +1903,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   height: 16,
                   backgroundColor: CORES_NOS.real,
                   mr: 1,
-                  border: "1px solid #fff",
+                  border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Intermediário Real
               </Typography>
             </Box>
@@ -1954,10 +1917,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   height: 16,
                   backgroundColor: CORES_NOS.realIntermediario,
                   mr: 1,
-                  border: "1px solid #fff",
+                  border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Intermediário Avançado
               </Typography>
             </Box>
@@ -1968,10 +1931,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   height: 16,
                   backgroundColor: CORES_NOS.omega,
                   mr: 1,
-                  border: "1px solid #fff",
+                  border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Omega
               </Typography>
             </Box>
@@ -1982,10 +1945,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   height: 16,
                   backgroundColor: CORES_NOS.ciclico,
                   mr: 1,
-                  border: "1px solid #fff",
+                  border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Cíclico
               </Typography>
             </Box>
@@ -1996,10 +1959,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   height: 16,
                   backgroundColor: CORES_NOS.terminal,
                   mr: 1,
-                  border: "1px solid #fff",
+                  border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Terminal
               </Typography>
             </Box>
@@ -2010,10 +1973,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   height: 16,
                   backgroundColor: CORES_NOS.simulacao,
                   mr: 1,
-                  border: "1px solid #fff",
+                  border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Simulação
               </Typography>
             </Box>
@@ -2024,10 +1987,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   height: 16,
                   backgroundColor: CORES_NOS.simulacaoIntermediario,
                   mr: 1,
-                  border: "1px solid #fff",
+                  border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "#fff" }}>
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Simulação Intermediária
               </Typography>
             </Box>

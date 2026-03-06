@@ -50,14 +50,14 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       <Paper sx={{ 
         p: 2, 
         textAlign: "center",
-        backgroundColor: '#363636'
+        backgroundColor: "var(--bg-secondary)",
+        color: "var(--text-primary)"
       }}>
-        <Typography sx={{ color: 'white' }}>Carregando análise de recursos...</Typography>
+        <Typography sx={{ color: "var(--text-primary)" }}>Carregando análise de recursos...</Typography>
       </Paper>
     );
   }
 
-  // Função para inicializar o gráfico
   const initializeGraph = () => {
     if (!svgRef.current || !containerRef.current || graphInitialized) return;
 
@@ -65,17 +65,13 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // Limpa qualquer conteúdo anterior
     d3.select(svgRef.current).selectAll("*").remove();
 
-    // Criação do grafo
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
     const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
-    // Otimização: usar Map para nós de recurso únicos
     const resourceNodes = new Map<string, { nome: string, quantidade: number }>();
 
-    // Primeira passagem: coletar todos os recursos únicos
     allCards.forEach((carta) => {
       carta.ganho.forEach((ganho) => {
         if (!resourceNodes.has(ganho.nome)) {
@@ -90,7 +86,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       });
     });
 
-    // Adiciona nós de RECURSOS primeiro
     resourceNodes.forEach((recurso) => {
       graph.addNode(recurso.nome, {
         id: recurso.nome,
@@ -102,7 +97,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       });
     });
 
-    // Adiciona nós de CARTAS e conexões
     allCards.forEach((carta) => {
       const cardId = `card_${carta.id}`;
       graph.addNode(cardId, {
@@ -113,7 +107,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         color: NODE_COLORS.card,
       });
 
-      // Adiciona arcos de GANHO
       carta.ganho.forEach((ganho) => {
         if (graph.hasNode(ganho.nome)) {
           graph.addDirectedEdge(cardId, ganho.nome, {
@@ -125,7 +118,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         }
       });
 
-      // Adiciona arcos de CUSTO
       carta.custo.forEach((custo) => {
         if (graph.hasNode(custo.nome)) {
           graph.addDirectedEdge(custo.nome, cardId, {
@@ -138,15 +130,13 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       });
     });
 
-    // Dados para D3
     const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
     const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
-    // Configuração do SVG
     const svg = d3.select(svgRef.current)
       .attr("width", width)
       .attr("height", height)
-      .style("background-color", "#363636"); 
+      .style("background-color", "var(--bg-secondary)");
 
     const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
@@ -156,7 +146,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
 
     const g = svg.append("g");
 
-    // Cria a simulação
     const simulation = d3.forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-200))
       .force("link", d3.forceLink(links).id((d: any) => d.id).distance(80))
@@ -164,7 +153,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       .alphaDecay(0.05)
       .velocityDecay(0.4);
 
-    // Configuração dos marcadores de seta
     const defs = svg.append("defs");
     Object.values(LINK_COLORS).forEach((color) => {
       defs.append("marker")
@@ -180,7 +168,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         .attr("fill", color);
     });
 
-    // Desenha as linhas de conexão
     const link = g.append("g")
       .selectAll("line")
       .data(links)
@@ -190,7 +177,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       .attr("stroke-width", 2)
       .attr("marker-end", (d) => `url(#arrowhead-${d.color.replace("#", "")}`);
 
-    // Desenha os nós
     const node = g.append("g")
       .selectAll("g")
       .data(nodes)
@@ -203,25 +189,22 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
           .on("end", dragended)
       );
 
-    // Círculos dos nós
     node.append("circle")
       .attr("r", (d) => d.size)
       .attr("fill", (d) => d.color)
-      .attr("stroke", "#fff")
+      .attr("stroke", "var(--text-primary)")
       .attr("stroke-width", 2)
-      .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.5))");
+      .style("filter", "drop-shadow(0 2px 4px var(--shadow-color))");
 
-    // Texto dos nós
     node.append("text")
       .text((d) => d.type === "resource" ? `${d.label} (${d.quantity})` : d.label)
       .attr("dy", (d) => d.size + 15)
       .attr("text-anchor", "middle")
-      .attr("fill", "#fff")
+      .attr("fill", "var(--text-primary)")
       .style("font-size", "10px")
       .style("font-weight", "bold")
       .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)");
 
-    // Rótulos das conexões
     const linkLabels = g.append("g")
       .selectAll("text")
       .data(links)
@@ -233,7 +216,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)")
       .text((d) => d.label);
 
-    // Atualização da simulação
     simulation.on("tick", () => {
       link
         .attr("x1", (d) => (d.source as any).x)
@@ -248,16 +230,14 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         .attr("y", (d) => ((d.source as any).y + (d.target as any).y) / 2);
     });
 
-    // Funções de drag
     function dragstarted(this: SVGGElement, event: any, d: any) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
       
-      // Efeito visual ao arrastar
       d3.select(this).select("circle")
         .attr("stroke-width", 4)
-        .attr("stroke", "#FFC107");
+        .attr("stroke", "var(--accent-color)");
     }
 
     function dragged(this: SVGGElement, event: any, d: any) {
@@ -270,13 +250,19 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       d.fx = null;
       d.fy = null;
       
-      // Remove o destaque
       d3.select(this).select("circle")
         .attr("stroke-width", 2)
-        .attr("stroke", "#fff");
+        .attr("stroke", "var(--text-primary)");
     }
 
-    // Ajusta o zoom para caber no container
+    svg.append("text")
+      .attr("x", 10)
+      .attr("y", 20)
+      .attr("fill", "var(--text-primary)")
+      .style("font-size", "12px")
+      .style("font-weight", "bold")
+      .text("Use scroll para zoom | Arraste para mover nós");
+
     const adjustZoom = () => {
       const bounds = getGraphBounds(nodes, width, height);
       if (!bounds) return;
@@ -304,29 +290,17 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         );
     };
 
-    // Adiciona instruções de uso
-    svg.append("text")
-      .attr("x", 10)
-      .attr("y", 20)
-      .attr("fill", "#fff")
-      .style("font-size", "12px")
-      .style("font-weight", "bold")
-      .text("Use scroll para zoom | Arraste para mover nós");
-
     setTimeout(adjustZoom, 500);
     setGraphInitialized(true);
 
-    // Call the callback if provided
     if (onGraphCreated) {
       onGraphCreated(graph);
     }
   };
 
-  // Chama a inicialização do gráfico quando o container estiver montado
   useEffect(() => {
     initializeGraph();
 
-    // Adiciona listener para redimensionamento
     let resizeTimer: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       clearTimeout(resizeTimer);
@@ -344,7 +318,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     return () => {
       window.removeEventListener('resize', handleResize);
       clearTimeout(resizeTimer);
-      // Limpa o gráfico ao desmontar
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
@@ -357,9 +330,9 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         height: "600px", 
         minWidth: "800px", 
         position: "relative",
-        backgroundColor: "#363636",
+        backgroundColor: "var(--bg-secondary)",
         borderRadius: "10px",
-        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.837)",
+        boxShadow: "0 2px 10px var(--shadow-color)",
         overflow: "hidden"
       }}>
         <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
@@ -371,7 +344,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
   );
 };
 
-// Função auxiliar para calcular o Bounding Box do Grafo
 const getGraphBounds = (
   nodes: NodeAttributes[],
   width: number,
@@ -399,7 +371,6 @@ const getGraphBounds = (
 
   if (!hasValidNodes) return null;
 
-  // Add padding
   const padding = 50;
   return {
     minX: minX - padding,

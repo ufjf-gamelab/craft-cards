@@ -1,32 +1,32 @@
 .carta {
   display: grid;
   grid-template-rows: 1fr 4fr 1fr;
-
-  border: 2px solid light-dark(black, white);
+  border: 2px solid var(--border-color);
   padding: 3mm;
   width: 10em;
   border-radius: 3mm;
-
   aspect-ratio: 63 / 88;
   overflow: visible;
-  background-color: black;
-  color: white;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
-.carta > h1{
+.carta > h1 {
   font-size: 1.5em;
 }
 
-.carta p{
+.carta p {
   font-style: italic;
 }
 
-.carta > .custo{
-  color: gold;
+.carta > .custo {
+  color: var(--warning-color);
   font-weight: 600;
 }
 
-.carta.facedown, .facedown .carta{
-  background-color: white;
-  color: black;
+.carta.facedown,
+.facedown .carta {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
 }

@@ -6,7 +6,7 @@ import {
   GameReducerContext,
   setupNewGame,
 } from "./Game.ts";
-import { useContext, useRef, useState } from "react";
+import { useContext, useRef, useState, useEffect } from "react";
 import Oferta from "./Oferta.tsx";
 import Historico from "./Historico.tsx";
 import HistoricoLog from "./HistoricoLog.tsx";
@@ -32,6 +32,20 @@ function App() {
   const dispatch = useContext(GameDispatchContext)!;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [seedInput, setSeedInput] = useState("");
+  const [isLightTheme, setIsLightTheme] = useState(false);
+
+  // Aplica a classe de tema ao elemento <html>
+  useEffect(() => {
+    if (isLightTheme) {
+      document.documentElement.classList.add('light-theme');
+    } else {
+      document.documentElement.classList.remove('light-theme');
+    }
+  }, [isLightTheme]);
+
+  const toggleTheme = () => {
+    setIsLightTheme(prev => !prev);
+  };
 
   function aumentaPonto() {
     dispatch({ type: GameActions.AUMENTA_PONTO });
@@ -188,6 +202,13 @@ function App() {
             onResetGame={handleResetGame}
           />
         </div>
+          <button 
+            className="theme-toggle" 
+            onClick={toggleTheme}
+            title={isLightTheme ? "Mudar para tema escuro" : "Mudar para tema claro"}
+          >
+            {isLightTheme ? '🌙' : '☀️'}
+          </button>
       </div>
 
       <input

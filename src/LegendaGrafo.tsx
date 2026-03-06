@@ -8,21 +8,21 @@ const LegendaGrafo = () => (
     left: "10px",
     padding: "12px",
     borderRadius: "8px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+    boxShadow: "var(--shadow-color) 0 4px 12px",
     zIndex: 100,
-    backgroundColor: "rgba(54, 54, 54, 0.95)",
-    color: "white",
+    backgroundColor: "var(--bg-elevated)",
+    color: "var(--text-primary)",
     backdropFilter: "blur(8px)",
-    border: "1px solid rgba(255, 255, 255, 0.15)",
+    border: "1px solid var(--border-color)",
     minWidth: "200px"
   }}>
     <Typography 
       variant="subtitle2" 
       sx={{ 
-        color: "white", 
+        color: "var(--text-primary)", 
         fontWeight: "bold",
         marginBottom: "8px",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+        borderBottom: "1px solid var(--border-color)",
         paddingBottom: "4px"
       }}
     >
@@ -48,7 +48,7 @@ const LegendItem = ({ color, text }: LegendItemProps) => (
     display: "flex", 
     alignItems: "center", 
     marginY: "6px",
-    color: "white"
+    color: "var(--text-primary)"
   }}>
     <Box sx={{
       width: 16,
@@ -56,13 +56,13 @@ const LegendItem = ({ color, text }: LegendItemProps) => (
       bgcolor: color,
       marginRight: "10px",
       borderRadius: "50%",
-      border: "2px solid #fff",
-      boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+      border: "2px solid var(--text-primary)",
+      boxShadow: "0 2px 4px var(--shadow-color)"
     }} />
     <Typography 
       variant="caption" 
       sx={{ 
-        color: "white",
+        color: "var(--text-primary)",
         fontWeight: "500",
         fontSize: "0.8rem"
       }}
@@ -82,7 +82,7 @@ const LegendLine = ({ color, text }: LegendLineProps) => (
     display: "flex", 
     alignItems: "center", 
     marginY: "6px",
-    color: "white"
+    color: "var(--text-primary)"
   }}>
     <Box sx={{ 
       width: 20, 
@@ -90,12 +90,12 @@ const LegendLine = ({ color, text }: LegendLineProps) => (
       bgcolor: color, 
       marginRight: "10px",
       borderRadius: "1px",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.3)"
+      boxShadow: "0 1px 2px var(--shadow-color)"
     }} />
     <Typography 
       variant="caption" 
       sx={{ 
-        color: "white",
+        color: "var(--text-primary)",
         fontWeight: "500",
         fontSize: "0.8rem"
       }}

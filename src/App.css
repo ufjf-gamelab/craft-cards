@@ -1,3 +1,56 @@
+/* ===== Variáveis de tema (padrão: escuro) ===== */
+:root {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #2a2a4a;
+  --bg-elevated: rgba(255, 255, 255, 0.05);
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --border-color: #333;
+  --border-strong: #4a4a8a;
+  --accent-color: #646cff;
+  --accent-hover: #747cff;
+  --button-bg: #4a4a8a;
+  --button-hover: #5a5a9a;
+  --primary-button-bg: #646cff;
+  --primary-button-hover: #747cff;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --chip-bg: rgba(255, 255, 255, 0.1);
+  --dropdown-bg: #2a2a4a;
+  --dropdown-border: #4a4a8a;
+  --warning-color: #ffa500;
+  --success-color: #4caf50;
+  --error-color: #f44336;
+}
+
+/* ===== Tema claro ===== */
+.light-theme {
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-elevated: rgba(0, 0, 0, 0.03);
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a6a;
+  --border-color: #ddd;
+  --border-strong: #c0c0e0;
+  --accent-color: #4a4a8a;
+  --accent-hover: #5a5a9a;
+  --button-bg: #e0e0f0;
+  --button-hover: #d0d0e0;
+  --primary-button-bg: #646cff;
+  --primary-button-hover: #747cff;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --chip-bg: rgba(0, 0, 0, 0.05);
+  --dropdown-bg: #ffffff;
+  --dropdown-border: #ddd;
+  --warning-color: #ff8c00;
+  --success-color: #2e7d32;
+  --error-color: #c62828;
+}
+
+/* ===== Reset e base ===== */
+* {
+  box-sizing: border-box;
+}
+
 #root {
   min-width: 100vw;
   max-width: 100vw;
@@ -6,12 +59,14 @@
   text-align: center;
   font-family: 'Segoe UI', system-ui, sans-serif;
   line-height: 1.5;
-  color: #f0f0f0;
-  background-color: #1a1a2e;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
   height: 100vh;
   overflow: hidden;
+  transition: background-color 0.3s, color 0.3s;
 }
 
+/* ===== Estrutura principal ===== */
 .game-app {
   display: flex;
   flex-direction: column;
@@ -19,17 +74,170 @@
   gap: 1rem;
 }
 
+/* ===== Header ===== */
 .game-header {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 1rem;
   align-items: center;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 1rem;
+  background: var(--bg-elevated);
   border-radius: 8px;
   flex-shrink: 0;
 }
 
+.game-status {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.status-item {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.recursos {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.recursos div {
+  display: flex;
+  gap: 0.3rem;
+  background: var(--chip-bg);
+  padding: 0.3rem 0.8rem;
+  border-radius: 1rem;
+}
+
+/* ===== Controles do jogo ===== */
+.game-controls {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.control-button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--button-bg);
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.control-button:hover {
+  background: var(--button-hover);
+}
+
+.control-button.primary {
+  background: var(--primary-button-bg);
+  color: white;
+}
+
+.control-button.primary:hover {
+  background: var(--primary-button-hover);
+}
+
+/* ===== Botão de tema ===== */
+.theme-toggle {
+  background: var(--chip-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: 0.2s;
+  color: var(--text-primary);
+  padding: 0;
+}
+
+.theme-toggle:hover {
+  background: var(--bg-secondary);
+}
+
+/* Seed controls */
+.seed-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.seed-input {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.current-seed {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ===== Dropdown de persistência ===== */
+.persistence-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--dropdown-border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  z-index: 1000;
+  min-width: 200px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  margin-top: 0.3rem;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+  background: var(--chip-bg);
+}
+
+.dropdown-item.warning {
+  color: var(--warning-color);
+}
+
+/* ===== Área principal (game + análises) ===== */
 .main-content {
   display: flex;
   flex: 1;
@@ -53,14 +261,14 @@
   min-width: 0;
 }
 
-/* Área de Análises */
+/* ===== Área de análises ===== */
 .analises-area {
   width: 0;
   overflow: hidden;
   transition: width 0.3s ease;
   flex-shrink: 0;
-  background-color: #1a1a2e;
-  border-left: 1px solid #333;
+  background-color: var(--bg-primary);
+  border-left: 1px solid var(--border-color);
 }
 
 .analises-area.visible {
@@ -80,7 +288,7 @@
 
 .analises-tabs {
   display: flex;
-  border-bottom: 1px solid #4a4a8a;
+  border-bottom: 1px solid var(--border-strong);
   margin-bottom: 1rem;
 }
 
@@ -91,17 +299,17 @@
   border-bottom: 3px solid transparent;
   cursor: pointer;
   font-size: 1rem;
-  color: #f0f0f0;
+  color: var(--text-primary);
   transition: all 0.2s;
 }
 
 .tab-button:hover {
-  color: #646cff;
+  color: var(--accent-color);
 }
 
 .tab-button.active {
-  border-bottom-color: #646cff;
-  color: #646cff;
+  border-bottom-color: var(--accent-color);
+  color: var(--accent-color);
   font-weight: 500;
 }
 
@@ -130,62 +338,7 @@
   width: calc(100% - 450px);
 }
 
-/* Componentes comuns */
-.game-status {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-}
-
-.status-item {
-  font-size: 1.1rem;
-  font-weight: 500;
-}
-
-.recursos {
-  display: flex;
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-}
-
-.recursos div {
-  display: flex;
-  gap: 0.3rem;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.3rem 0.8rem;
-  border-radius: 1rem;
-}
-
-.game-controls {
-  display: flex;
-  gap: 0.8rem;
-}
-
-.control-button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  background: #4a4a8a;
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.control-button:hover {
-  background: #5a5a9a;
-}
-
-.control-button.primary {
-  background: #646cff;
-}
-
-.control-button.primary:hover {
-  background: #747cff;
-}
-
-/* Layout do jogo */
+/* ===== Layout do jogo ===== */
 .game-row {
   display: flex;
   flex-direction: column;
@@ -209,94 +362,16 @@
 
 .baralho-container > * {
   zoom: 0.6;
-  box-shadow: 0.5em 0.5em 0 white;
+  box-shadow: 0.5em 0.5em 0 var(--text-primary);
 }
 
-/* Estilos específicos para os containers de análise */
-.petri-net-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
-
-.graph-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.graph-container > div {
-  flex: 1;
-  min-height: 0;
-}
-
+/* ===== Histórico e outros componentes ===== */
 .historico-container {
   padding: 1rem;
   overflow-y: auto;
 }
 
-/* Estilos para o dropdown de persistência */
-.persistence-dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.dropdown-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: #2a2a4a;
-  border: 1px solid #4a4a8a;
-  border-radius: 6px;
-  padding: 0.5rem;
-  z-index: 1000;
-  min-width: 200px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  margin-top: 0.3rem;
-}
-
-.dropdown-item {
-  display: block;
-  width: 100%;
-  padding: 0.6rem 1rem;
-  border: none;
-  background: transparent;
-  color: #f0f0f0;
-  text-align: left;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-}
-
-.dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dropdown-item.warning {
-  color: #ffa500;
-}
-
-.dropdown-item.warning:hover {
-  background: rgba(255, 165, 0, 0.1);
-}
-
-/* Ajustes para os controles do jogo */
-.game-controls {
-  display: flex;
-  gap: 0.8rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-/* Media queries para responsividade */
+/* ===== Responsividade ===== */
 @media (max-width: 1200px) {
   .game-controls {
     gap: 0.6rem;
@@ -306,37 +381,7 @@
     padding: 0.4rem 0.8rem;
     font-size: 0.9rem;
   }
-}
 
-@media (max-width: 900px) {
-  .game-controls {
-    justify-content: flex-start;
-  }
-  
-  .persistence-dropdown {
-    order: 1; /* Coloca o dropdown no final em telas menores */
-  }
-}
-
-@media (max-width: 768px) {
-  .game-header {
-    grid-template-columns: 1fr;
-    gap: 0.8rem;
-  }
-  
-  .game-controls {
-    justify-content: center;
-  }
-  
-  .dropdown-menu {
-    right: auto;
-    left: 0;
-    min-width: 180px;
-  }
-}
-
-/* Responsividade */
-@media (max-width: 1200px) {
   .top-row,
   .bottom-row {
     grid-template-columns: 1fr 1fr;
@@ -359,6 +404,21 @@
 }
 
 @media (max-width: 768px) {
+  .game-header {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+  
+  .game-controls {
+    justify-content: center;
+  }
+  
+  .dropdown-menu {
+    right: auto;
+    left: 0;
+    min-width: 180px;
+  }
+
   .analises-area.visible {
     position: fixed;
     top: 0;
@@ -378,31 +438,7 @@
     grid-template-columns: 1fr;
   }
   
-  .game-controls {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
   .analises-area.visible ~ .game-area {
     width: 100%;
   }
-}
-
-.seed-controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.seed-input {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.current-seed {
-  font-size: 12px;
-  color: #666;
-  margin-top: 4px;
 }

@@ -52,7 +52,6 @@ export const DESCARTE_INICIAL: Array<CartaType> = [];
 export const MAO_INICIAL: Array<CartaType> = [];
 
 export const BARALHO_INICIAL: Array<CartaType> = [
-  /*
   {
     id: "m1",
     titulo: "Pegar madeira",
@@ -164,10 +163,8 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     ],
     ganho: [{ nome: "picareta", quantidade: 1 }],
   },
-  */
 ];
 export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
-  /*
   {
     id: "a2",
     titulo: "Pegar água",
@@ -210,8 +207,7 @@ export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
     custo: [],
     ganho: [{ nome: "madeira bruta", quantidade: 2 }],
   },
-  */
-  ...MINECRAFT_CARDS.slice(0, 1336),
+  //...MINECRAFT_CARDS.slice(0, 1336),
 ];
 
 export const GAME_INITIAL = {
