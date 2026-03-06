@@ -117,15 +117,15 @@ The application will be available at `http://localhost:5173` (or the port shown 
 | Control / Area          | Description                                                                 |
 |-------------------------|-----------------------------------------------------------------------------|
 | **Pontos**              | Current score (points)                                                      |
-| **Recursos**            | List of resources with their current quantities                            |
-| **Seed atual**          | Shows the seed used for the current game                                   |
-| **Seed input + button** | Enter a seed and click "Novo Jogo com Seed" to restart with that seed      |
+| **Recursos**            | List of resources with their current quantities                             |
+| **Seed atual**          | Shows the seed used for the current game                                    |
+| **Seed input + button** | Enter a seed and click "Novo Jogo com Seed" to restart with that seed       |
 | **Aumenta Ponto**       | Debug: increases points by 1                                                |
-| **Diminui Ação**        | Debug: decreases action points by 1 (if action resource exists)            |
-| **Mostrar Análises**    | Toggles the analysis panel on/off                                          |
-| **Passar Turno**        | Advances to the next turn, triggering history recording                    |
-| **Persistence dropdown**| Save/Load/Reset/Export/Import options                                      |
-| **Theme toggle**        | Switch between light (☀️) and dark (🌙) themes                             |
+| **Diminui Ação**        | Debug: decreases action points by 1 (if action resource exists)             |
+| **Mostrar Análises**    | Toggles the analysis panel on/off                                           |
+| **Passar Turno**        | Advances to the next turn, triggering history recording                     |
+| **Persistence dropdown**| Save/Load/Reset/Export/Import options                                       |
+| **Theme toggle**        | Switch between light and dark themes                                        |
 
 ### Analysis Tabs (when panel is visible)
 

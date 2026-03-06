@@ -163,6 +163,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     ],
     ganho: [{ nome: "picareta", quantidade: 1 }],
   },
+  ...MINECRAFT_CARDS.slice(0, 300),
 ];
 export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
   {
@@ -207,7 +208,6 @@ export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
     custo: [],
     ganho: [{ nome: "madeira bruta", quantidade: 2 }],
   },
-  ...MINECRAFT_CARDS.slice(0, 300),
 ];
 
 export const GAME_INITIAL = {

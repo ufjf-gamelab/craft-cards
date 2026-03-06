@@ -207,7 +207,7 @@ function App() {
             onClick={toggleTheme}
             title={isLightTheme ? "Mudar para tema escuro" : "Mudar para tema claro"}
           >
-            {isLightTheme ? '🌙' : '☀️'}
+            {isLightTheme ? 'Dark' : 'Light'}
           </button>
       </div>
 
