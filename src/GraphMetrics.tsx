@@ -9,19 +9,19 @@ import simpleSize from 'graphology-metrics/graph/simple-size';
 import { Paper, Typography, Box, Tabs, Tab, List, ListItemButton, ListItemIcon, ListItemText, ListItem, Collapse, IconButton, Tooltip, Chip, Divider } from "@mui/material";
 
 export const NODE_COLORS = {
-  resource: "#4CAF50",    // Verde
-  card: "#2196F3",        // Azul 
-  active: "#FFC107",      // Amarelo
+  resource: "#4CAF50",
+  card: "#2196F3",
+  active: "#FFC107",
 };
 
 export const LINK_COLORS = {
-  gain: "#4CAF50",        // Verde
-  cost: "#F44336",        // Vermelho 
+  gain: "#4CAF50",
+  cost: "#F44336",
 };
 
 type GraphMetricsProps = {
   graph?: MultiDirectedGraph;
-}
+};
 
 type ResourceDegreeInfo = {
   name: string;
@@ -32,7 +32,7 @@ type ResourceDegreeInfo = {
   quantity?: number;
   production?: number;
   consumption?: number;
-}
+};
 
 type ProductionConsumptionStats = {
   producedResources: ResourceDegreeInfo[];
@@ -41,7 +41,7 @@ type ProductionConsumptionStats = {
   topConsumers: ResourceDegreeInfo[];
   totalProduction: number;
   totalConsumption: number;
-}
+};
 
 type PathAnalysis = {
   allPaths: Record<string, Record<string, string[][]>>;
@@ -49,7 +49,7 @@ type PathAnalysis = {
   mostDemandedResource: ResourceDegreeInfo | null;
   hasCycles: boolean;
   cycleExamples: string[][];
-}
+};
 
 type GraphMetricsData = {
   basic: {
@@ -81,7 +81,7 @@ type GraphMetricsData = {
   resourceDegrees: ResourceDegreeInfo[];
   productionConsumption: ProductionConsumptionStats;
   pathAnalysis: PathAnalysis;
-}
+};
 
 type Problem = {
   id: string;
@@ -90,82 +90,23 @@ type Problem = {
   resource?: string;
   details?: string;
   fix?: string;
-}
+};
 
 // Verifica se o grafo é uma instância válida de MultiDirectedGraph
 function isValidGraph(graph: any): graph is MultiDirectedGraph {
   return graph && typeof graph.filterNodes === 'function' && typeof graph.forEachNode === 'function';
 }
 
-const getStrategicResourceSample = (
-  graph: MultiDirectedGraph
-): string[] => {
-  if (!isValidGraph(graph)) {
-    console.warn('Graph is not a valid graphology instance – returning empty sample');
-    return [];
-  }
-
-  const resourceNodes = graph.filterNodes(
-    node => graph.getNodeAttributes(node).type === "resource"
-  );
-  
-  // Se poucos recursos, retorna todos
-  if (resourceNodes.length <= 40) {
-    return resourceNodes;
-  }
-  
-  // Calcular scores de importância
-  const scoredResources = resourceNodes.map(node => {
-    const attrs = graph.getNodeAttributes(node);
-    const degree = graph.degree(node);
-    const outDegree = graph.outDegree(node); 
-    const inDegree = graph.inDegree(node);  
-    
-    // Score composto
-    const score = 
-      degree * 2 +           // Conexões totais
-      outDegree * 1.5 +      // Alta demanda (mais crítico)
-      inDegree * 1.0 +       // Produção
-      (attrs.quantity || 0) * 0.1; // Quantidade disponível
-    
-    return { node, score, outDegree, inDegree };
-  });
-  
-  // Ordenar por score (mais importante primeiro)
-  scoredResources.sort((a, b) => b.score - a.score);
-  
-  // Categorizar para diversidade
-  const categories: Record<string, string[]> = {
-    high_demand: [],      // Demanda > Produção×2
-    high_supply: [],      // Produção > Demanda×2
-    balanced: [],         // Demanda ≈ Produção
-    producer_only: [],    // Só produz, não consome
-    consumer_only: []     // Só consome, não produz
-  };
-  
-  scoredResources.forEach(({ node, outDegree, inDegree }) => {
-    if (outDegree > inDegree * 2) categories.high_demand.push(node);
-    else if (inDegree > outDegree * 2) categories.high_supply.push(node);
-    else if (outDegree === 0 && inDegree > 0) categories.producer_only.push(node);
-    else if (inDegree === 0 && outDegree > 0) categories.consumer_only.push(node);
-    else categories.balanced.push(node);
-  });
-  
-  // Amostrar proporcionalmente de cada categoria
-  const sampled = new Set<string>();
-  const maxPerCategory = 8;
-  
-  Object.values(categories).forEach(category => {
-    category.slice(0, maxPerCategory).forEach(node => {
-      if (sampled.size < 40) sampled.add(node);
-    });
-  });
-  
-  return Array.from(sampled);
+// ============================================================================
+// FUNÇÃO ALTERADA: agora retorna TODOS os recursos, sem amostragem
+// ============================================================================
+const getAllResources = (graph: MultiDirectedGraph): string[] => {
+  if (!isValidGraph(graph)) return [];
+  return graph.filterNodes(node => graph.getNodeAttributes(node).type === "resource");
 };
 
 // ============================================================================
-// FUNÇÕES DE CÁLCULO
+// FUNÇÕES DE CÁLCULO (modificadas para usar getAllResources)
 // ============================================================================
 
 const findAllPathsBetweenResources = (
@@ -173,14 +114,14 @@ const findAllPathsBetweenResources = (
 ): Record<string, Record<string, string[][]>> => {
   if (!isValidGraph(graph)) return {};
 
-  // Usar amostra estratégica para evitar explosão combinatória
-  const sampledResources = getStrategicResourceSample(graph);
+  // ALTERADO: usa todos os recursos em vez de amostra
+  const allResources = getAllResources(graph);
   
   const allPaths: Record<string, Record<string, string[][]>> = {};
   
   // Cache de vizinhança para performance
   const adjacencyCache = new Map<string, string[]>();
-  sampledResources.forEach((node) => {
+  allResources.forEach((node) => {
     if (!graph.hasNode(node)) return;
     const neighbors: string[] = [];
     graph.forEachOutEdge(node, (edge) => {
@@ -192,14 +133,14 @@ const findAllPathsBetweenResources = (
     adjacencyCache.set(node, neighbors);
   });
 
-  // BFS limitado para encontrar caminhos
+  // Parâmetros de busca – você pode ajustar conforme necessidade
   const maxDepth = 5;
   const maxPaths = 3;
   
-  for (const start of sampledResources) {
+  for (const start of allResources) {
     allPaths[start] = {};
     
-    for (const end of sampledResources) {
+    for (const end of allResources) {
       if (start === end) continue;
       
       const paths: string[][] = [];
@@ -245,12 +186,13 @@ const findMostDemandedResource = (
 ): ResourceDegreeInfo | null => {
   if (!isValidGraph(graph)) return null;
 
-  const sampledResources = getStrategicResourceSample(graph);
+  // ALTERADO: usa todos os recursos
+  const allResources = getAllResources(graph);
   
   let maxDemand = -1;
   let mostDemanded: ResourceDegreeInfo | null = null;
 
-  sampledResources.forEach((node) => {
+  allResources.forEach((node) => {
     if (!graph.hasNode(node)) return;
     const attrs = graph.getNodeAttributes(node);
     const outDegree = graph.outDegree(node);
@@ -289,10 +231,10 @@ const calculateProductionConsumption = (
   let totalProduction = 0;
   let totalConsumption = 0;
 
-  // Usar amostra estratégica para análise
-  const sampledResources = getStrategicResourceSample(graph);
+  // ALTERADO: usa todos os recursos
+  const allResources = getAllResources(graph);
 
-  sampledResources.forEach((node) => {
+  allResources.forEach((node) => {
     if (!graph.hasNode(node)) return;
     const attrs = graph.getNodeAttributes(node);
     const inDegree = graph.inDegree(node);
@@ -510,7 +452,7 @@ export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | 
         allPaths,
         shortestPaths,
         mostDemandedResource: findMostDemandedResource(graph),
-        hasCycles: false, // Cálculo simplificado para performance
+        hasCycles: false,
         cycleExamples: []
       }
     };
@@ -520,7 +462,10 @@ export const calculateMetrics = (graph: MultiDirectedGraph): GraphMetricsData | 
   }
 };
 
-// Ícones visuais com cores baseadas no tema
+// ============================================================================
+// COMPONENTES DE UI (com remoção dos slices)
+// ============================================================================
+
 const ExpandIcon = ({ expanded }: { expanded: boolean }) => (
   <span style={{ 
     display: 'inline-block',
@@ -873,7 +818,6 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
 };
 
 const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
-  // Garantir que temos uma instância válida de MultiDirectedGraph
   const currentGraph = graph && isValidGraph(graph) ? graph : new MultiDirectedGraph();
   const metrics = calculateMetrics(currentGraph);
   const [activeTab, setActiveTab] = useState<'metrics' | 'balance'>('metrics');
@@ -1138,18 +1082,19 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
               )}
 
               <Typography variant="subtitle2" gutterBottom sx={{ color: 'var(--accent-color)' }}>
-                Caminhos Mais Curtos Entre Recursos (amostra)
+                Caminhos Mais Curtos Entre Recursos
               </Typography>
+              {/* ALTERADO: Removidos os slices para mostrar TODOS os caminhos */}
               {Object.keys(metrics.pathAnalysis.shortestPaths).length > 0 ? (
                 <Box sx={{ 
                   display: 'grid', 
                   gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
                   gap: 2,
-                  maxHeight: 300,
+                  maxHeight: 500,
                   overflow: 'auto',
                   p: 1
                 }}>
-                  {Object.entries(metrics.pathAnalysis.shortestPaths).slice(0, 3).map(([start, ends]) => (
+                  {Object.entries(metrics.pathAnalysis.shortestPaths).map(([start, ends]) => (
                     <Paper key={start} sx={{ 
                       p: 2, 
                       backgroundColor: 'var(--bg-elevated)',
@@ -1158,7 +1103,8 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                       <Typography variant="subtitle2" sx={{ mb: 1, color: 'var(--accent-color)' }}>
                         De: {start}
                       </Typography>
-                      {Object.entries(ends).slice(0, 2).map(([end, path]) => (
+                      {/* ALTERADO: Agora mostra TODOS os destinos */}
+                      {Object.entries(ends).map(([end, path]) => (
                         <Box key={end} sx={{ mb: 1 }}>
                           <Typography variant="body2" sx={{ color: 'var(--text-primary)' }}>
                             <strong>Para {end}:</strong>

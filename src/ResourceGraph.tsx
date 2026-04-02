@@ -4,7 +4,11 @@ import * as d3 from "d3";
 import { GameReducerContext } from "./Game.ts";
 import { Paper, Typography, Box } from "@mui/material";
 import LegendaGrafo from "./LegendaGrafo.tsx";
-import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
+import {
+  BARALHO_INICIAL_V2,
+  BARALHO_OFERTA_INICIAL_V2,
+  GAME_INITIAL_COOKING_V2,
+} from './games/cooking/cards-cooking-animal-v2.ts';
 
 type ResourceGraphProps = {
   onGraphCreated?: (graph: MultiDirectedGraph) => void;
@@ -68,7 +72,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     d3.select(svgRef.current).selectAll("*").remove();
 
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
-    const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
+    const allCards = [...BARALHO_INICIAL_V2, ...BARALHO_OFERTA_INICIAL_V2];
 
     const resourceNodes = new Map<string, { nome: string, quantidade: number }>();
 

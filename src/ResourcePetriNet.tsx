@@ -19,7 +19,7 @@ import {
   Alert,
   LinearProgress,
 } from "@mui/material";
-import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL } from "./data/cartas.ts";
+import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL, CartaType } from "./data/cartas.ts";
 
 const OMEGA = "ω";
 
@@ -44,6 +44,7 @@ type LinkAttributes = {
 type ResourcePetriNetProps = {
   recursos: Array<{ nome: string; quantidade: number }>;
   playableCards: Array<{ id: string }>;
+  allCards?: CartaType[];
 };
 
 export const NODE_COLORS = {
@@ -518,14 +519,12 @@ const expandirArvoreComLimites = (
 const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   recursos,
   playableCards,
+  allCards,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<any>(null);
-  const graphRef = useRef<MultiDirectedGraph<
-    NodeAttributes,
-    LinkAttributes
-  > | null>(null);
+  const graphRef = useRef<MultiDirectedGraph<NodeAttributes, LinkAttributes> | null>(null);
   const nodeGroupsRef = useRef<any>(null);
   const initializedRef = useRef(false);
 
@@ -542,9 +541,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   const [mostrarArvore, setMostrarArvore] = useState(false);
   const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
   const [numeroExpansoes, setNumeroExpansoes] = useState<number>(0);
-  const [caminhosEncontrados, setCaminhosEncontrados] = useState<string[][]>(
-    []
-  );
+  const [caminhosEncontrados, setCaminhosEncontrados] = useState<string[][]>([]);
   const [showPerformanceWarning, setShowPerformanceWarning] = useState(false);
 
   useEffect(() => {
@@ -561,7 +558,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     } else {
       atualizarVisualizacao();
     }
-  }, [marcacaoModoLivre, recursos, playableCards, modoLivre]);
+  }, [marcacaoModoLivre, recursos, playableCards, modoLivre, allCards]);
 
   const getMarcacaoAtual = () => {
     return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
@@ -655,9 +652,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     });
   };
 
-  const handleModoLivreChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleModoLivreChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const novoModoLivre = event.target.checked;
     setModoLivre(novoModoLivre);
 
@@ -695,21 +690,24 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
     graphRef.current = graph;
 
-    const allCards = [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
+    const cards = allCards ?? [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
-    allCards.forEach((carta) => {
+    cards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
-      graph.addNode(transitionId, {
-        id: transitionId,
-        label: carta.titulo,
-        type: "transition",
-        size: 10,
-        color: NODE_COLORS.transition,
-      });
+      // Evita adicionar nó duplicado
+      if (!graph.hasNode(transitionId)) {
+        graph.addNode(transitionId, {
+          id: transitionId,
+          label: carta.titulo,
+          type: "transition",
+          size: 10,
+          color: NODE_COLORS.transition,
+        });
+      }
     });
 
     const allResources = new Set<string>();
-    allCards.forEach((carta) => {
+    cards.forEach((carta) => {
       [...carta.ganho, ...carta.custo].forEach((recurso) => {
         allResources.add(recurso.nome);
       });
@@ -726,7 +724,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       });
     });
 
-    allCards.forEach((carta) => {
+    cards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
 
       carta.custo.forEach((custo) => {

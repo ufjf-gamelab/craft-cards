@@ -22,7 +22,12 @@ import {
   saveGameToFile,
   loadGameFromFile,
 } from "./persistance.ts";
-import { GAME_INITIAL } from "./data/cartas.ts";
+import {
+  BARALHO_INICIAL_V2,
+  BARALHO_OFERTA_INICIAL_V2,
+  GAME_INITIAL_COOKING_V2,
+} from './games/cooking/cards-cooking-animal-v2.ts';
+import { CartaType } from "./data/cartas";
 import PersistenceDropdown from "./PersistanceDropdown.tsx";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
@@ -34,7 +39,6 @@ function App() {
   const [seedInput, setSeedInput] = useState("");
   const [isLightTheme, setIsLightTheme] = useState(false);
 
-  // Aplica a classe de tema ao elemento <html>
   useEffect(() => {
     if (isLightTheme) {
       document.documentElement.classList.add('light-theme');
@@ -137,7 +141,7 @@ function App() {
 
   const handleResetGame = () => {
     clearGameState();
-    const newGame = setupNewGame(GAME_INITIAL);
+    const newGame = setupNewGame(GAME_INITIAL_COOKING_V2);
     dispatch({
       type: GameActions.LOAD_GAME,
       payload: newGame,
@@ -154,18 +158,35 @@ function App() {
   }, [game.recursos, game.mao, game.oferta]);
 
   const handleNewGameWithSeed = () => {
-    const newGame = setupNewGame(GAME_INITIAL, seedInput || undefined);
+    const newGame = setupNewGame(GAME_INITIAL_COOKING_V2, seedInput || undefined);
     dispatch({
       type: GameActions.LOAD_GAME,
       payload: newGame,
     });
   };
 
+  // ========== CARTAS DEDUPLICADAS PARA ANÁLISE (SEM useMemo) ==========
+  const allCards = (() => {
+    const map = new Map<string, CartaType>();
+    [...BARALHO_INICIAL_V2, ...BARALHO_OFERTA_INICIAL_V2].forEach(card => {
+      if (!map.has(card.id)) {
+        map.set(card.id, card);
+      }
+    });
+    return Array.from(map.values());
+  })();
+
   return (
     <div className="game-app">
       <div className="game-header">
         <div className="game-status">
-          <div className="status-item">pontos: {game.pontos}</div>
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title={isLightTheme ? "Mudar para tema escuro" : "Mudar para tema claro"}
+        >
+          {isLightTheme ? 'Dark' : 'Light'}
+        </button>
           <ListaDeRecursos recursos={game.recursos} />
         </div>
         <div className="game-controls">
@@ -182,9 +203,6 @@ function App() {
               Novo Jogo com Seed
             </button>
           </div>
-          <button className="control-button" onClick={aumentaPonto}>
-            Aumenta Ponto
-          </button>
           <button className="control-button" onClick={diminuiAcao}>
             Diminui Ação
           </button>
@@ -202,13 +220,6 @@ function App() {
             onResetGame={handleResetGame}
           />
         </div>
-          <button 
-            className="theme-toggle" 
-            onClick={toggleTheme}
-            title={isLightTheme ? "Mudar para tema escuro" : "Mudar para tema claro"}
-          >
-            {isLightTheme ? 'Dark' : 'Light'}
-          </button>
       </div>
 
       <input
@@ -272,6 +283,7 @@ function App() {
                     <ResourcePetriNet
                       recursos={game.recursos}
                       playableCards={playableCards}
+                      allCards={allCards}
                     />
                   </div>
                 )}
