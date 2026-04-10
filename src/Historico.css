@@ -1,6 +1,4 @@
-/* Historico.css - Versão com suporte a temas */
 
-/* Estilos base (tema escuro padrão) */
 .historico-container {
   text-align: left;
   max-height: 500px;
@@ -158,7 +156,7 @@
   color: var(--text-primary);
 }
 
-/* Scrollbar styling */
+
 .historico-container::-webkit-scrollbar,
 .historico-log-container::-webkit-scrollbar {
   width: 8px;

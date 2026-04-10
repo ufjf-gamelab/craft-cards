@@ -7,26 +7,50 @@
   border-radius: 3mm;
   aspect-ratio: 63 / 88;
   overflow: visible;
-  background-color: var(--bg-secondary);
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
   color: var(--text-primary);
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+  box-shadow: 0 2px 5px var(--shadow-color);
+  cursor: pointer;
 }
 
 .carta > h1 {
   font-size: 1.5em;
+  margin: 0;
 }
 
 .carta p {
   font-style: italic;
+  font-size: 0.9em;
 }
 
 .carta > .custo {
   color: var(--warning-color);
   font-weight: 600;
+  font-size: 0.9em;
+}
+
+.carta:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px var(--shadow-color);
+  border-color: var(--accent-color);
 }
 
 .carta.facedown,
 .facedown .carta {
-  background-color: var(--bg-primary);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg-primary),
+    var(--bg-primary) 12px,
+    var(--bg-secondary) 12px,
+    var(--bg-secondary) 24px
+  );
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+
+.carta.facedown h1,
+.facedown .carta h1 {
+  background: none;
   color: var(--text-secondary);
 }
