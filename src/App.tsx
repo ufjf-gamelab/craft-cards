@@ -165,7 +165,6 @@ function App() {
     });
   };
 
-  // ========== CARTAS DEDUPLICADAS PARA ANÁLISE (SEM useMemo) ==========
   const allCards = (() => {
     const map = new Map<string, CartaType>();
     [...BARALHO_INICIAL_V2, ...BARALHO_OFERTA_INICIAL_V2].forEach(card => {

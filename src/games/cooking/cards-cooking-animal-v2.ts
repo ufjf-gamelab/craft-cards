@@ -688,8 +688,7 @@ export const BARALHO_OFERTA_INICIAL_V2: CartaType[] = [
     ],
   },
 ];
-
-// ==================== ESTADO INICIAL AJUSTADO ====================
+// ==================== ESTADO INICIAL COMPLETO ====================
 export const GAME_INITIAL_COOKING_V2 = {
   ...GAME_INITIAL,
   baralho: BARALHO_INICIAL_V2,
