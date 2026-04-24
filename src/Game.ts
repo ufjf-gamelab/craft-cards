@@ -170,7 +170,6 @@ function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
     if (recurso) {
       recurso.quantidade -= custo.quantidade;
     } else {
-      // Se não tem o recurso, não pode comprar
       return game;
     }
   });
@@ -184,7 +183,6 @@ function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
   }
   newGame.descarte.push(...newGame.oferta.splice(index, 1));
 
-  // Repor a oferta
   reporOferta(newGame);
 
   return newGame;
@@ -240,7 +238,14 @@ function passarTurnoAction(game: GameType, _action: PassarTurnoActionType) {
 }
 
 function aumentaPontoAction(game: GameType, _action: AumentaPontoActionType) {
-  return { ...game, pontos: game.pontos + 1 };
+  const newGame = structuredClone(game);
+  const pontuacao = newGame.recursos.find(r => r.nome === "pontuação");
+  if (pontuacao) {
+    pontuacao.quantidade += 1;
+  } else {
+    newGame.recursos.push({ nome: "pontuação", quantidade: 1 });
+  }
+  return newGame;
 }
 
 function diminuiAcaoAction(game: GameType, _action: DiminuiAcaoActionType) {
@@ -311,6 +316,10 @@ export function setupNewGame(game: GameType, seed?: string): GameType {
   reporOferta(newGame);
   reporMao(newGame);
 
+  if (!newGame.recursos.some(r => r.nome === "pontuação")) {
+    newGame.recursos.push({ nome: "pontuação", quantidade: 0 });
+  }
+
   return {
     ...newGame,
     historico: [{
@@ -335,12 +344,11 @@ export class SeededRandom {
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
+      hash = hash & hash;
     }
     return Math.abs(hash);
   }
 
-  // Gerador de números pseudoaleatórios (Mulberry32)
   private mulberry32(): number {
     let t = (this.seed += 0x6d2b79f5);
     t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -348,17 +356,14 @@ export class SeededRandom {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
-  // Retorna um número entre 0 (inclusive) e 1 (exclusive)
   random(): number {
     return this.mulberry32();
   }
 
-  // Retorna um número inteiro entre min (inclusive) e max (inclusive)
   randomInt(min: number, max: number): number {
     return Math.floor(this.random() * (max - min + 1)) + min;
   }
 
-  // Embaralha um array usando a seed
   shuffle<T>(array: T[]): T[] {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -367,4 +372,46 @@ export class SeededRandom {
     }
     return newArray;
   }
+}
+
+function getPontuacao(game: GameType): number {
+  const recursoPontuacao = game.recursos.find(r => r.nome === "pontuação");
+  return recursoPontuacao ? recursoPontuacao.quantidade : 0;
+}
+
+export function isGameFinished(game: GameType): boolean {
+  const PONTOS_VITORIA = 10;
+
+  if (getPontuacao(game) >= PONTOS_VITORIA) {
+    return true;
+  }
+
+  const acaoRecurso = game.recursos.find(r => r.nome === "ação");
+  const hasActions = acaoRecurso ? acaoRecurso.quantidade > 0 : false;
+
+  const playableCards = game.mao.filter(card =>
+    card.custo.every(cost => {
+      const resource = game.recursos.find(r => r.nome === cost.nome);
+      return resource && resource.quantidade >= cost.quantidade;
+    })
+  );
+
+  const buyableCards = game.oferta.filter(card =>
+    card.custo.every(cost => {
+      const resource = game.recursos.find(r => r.nome === cost.nome);
+      return resource && resource.quantidade >= cost.quantidade;
+    })
+  );
+
+  const canPlayAnyCard = playableCards.length > 0 || buyableCards.length > 0;
+
+  if (!hasActions && !canPlayAnyCard) {
+    return true;
+  }
+
+  return false;
+}
+
+export function scoreGame(game: GameType): [string, number] {
+  return ["Player", getPontuacao(game)];
 }

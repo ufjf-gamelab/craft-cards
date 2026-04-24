@@ -13,7 +13,6 @@ export type GameHistoryType = {
 };
 
 export type GameType = {
-  pontos: number;
   recursos: Array<RecursoType>;
   mao: Array<CartaType>;
   emJogo: Array<CartaType>;
@@ -45,7 +44,9 @@ export type RecursoType = {
   quantidade: number;
 };
 
-export const RECURSOS_INICIAL: Array<RecursoType> = [];
+export const RECURSOS_INICIAL: Array<RecursoType> = [
+  { nome: "pontuação", quantidade: 0 }
+];
 
 export const DESCARTE_INICIAL: Array<CartaType> = [];
 
@@ -108,8 +109,6 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     custo: [],
     ganho: [{ nome: "pedra bruta", quantidade: 2 }],
   },
-
-  //consumir para ganhar ação
   {
     id: "b2",
     titulo: "Beber água",
@@ -117,7 +116,6 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     custo: [{ nome: "água", quantidade: 1 }],
     ganho: [{ nome: "ação", quantidade: 1 }],
   },
-
   {
     id: "c2",
     titulo: "Comer amora",
@@ -125,8 +123,6 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     custo: [{ nome: "amora", quantidade: 1 }],
     ganho: [{ nome: "ação", quantidade: 1 }],
   },
-
-  //Materiais de processamento
   {
     id: "s1",
     titulo: "Serralheria basica",
@@ -141,8 +137,6 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     custo: [{ nome: "pedra bruta", quantidade: 2 }],
     ganho: [{ nome: "pedra polida", quantidade: 1 }],
   },
-
-  //Ferramentas basicas
   {
     id: "f1",
     titulo: "Fabricar machado",
@@ -165,6 +159,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
   },
   ...MINECRAFT_CARDS.slice(0, 300),
 ];
+
 export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
   {
     id: "a2",
@@ -211,7 +206,6 @@ export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
 ];
 
 export const GAME_INITIAL = {
-  pontos: 0,
   recursos: RECURSOS_INICIAL,
   mao: MAO_INICIAL,
   emJogo: [],

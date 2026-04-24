@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MultiDirectedGraph } from "graphology";
 import { density } from "graphology-metrics/graph/density";
 import diameter from "graphology-metrics/graph/diameter";
@@ -906,8 +906,8 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
 };
 
 const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
-  const currentGraph = graph && isValidGraph(graph) ? graph : new MultiDirectedGraph();
-  const metrics = calculateMetrics(currentGraph);
+  const [metrics, setMetrics] = useState<GraphMetricsData | null>(null);
+  const [hasValidGraph, setHasValidGraph] = useState(false);
   const [activeTab, setActiveTab] = useState<"metrics" | "balance">("metrics");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     basic: true,
@@ -925,6 +925,35 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
       [section]: !prev[section],
     }));
   };
+
+  useEffect(() => {
+    if (graph && isValidGraph(graph) && graph.order > 0 && !hasValidGraph) {
+      const calculated = calculateMetrics(graph);
+      if (calculated) {
+        setMetrics(calculated);
+        setHasValidGraph(true);
+      }
+    }
+  }, [graph, hasValidGraph]);
+
+  if (!hasValidGraph) {
+    return (
+      <Paper
+        style={{
+          padding: 16,
+          textAlign: "center",
+          backgroundColor: "var(--bg-secondary)",
+          color: "var(--text-primary)",
+        }}
+      >
+        <Typography sx={{ color: "var(--text-primary)" }}>
+          {graph && isValidGraph(graph) && graph.order === 0
+            ? "Grafo vazio (nenhum recurso encontrado)"
+            : "Aguardando construção do grafo..."}
+        </Typography>
+      </Paper>
+    );
+  }
 
   if (!metrics) {
     return (

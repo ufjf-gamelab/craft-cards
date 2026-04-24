@@ -6,7 +6,7 @@ import {
   logHistory,
   setupNewGame,
 } from "./Game";
-import { GAME_INITIAL_COOKING_V2 } from "./games/cooking/cards-cooking-animal-v2";
+import { GAME_EX1 } from "./games/examples/simple-deck-v1";
 
 type GameProviderProps = {
   children: React.ReactNode;
@@ -17,7 +17,7 @@ export default function GameProvider({ children }: GameProviderProps) {
 
   const [game, dispatch] = useReducer(
     logHistoryReducer,
-    setupNewGame(GAME_INITIAL_COOKING_V2)
+    setupNewGame(GAME_EX1)
   );
 
   return (

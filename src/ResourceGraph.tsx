@@ -4,15 +4,12 @@ import * as d3 from "d3";
 import { GameReducerContext } from "./Game.ts";
 import { Paper, Typography, Box } from "@mui/material";
 import LegendaGrafo from "./LegendaGrafo.tsx";
-import {
-  BARALHO_INICIAL_V2,
-  BARALHO_OFERTA_INICIAL_V2,
-  GAME_INITIAL_COOKING_V2,
-} from './games/cooking/cards-cooking-animal-v2.ts';
+import { CartaType } from "./data/cartas";
 
 type ResourceGraphProps = {
   onGraphCreated?: (graph: MultiDirectedGraph) => void;
-}
+  allCards?: CartaType[];
+};
 
 interface NodeAttributes {
   id: string;
@@ -33,17 +30,17 @@ interface LinkAttributes {
 }
 
 export const NODE_COLORS = {
-  resource: "#4CAF50",    // Verde 
-  card: "#2196F3",        // Azul 
-  active: "#FFC107",      // Amarelo
+  resource: "#4CAF50",
+  card: "#2196F3",
+  active: "#FFC107",
 };
 
 export const LINK_COLORS = {
-  gain: "#4CAF50",        // Verde 
-  cost: "#F44336",        // Vermelho 
+  gain: "#4CAF50",
+  cost: "#F44336",
 };
 
-const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
+const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards }) => {
   const game = useContext(GameReducerContext);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,11 +69,13 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     d3.select(svgRef.current).selectAll("*").remove();
 
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
-    const allCards = [...BARALHO_INICIAL_V2, ...BARALHO_OFERTA_INICIAL_V2];
+    
+    // Usa as cartas fornecidas via prop ou array vazio (ou você pode manter fallback)
+    const cardsToUse = allCards ?? [];
 
     const resourceNodes = new Map<string, { nome: string, quantidade: number }>();
 
-    allCards.forEach((carta) => {
+    cardsToUse.forEach((carta) => {
       carta.ganho.forEach((ganho) => {
         if (!resourceNodes.has(ganho.nome)) {
           resourceNodes.set(ganho.nome, ganho);
@@ -101,7 +100,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       });
     });
 
-    allCards.forEach((carta) => {
+    cardsToUse.forEach((carta) => {
       const cardId = `card_${carta.id}`;
       graph.addNode(cardId, {
         id: cardId,
@@ -134,6 +133,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       });
     });
 
+    // Restante do código (forças, zoom, drag, etc.) permanece idêntico ao original
     const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
     const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
@@ -238,7 +238,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
-      
       d3.select(this).select("circle")
         .attr("stroke-width", 4)
         .attr("stroke", "var(--accent-color)");
@@ -253,7 +252,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
       if (!event.active) simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;
-      
       d3.select(this).select("circle")
         .attr("stroke-width", 2)
         .attr("stroke", "var(--text-primary)");
@@ -270,22 +268,18 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
     const adjustZoom = () => {
       const bounds = getGraphBounds(nodes, width, height);
       if (!bounds) return;
-
       const { minX, maxX, minY, maxY } = bounds;
       const graphWidth = maxX - minX;
       const graphHeight = maxY - minY;
-
       const scale = Math.min(
         (width - 100) / graphWidth,
         (height - 100) / graphHeight,
         1.0
       );
-
       const translate = [
         (width - graphWidth * scale) / 2 - minX * scale,
         (height - graphHeight * scale) / 2 - minY * scale,
       ];
-
       g.transition()
         .duration(1000)
         .attr(
@@ -326,7 +320,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated }) => {
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, []);
+  }, [allCards]); // <-- adicionar dependência para reconstruir o grafo se as cartas mudarem
 
   return (
     <div className="resource-graph-container">
@@ -353,18 +347,17 @@ const getGraphBounds = (
   width: number,
   height: number
 ) => {
+  // (mesma implementação original)
   let minX = Infinity,
     maxX = -Infinity,
     minY = Infinity,
     maxY = -Infinity;
   let hasValidNodes = false;
-
   nodes.forEach((d) => {
     if (d.x === undefined || d.y === undefined || isNaN(d.x) || isNaN(d.y)) {
       d.x = width / 2;
       d.y = height / 2;
     }
-
     const radius = d.size || 10;
     minX = Math.min(minX, d.x - radius);
     maxX = Math.max(maxX, d.x + radius);
@@ -372,9 +365,7 @@ const getGraphBounds = (
     maxY = Math.max(maxY, d.y + radius);
     hasValidNodes = true;
   });
-
   if (!hasValidNodes) return null;
-
   const padding = 50;
   return {
     minX: minX - padding,

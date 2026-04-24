@@ -1,7 +1,20 @@
 import { CartaType, GAME_INITIAL } from "../../data/cartas";
 
-// ==================== BARALHO INICIAL DO JOGADOR ====================
 export const BARALHO_INICIAL_V1: CartaType[] = [
+  {
+    id: "rest",
+    titulo: "Descansar",
+    texto: "",
+    custo: [],
+    ganho: [{ nome: "ação", quantidade: 1 }],
+  },
+  {
+    id: "eat_snack",
+    titulo: "Comer um Lanche",
+    texto: "",
+    custo: [{ nome: "vegetal", quantidade: 1 }],
+    ganho: [{ nome: "ação", quantidade: 1 }],
+  },
   {
     id: "gather_flour",
     titulo: "Coletar Farinha",
@@ -51,7 +64,6 @@ export const BARALHO_INICIAL_V1: CartaType[] = [
     custo: [],
     ganho: [{ nome: "leite", quantidade: 1 }],
   },
-  // Ingredientes adicionais
   {
     id: "gather_cream",
     titulo: "Coletar Creme de Leite",
@@ -73,8 +85,6 @@ export const BARALHO_INICIAL_V1: CartaType[] = [
     custo: [],
     ganho: [{ nome: "banana", quantidade: 1 }],
   },
-
-  // ---------- Processados ----------
   {
     id: "knead",
     titulo: "Amassar",
@@ -112,8 +122,6 @@ export const BARALHO_INICIAL_V1: CartaType[] = [
     ],
     ganho: [{ nome: "massa líquida", quantidade: 1 }],
   },
-
-  // ---------- Receitas tradicionais (geram pratos) ----------
   {
     id: "pizza_margherita",
     titulo: "Pizza Margherita",
@@ -192,7 +200,6 @@ export const BARALHO_INICIAL_V1: CartaType[] = [
     ],
     ganho: [{ nome: "strogonoff", quantidade: 1 }],
   },
-  // Novas receitas
   {
     id: "omelete",
     titulo: "Omelete",
@@ -249,101 +256,97 @@ export const BARALHO_INICIAL_V1: CartaType[] = [
     ],
     ganho: [{ nome: "creme_cogumelo", quantidade: 1 }],
   },
-
-  // ---------- Contratos diretos (prato → pontos) ----------
   {
     id: "elephant_contract",
     titulo: "Elefante faminto",
     texto: "-1 strogonoff, +3 pontos",
     custo: [{ nome: "strogonoff", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "monkey_contract",
     titulo: "Macaco guloso",
     texto: "-1 banana, +3 pontos",
     custo: [{ nome: "banana", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "lion_contract",
     titulo: "Leão faminto",
     texto: "-1 lasanha, +3 pontos",
     custo: [{ nome: "lasanha", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "bear_contract",
     titulo: "Urso glutão",
     texto: "-1 torta, +3 pontos",
     custo: [{ nome: "torta", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "pig_contract",
     titulo: "Porco esfomeado",
     texto: "-1 macarrão, +2 pontos",
     custo: [{ nome: "macarrão", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 2 }],
+    ganho: [{ nome: "pontuação", quantidade: 2 }],
   },
   {
     id: "bird_contract",
     titulo: "Pássaro delicado",
     texto: "-1 soufflé, +4 pontos",
     custo: [{ nome: "soufflé", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 4 }],
+    ganho: [{ nome: "pontuação", quantidade: 4 }],
   },
   {
     id: "cat_contract",
     titulo: "Gato gourmet",
     texto: "-1 pizza, +2 pontos",
     custo: [{ nome: "pizza", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 2 }],
+    ganho: [{ nome: "pontuação", quantidade: 2 }],
   },
   {
     id: "frog_contract",
     titulo: "Sapo Gourmet",
     texto: "-1 omelete, +2 pontos",
     custo: [{ nome: "omelete", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 2 }],
+    ganho: [{ nome: "pontuação", quantidade: 2 }],
   },
   {
     id: "rabbit_contract",
     titulo: "Coelho Doce",
     texto: "-1 bolo, +4 pontos",
     custo: [{ nome: "bolo", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 4 }],
+    ganho: [{ nome: "pontuação", quantidade: 4 }],
   },
   {
     id: "mouse_contract",
     titulo: "Rato Aventureiro",
     texto: "-1 pão de queijo, +3 pontos",
     custo: [{ nome: "pao_queijo", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "turtle_contract",
     titulo: "Tartaruga Sábia",
     texto: "-1 sopa, +2 pontos",
     custo: [{ nome: "sopa", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 2 }],
+    ganho: [{ nome: "pontuação", quantidade: 2 }],
   },
   {
     id: "snail_contract",
     titulo: "Caracol Delicado",
     texto: "-1 creme de cogumelo, +3 pontos",
     custo: [{ nome: "creme_cogumelo", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "fox_contract",
     titulo: "Raposa Esperta",
     texto: "-1 pizza, +3 pontos",
     custo: [{ nome: "pizza", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
-
-  // ---------- Cartas com múltiplos ganhos (variação) ----------
   {
     id: "basic_basket",
     titulo: "Cesta Básica",
@@ -377,9 +380,14 @@ export const BARALHO_INICIAL_V1: CartaType[] = [
   },
 ];
 
-// ==================== BARALHO DA OFERTA (MERCADO) ====================
 export const BARALHO_OFERTA_INICIAL_V1: CartaType[] = [
-  // Ingredientes básicos
+  {
+    id: "offer_rest",
+    titulo: "Descansar",
+    texto: "",
+    custo: [],
+    ganho: [{ nome: "ação", quantidade: 1 }],
+  },
   {
     id: "offer_gather_flour",
     titulo: "Coletar Farinha",
@@ -429,7 +437,6 @@ export const BARALHO_OFERTA_INICIAL_V1: CartaType[] = [
     custo: [],
     ganho: [{ nome: "banana", quantidade: 1 }],
   },
-  // Processados
   {
     id: "offer_knead",
     titulo: "Amassar",
@@ -447,7 +454,6 @@ export const BARALHO_OFERTA_INICIAL_V1: CartaType[] = [
     ],
     ganho: [{ nome: "molho", quantidade: 1 }],
   },
-  // Receitas tradicionais
   {
     id: "offer_pizza_margherita",
     titulo: "Pizza Margherita",
@@ -503,7 +509,6 @@ export const BARALHO_OFERTA_INICIAL_V1: CartaType[] = [
     ],
     ganho: [{ nome: "strogonoff", quantidade: 1 }],
   },
-  // Novas receitas
   {
     id: "offer_omelete",
     titulo: "Omelete",
@@ -560,99 +565,97 @@ export const BARALHO_OFERTA_INICIAL_V1: CartaType[] = [
     ],
     ganho: [{ nome: "creme_cogumelo", quantidade: 1 }],
   },
-  // Contratos diretos
   {
     id: "offer_elephant_contract",
     titulo: "Elefante faminto",
     texto: "-1 strogonoff, +3 pontos",
     custo: [{ nome: "strogonoff", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "offer_monkey_contract",
     titulo: "Macaco guloso",
     texto: "-1 banana, +3 pontos",
     custo: [{ nome: "banana", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "offer_lion_contract",
     titulo: "Leão faminto",
     texto: "-1 lasanha, +3 pontos",
     custo: [{ nome: "lasanha", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "offer_bear_contract",
     titulo: "Urso glutão",
     texto: "-1 torta, +3 pontos",
     custo: [{ nome: "torta", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "offer_pig_contract",
     titulo: "Porco esfomeado",
     texto: "-1 macarrão, +2 pontos",
     custo: [{ nome: "macarrão", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 2 }],
+    ganho: [{ nome: "pontuação", quantidade: 2 }],
   },
   {
     id: "offer_bird_contract",
     titulo: "Pássaro delicado",
     texto: "-1 soufflé, +4 pontos",
     custo: [{ nome: "soufflé", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 4 }],
+    ganho: [{ nome: "pontuação", quantidade: 4 }],
   },
   {
     id: "offer_cat_contract",
     titulo: "Gato gourmet",
     texto: "-1 pizza, +2 pontos",
     custo: [{ nome: "pizza", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 2 }],
+    ganho: [{ nome: "pontuação", quantidade: 2 }],
   },
   {
     id: "offer_frog_contract",
     titulo: "Sapo Gourmet",
     texto: "-1 omelete, +2 pontos",
     custo: [{ nome: "omelete", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 2 }],
+    ganho: [{ nome: "pontuação", quantidade: 2 }],
   },
   {
     id: "offer_rabbit_contract",
     titulo: "Coelho Doce",
     texto: "-1 bolo, +4 pontos",
     custo: [{ nome: "bolo", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 4 }],
+    ganho: [{ nome: "pontuação", quantidade: 4 }],
   },
   {
     id: "offer_mouse_contract",
     titulo: "Rato Aventureiro",
     texto: "-1 pão de queijo, +3 pontos",
     custo: [{ nome: "pao_queijo", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "offer_turtle_contract",
     titulo: "Tartaruga Sábia",
     texto: "-1 sopa, +2 pontos",
     custo: [{ nome: "sopa", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 2 }],
+    ganho: [{ nome: "pontuação", quantidade: 2 }],
   },
   {
     id: "offer_snail_contract",
     titulo: "Caracol Delicado",
     texto: "-1 creme de cogumelo, +3 pontos",
     custo: [{ nome: "creme_cogumelo", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
   {
     id: "offer_fox_contract",
     titulo: "Raposa Esperta",
     texto: "-1 pizza, +3 pontos",
     custo: [{ nome: "pizza", quantidade: 1 }],
-    ganho: [{ nome: "pontos", quantidade: 3 }],
+    ganho: [{ nome: "pontuação", quantidade: 3 }],
   },
-  // Cartas com múltiplos ganhos
   {
     id: "offer_basic_basket",
     titulo: "Cesta Básica",
@@ -686,12 +689,13 @@ export const BARALHO_OFERTA_INICIAL_V1: CartaType[] = [
   },
 ];
 
-// ==================== ESTADO INICIAL COMPLETO ====================
 export const GAME_INITIAL_COOKING_V1 = {
   ...GAME_INITIAL,
   baralho: BARALHO_INICIAL_V1,
   baralhoDaOferta: BARALHO_OFERTA_INICIAL_V1,
   recursos: [
-    ...GAME_INITIAL.recursos,
+    { nome: "pontuação", quantidade: 0 },
+    { nome: "ação", quantidade: 3 },
+    ...GAME_INITIAL.recursos.filter(r => r.nome !== "pontuação" && r.nome !== "ação"),
   ],
 };
