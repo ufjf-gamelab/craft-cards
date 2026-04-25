@@ -24,7 +24,7 @@ import {
   saveGameToFile,
   loadGameFromFile,
 } from "./persistance.ts";
-import { GAME_EX1 } from "./games/examples/simple-deck-v1";
+import { GAME_EX5 } from "./games/examples/simple-deck-v.ts";
 import { CartaType } from "./data/cartas";
 import PersistenceDropdown from "./PersistanceDropdown.tsx";
 
@@ -146,7 +146,7 @@ function App() {
 
   const handleResetGame = () => {
     clearGameState();
-    const newGame = setupNewGame(GAME_EX1); // <-- AGORA USA GAME_EX1
+    const newGame = setupNewGame(GAME_EX5);
     setGameFinished(false);
     setFinalScore(null);
     dispatch({
@@ -165,7 +165,7 @@ function App() {
   }, [game.recursos, game.mao, game.oferta]);
 
   const handleNewGameWithSeed = () => {
-    const newGame = setupNewGame(GAME_EX1, seedInput || undefined); // <-- AGORA USA GAME_EX1
+    const newGame = setupNewGame(GAME_EX5, seedInput || undefined);
     setGameFinished(false);
     setFinalScore(null);
     dispatch({
@@ -174,10 +174,9 @@ function App() {
     });
   };
 
-  // AGORA usa as cartas do GAME_EX1, não mais do baralho completo
   const allCards = React.useMemo(() => {
     const map = new Map<string, CartaType>();
-    [...GAME_EX1.baralho, ...GAME_EX1.baralhoDaOferta].forEach(card => {
+    [...GAME_EX5.baralho, ...GAME_EX5.baralhoDaOferta].forEach(card => {
       if (!map.has(card.id)) map.set(card.id, card);
     });
     return Array.from(map.values());
@@ -188,7 +187,7 @@ function App() {
       {gameFinished && (
         <div className="game-finished-banner">
           <div className="banner-content">
-            <span>🏆 Fim de Jogo! Pontuação final: {finalScore}</span>
+            <span>Fim de Jogo! Pontuação final: {finalScore}</span>
             <button onClick={handleResetGame} className="reset-button">Novo Jogo</button>
           </div>
         </div>

@@ -600,6 +600,20 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       }
     });
 
+    metrics.resourceDegrees.forEach((resource) => {
+      if (resource.inDegree === 0 && resource.outDegree > 0) {
+        problems.push({
+          id: `consumed-not-produced-${resource.name}`,
+          type: "warning",
+          message: `Recurso "${resource.name}" é consumido mas nunca é produzido`,
+          resource: resource.name,
+          details: `Consumido ${resource.outDegree} vezes, mas nenhuma carta o produz`,
+          fix: `Adicione uma carta que produza "${resource.name}" ou remova seu consumo`,
+        });
+      }
+    });
+    // ========================================================================
+
     if (!metrics.connectivity.isConnected) {
       problems.push({
         id: "disconnected-graph",

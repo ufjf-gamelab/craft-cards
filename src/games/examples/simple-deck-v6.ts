@@ -2,13 +2,26 @@ import { CartaType, GAME_INITIAL } from "../../data/cartas";
 
 export const BARALHO_EX6: CartaType[] = [
   {
-    id: "work",
-    titulo: "Trabalhar",
-    texto: "",
-    custo: [{ nome: "ação", quantidade: 1 }],
-    ganho: [{ nome: "pontuação", quantidade: 1 }],
-  },
-  // Nenhuma carta produz "ação" (sem "rest" nem "eat_snack")
+  id: "pegarA",
+  titulo: "Pegar A",
+  texto: "Pega uma unidade de A.",
+  custo: [],      // nenhum custo
+  ganho: [{ nome: "A", quantidade: 1 }]
+},
+{
+  id: "pegarB",
+  titulo: "Pegar B",
+  texto: "Pega uma unidade de B.",
+  custo: [],
+  ganho: [{ nome: "B", quantidade: 1 }]
+},
+{
+  id: "usarAeB",
+  titulo: "Usar A e B",
+  texto: "Consome uma unidade de A e uma de B.",
+  custo: [{ nome: "A", quantidade: 1 }, { nome: "B", quantidade: 1 }],
+  ganho: []       // consome ambos sem produzir nada
+}
 ];
 
 export const OFERTA_EX6: CartaType[] = [];
