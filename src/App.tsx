@@ -24,7 +24,7 @@ import {
   saveGameToFile,
   loadGameFromFile,
 } from "./persistance.ts";
-import { GAME_EX5 } from "./games/examples/simple-deck-v.ts";
+import { GAME_EX6 } from "./games/examples/simple-deck-v6.ts";
 import { CartaType } from "./data/cartas";
 import PersistenceDropdown from "./PersistanceDropdown.tsx";
 
@@ -146,7 +146,7 @@ function App() {
 
   const handleResetGame = () => {
     clearGameState();
-    const newGame = setupNewGame(GAME_EX5);
+    const newGame = setupNewGame(GAME_EX6);
     setGameFinished(false);
     setFinalScore(null);
     dispatch({
@@ -165,7 +165,7 @@ function App() {
   }, [game.recursos, game.mao, game.oferta]);
 
   const handleNewGameWithSeed = () => {
-    const newGame = setupNewGame(GAME_EX5, seedInput || undefined);
+    const newGame = setupNewGame(GAME_EX6, seedInput || undefined);
     setGameFinished(false);
     setFinalScore(null);
     dispatch({
@@ -176,7 +176,7 @@ function App() {
 
   const allCards = React.useMemo(() => {
     const map = new Map<string, CartaType>();
-    [...GAME_EX5.baralho, ...GAME_EX5.baralhoDaOferta].forEach(card => {
+    [...GAME_EX6.baralho, ...GAME_EX6.baralhoDaOferta].forEach(card => {
       if (!map.has(card.id)) map.set(card.id, card);
     });
     return Array.from(map.values());
