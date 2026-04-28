@@ -1,5 +1,4 @@
 import { MultiDirectedGraph } from "graphology";
-import { MINECRAFT_CARDS } from "./minecraft_cards";
 
 export type GameHistoryType = {
   turno: number;
