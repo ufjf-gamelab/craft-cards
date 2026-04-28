@@ -1,10 +1,18 @@
 import { ReactNode } from "react";
 import "./ListaDeCartas.css";
-type ListaDeCartas = { children: Array<ReactNode> };
+type ListaDeCartasProps = {
+  children: Array<ReactNode>;
+  closed?: boolean;
+  facedown?: boolean;
+};
 
-export default function MaoDeCartas({ children: cartas }: ListaDeCartas) {
+export default function ListaDeCartas({
+  children: cartas,
+  closed = false,
+  facedown = false,
+}: ListaDeCartasProps) {
   return (
-    <div className="listaDeCartas">
+    <div className={`listaDeCartas ${closed && "closed"} ${facedown && "facedown"}`}>
       <div className="tamanho">{cartas.length} Cartas</div>
       <div className="cartas">{cartas}</div>
     </div>
