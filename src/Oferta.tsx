@@ -5,6 +5,8 @@ import Descarte from "./Descarte";
 import { GameActions, GameDispatchContext, GameReducerContext } from "./Game";
 import { CartaType } from "./data/cartas";
 import ListaDeCartas from "./ListaDeCartas";
+// import ResourceGraph from "./ResourceGraph";
+// import ResourcePetriNet from "./ResourcePetriNet";
 
 export default function Oferta() {
   const game = useContext(GameReducerContext)!;
@@ -41,14 +43,9 @@ export default function Oferta() {
           ))}
         </ListaDeCartas>
       </div>
-      <div className="lista-de-cartas-container">
-        <h2>Descarte da Oferta</h2>
-        <ListaDeCartas>
-          {game.descarteDaOferta.map((item) => (
-            <Carta key={item.id} carta={item} onCartaClick={() => {}} />
-          ))}
-        </ListaDeCartas>
-      </div>
+      {/* <div className="lista-de-cartas-container">
+        <ResourceGraph></ResourceGraph>
+      </div> */}
     </>
   );
 }

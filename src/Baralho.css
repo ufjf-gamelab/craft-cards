@@ -1,14 +1,17 @@
 .baralho {
   display: grid;
   place-items: center;
-  border: 2px solid light-dark(black, white);
+  border: 2px solid var(--border-color);
   padding: 3mm;
   height: 88mm;
   width: 63mm;
   border-radius: 3mm;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
-.baralho > h1{
+.baralho > h1 {
   margin: 0;
   padding: 0;
   font-size: 1.5em;

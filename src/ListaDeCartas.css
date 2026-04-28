@@ -1,21 +1,21 @@
 .listaDeCartas {
-  box-shadow: 1mm 1mm 3mm black;
+  box-shadow: 1mm 1mm 3mm var(--shadow-color);
   border-radius: 3mm;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-elevated);
   border-radius: 8px;
   padding: 1rem;
   min-height: 150px;
-
+  transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 .listaDeCartas > .cartas {
-    display: flex;
-    flex-direction: row;
-    gap: 3mm;
+  display: flex;
+  flex-direction: row;
+  gap: 3mm;
 }
 
 .listaDeCartas > .cartas > .carta {
-      zoom: 0.6;
+  zoom: 0.6;
 }
 
 .cartas {
@@ -28,25 +28,25 @@
 .carta {
   transform: scale(0.8);
   transform-origin: center;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
 .carta:hover {
   transform: scale(0.85);
 }
 
-.listaDeCartas.closed > .cartas{
+.listaDeCartas.closed > .cartas {
   display: block;
   position: relative;
-
-  > .carta {
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
 }
 
-.listaDeCartas.facedown .carta{
-  background-color: white;
-  color: black;
+.listaDeCartas.closed > .cartas > .carta {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.listaDeCartas.facedown .carta {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
 }

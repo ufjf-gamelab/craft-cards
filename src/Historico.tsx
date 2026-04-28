@@ -12,37 +12,46 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const RESOURCE_COLORS: Record<string, string> = {
+export const RESOURCE_COLORS: Record<string, string> = {
   ação: "#FF5733",
-  madeira: "#8B4513",
+  "madeira bruta": "#8B4513",
   água: "#1E90FF",
   amora: "#9370DB",
-  pedra: "#808080",
+  "pedra bruta": "#808080",
+  tabua: "#D2B48C",
+  "pedra polida": "#B0B0B0",
+  picareta: "#696969",
+  machado: "#C0C0C0",
 };
 
 export default function Historico() {
   const game = useContext(GameReducerContext);
 
   // Prepara os dados para o gráfico
-  const chartData = game?.historico?.map((entry, index) => {
-    const dataPoint: any = {
-      name: `${entry.acao} ${index + 1}`,
-      acao: entry.acao,
-    };
+  const chartData = game?.historico?.flatMap((turno) => 
+    turno.acoes.map((acao, index) => {
+      const dataPoint: any = {
+        name: `Turno ${turno.turno} - ${acao.tipo} ${index + 1}`,
+        acao: acao.tipo,
+        turno: turno.turno,
+      };
 
-    // Adiciona cada recurso como uma propriedade no ponto de dados
-    entry.recursos.forEach((recurso) => {
-      dataPoint[recurso.nome] = recurso.quantidade;
-    });
+      // Adiciona cada recurso como uma propriedade no ponto de dados
+      acao.recursos.forEach((recurso) => {
+        dataPoint[recurso.nome] = recurso.quantidade;
+      });
 
-    return dataPoint;
-  });
+      return dataPoint;
+    })
+  );
 
   // Obtém todos os tipos de recursos únicos
   const resourceTypes = Array.from(
     new Set(
-      game?.historico?.flatMap(entry => 
-        entry.recursos.map(recurso => recurso.nome)
+      game?.historico?.flatMap((turno) =>
+        turno.acoes.flatMap((acao) =>
+          acao.recursos.map((recurso) => recurso.nome)
+        )
       ) || []
     )
   );
@@ -62,23 +71,30 @@ export default function Historico() {
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="name" 
-              label={{ 
-                value: "Tipos de Ação", 
-                position: "insideBottomRight", 
-                offset: -20 
-              }} 
+            <XAxis
+              dataKey="name"
+              label={{
+                value: "Turnos e Ações",
+                position: "insideBottomRight",
+                offset: -20,
+              }}
             />
-            <YAxis 
-              label={{ 
-                value: "Quantidade", 
-                angle: -90, 
-                position: "insideLeft" 
-              }} 
+            <YAxis
+              label={{
+                value: "Quantidade",
+                angle: -90,
+                position: "insideLeft",
+              }}
             />
-            <Tooltip 
+            <Tooltip
               formatter={(value, name) => [`${value}`, name]}
+              contentStyle={{
+                backgroundColor: "#333",
+                borderColor: "#666",
+                color: "#fff",
+                borderRadius: "5px",
+                padding: "10px",
+              }}
             />
             <Legend />
             {resourceTypes.map((tipo) => (

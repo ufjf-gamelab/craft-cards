@@ -20,16 +20,16 @@ export default function Carta({
         <p>{carta.texto}</p>
         {carta.ganho.map((ganho) => (
           <p key={ganho.nome}>
-            {ganho.quantidade > 0 ? "Ganhe" : "Pague"} {ganho.quantidade}{" "}
+            {ganho.quantidade > 0 ? "+" : "-"} {ganho.quantidade}{" "}
             {ganho.nome}
           </p>
         ))}
       </section>
       <div className="custo">
-        {carta.custo.map((ganho) => (
-          <p key={ganho.nome}>
-            {ganho.quantidade > 0 ? "Ganhe" : "Pague"} {ganho.quantidade}{" "}
-            {ganho.nome}
+        {carta.custo.map((custo) => (
+          <p key={custo.nome}>
+            {custo.quantidade > 0 ? "-" : "+"} {custo.quantidade}{" "}
+            {custo.nome}
           </p>
         ))}
       </div>

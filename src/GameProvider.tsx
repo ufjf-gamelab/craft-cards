@@ -3,19 +3,23 @@ import {
   GameDispatchContext,
   gameReducer,
   GameReducerContext,
-  setupNewGame,
   logHistory,
+  setupNewGame,
 } from "./Game";
-import { GAME_INITIAL } from "./data/cartas";
+import { GAME_EX6 } from "./games/examples/simple-deck-v6.ts";
 
 type GameProviderProps = {
   children: React.ReactNode;
 };
 
 export default function GameProvider({ children }: GameProviderProps) {
-  const logHistoryReducer = logHistory(gameReducer); // adiciona o log de histórico ao reducer
+  const logHistoryReducer = logHistory(gameReducer);
 
-  const [game, dispatch] = useReducer(logHistoryReducer, GAME_INITIAL, setupNewGame);
+  const [game, dispatch] = useReducer(
+    logHistoryReducer,
+    setupNewGame(GAME_EX6)
+  );
+
   return (
     <GameReducerContext.Provider value={game}>
       <GameDispatchContext.Provider value={dispatch}>
