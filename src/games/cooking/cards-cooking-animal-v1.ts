@@ -698,4 +698,6 @@ export const GAME_INITIAL_COOKING_V1 = {
     { nome: "ação", quantidade: 3 },
     ...GAME_INITIAL.recursos.filter(r => r.nome !== "pontuação" && r.nome !== "ação"),
   ],
+  pontosParaVencer: 30,
+  turnosMaximos: 50,
 };

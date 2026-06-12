@@ -2,11 +2,11 @@ import { CartaType, GAME_INITIAL } from "../../data/cartas";
 
 export const BARALHO_EX7: CartaType[] = [
   {
-    id: "magic_well",
-    titulo: "Poço Mágico",
-    texto: "",
-    custo: [{ nome: "água", quantidade: 1 }],
-    ganho: [{ nome: "água", quantidade: 2 }],
+    id: "produzir_infinito",
+    titulo: "Produzir Infinito",
+    texto: "Produz recursos infinitamente",
+    custo: [],
+    ganho: [{ nome: "recursovel", quantidade: 1 }],
   },
 ];
 
@@ -19,9 +19,14 @@ export const GAME_EX7 = {
   recursos: [
     { nome: "pontuação", quantidade: 0 },
     { nome: "ação", quantidade: 3 },
-    { nome: "água", quantidade: 1 }, // recurso inicial para disparar o ciclo
-    ...GAME_INITIAL.recursos.filter(r => r.nome !== "pontuação" && r.nome !== "ação" && r.nome !== "água"),
+    { nome: "recursovel", quantidade: 0 },
   ],
+  pontosParaVencer: 100,
+  turnosMaximos: 50,
 };
 
 // Crescimento ilimitado (potencial ω)
+
+//roteiro de construção
+//proxima etapa: editor de cartas
+

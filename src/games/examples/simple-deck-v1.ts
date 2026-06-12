@@ -21,6 +21,6 @@ export const GAME_EX1 = {
     { nome: "ação", quantidade: 3 },
     ...GAME_INITIAL.recursos.filter(r => r.nome !== "pontuação" && r.nome !== "ação"),
   ],
+  pontosParaVencer: 5,
+  turnosMaximos: 10,
 };
-
-//Grafo básico – uma aresta de produção

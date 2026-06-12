@@ -21,14 +21,18 @@ export const BARALHO_EX8: CartaType[] = [
   },
 ];
 
+export const OFERTA_EX8: CartaType[] = [];
+
 export const GAME_EX8 = {
   ...GAME_INITIAL,
   baralho: BARALHO_EX8,
-  baralhoDaOferta: [],
+  baralhoDaOferta: OFERTA_EX8,
   recursos: [
     { nome: "pontuação", quantidade: 0 },
     { nome: "ação", quantidade: 2 },
     { nome: "reagente", quantidade: 0 },
     { nome: "catalisador", quantidade: 1 },
   ],
+  pontosParaVencer: 20,
+  turnosMaximos: 15,
 };

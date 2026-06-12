@@ -77,7 +77,7 @@ type NoArvore = {
 };
 
 // CONSTANTES DE LIMITE PARA PERFORMANCE
-const MAX_DEPTH = 3;
+const MAX_DEPTH = 4;
 const MAX_EXPANSIONS = 50;
 const MAX_CHILDREN_PER_NODE = 3;
 const MAX_PATHS_TO_FIND = 10;
@@ -91,6 +91,7 @@ const CORES_NOS = {
   terminal: "#795548",
   simulacao: "#9C27B0",
   simulacaoIntermediario: "#7B1FA2",
+  deadlock: "#D32F2F",
 };
 
 const recursosParaMarcacao = (
@@ -182,14 +183,14 @@ const isTransicaoHabilitada = (
   marcacao: Marcacao,
   playableCards: Array<{ id: string }>,
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
-  modoLivre: boolean = false
+  ignorarMao: boolean = false
 ): boolean => {
   try {
     if (!graph.hasNode(transicaoId)) return false;
 
     const cartaId = transicaoId.replace("transition_", "");
 
-    if (!modoLivre) {
+    if (!ignorarMao) {
       const cartaJogavel = playableCards.some((card) => card.id === cartaId);
       if (!cartaJogavel) return false;
     }
@@ -532,6 +533,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     recursos.reduce((acc, r) => ({ ...acc, [r.nome]: 0 }), {})
   );
   const [modoLivre, setModoLivre] = useState(false);
+  const [deadlockDetected, setDeadlockDetected] = useState(false);
+  const [deadlockTemporario, setDeadlockTemporario] = useState(false);
+  const [deadlockPermanente, setDeadlockPermanente] = useState(false);
+  const [analiseCompleta, setAnaliseCompleta] = useState(false);
 
   const marcacaoModoLivreRef = useRef<Marcacao>(marcacaoModoLivre);
   const modoLivreRef = useRef(modoLivre);
@@ -557,11 +562,201 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       initPetriNet();
     } else {
       atualizarVisualizacao();
+      atualizarDeadlock();
     }
-  }, [marcacaoModoLivre, recursos, playableCards, modoLivre, allCards]);
+  }, [marcacaoModoLivre, recursos, playableCards, modoLivre, allCards, analiseCompleta]);
 
   const getMarcacaoAtual = () => {
     return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
+  };
+
+  const analisarDeadlockFuturo = (
+    marcacaoInicial: Marcacao,
+    profundidadeMaxima: number = 3
+  ): { isDeadlock: boolean; podeRecuperarAcao: boolean; podeComprarCartas: boolean } => {
+    if (!graphRef.current) return { isDeadlock: false, podeRecuperarAcao: false, podeComprarCartas: false };
+    
+    const visitados = new Set<string>();
+    const fila: { marcacao: Marcacao; profundidade: number }[] = [
+      { marcacao: marcacaoInicial, profundidade: 0 }
+    ];
+    
+    let podeRecuperarAcao = false;
+    let podeComprarCartas = false;
+    let encontrouTransicao = false;
+    
+    const serializarMarcacao = (marcacao: Marcacao): string => {
+      return Object.entries(marcacao)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => `${k}:${v}`)
+        .join("|");
+    };
+    
+    const cartasQueProduzemAcao = graphRef.current
+      .nodes()
+      .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition")
+      .some((transicaoId) => {
+        const arcosSaida = graphRef.current!.outEdges(transicaoId) || [];
+        return arcosSaida.some(arcoId => {
+          const lugarId = graphRef.current!.target(arcoId);
+          const recursoNome = graphRef.current!.getNodeAttribute(lugarId, "label");
+          return recursoNome === "acao";
+        });
+      });
+    
+    while (fila.length > 0) {
+      const { marcacao, profundidade } = fila.shift()!;
+      const key = serializarMarcacao(marcacao);
+      
+      if (visitados.has(key)) continue;
+      visitados.add(key);
+      
+      const acaoAtual = marcacao["acao"] as number || 0;
+      if (acaoAtual > 0) {
+        podeRecuperarAcao = true;
+      }
+      
+      const transicoesHabilitadas = graphRef.current
+        .nodes()
+        .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition")
+        .filter((transicaoId) =>
+          isTransicaoHabilitada(
+            transicaoId,
+            marcacao,
+            playableCards,
+            graphRef.current!,
+            true
+          )
+        );
+      
+      if (transicoesHabilitadas.length > 0) {
+        encontrouTransicao = true;
+        
+        for (const transicaoId of transicoesHabilitadas) {
+          const arcosSaida = graphRef.current!.outEdges(transicaoId) || [];
+          const produzAcao = arcosSaida.some(arcoId => {
+            const lugarId = graphRef.current!.target(arcoId);
+            const recursoNome = graphRef.current!.getNodeAttribute(lugarId, "label");
+            return recursoNome === "acao";
+          });
+          if (produzAcao) {
+            podeRecuperarAcao = true;
+          }
+        }
+        
+        if (profundidade < profundidadeMaxima) {
+          for (const transicaoId of transicoesHabilitadas.slice(0, 5)) {
+            const novaMarcacao = dispararTransicao(transicaoId, marcacao, graphRef.current!);
+            fila.push({ marcacao: novaMarcacao, profundidade: profundidade + 1 });
+          }
+        }
+      }
+    }
+    
+    const temCartasCompravel = playableCards.length > 0;
+    const temCartasQueProduzemAcaoNoBaralho = cartasQueProduzemAcao;
+    
+    podeComprarCartas = temCartasCompravel || temCartasQueProduzemAcaoNoBaralho;
+    
+    const isDeadlock = !encontrouTransicao && !podeRecuperarAcao && !podeComprarCartas;
+    
+    return { isDeadlock, podeRecuperarAcao, podeComprarCartas };
+  };
+
+  const verificarDeadlockSistema = () => {
+    if (!graphRef.current) return false;
+    
+    const currentMarcacao = getMarcacaoAtual();
+    const acaoAtual = currentMarcacao["acao"] as number || 0;
+    
+    const transicoesImediatas = graphRef.current
+      .nodes()
+      .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition")
+      .filter((transicaoId) =>
+        isTransicaoHabilitada(
+          transicaoId,
+          currentMarcacao,
+          playableCards,
+          graphRef.current!,
+          false
+        )
+      );
+    
+    if (transicoesImediatas.length > 0) {
+      return false;
+    }
+    
+    const analiseFuturo = analisarDeadlockFuturo(currentMarcacao, 3);
+    
+    if (acaoAtual === 0 && (analiseFuturo.podeRecuperarAcao || analiseFuturo.podeComprarCartas)) {
+      return false;
+    }
+    
+    return analiseFuturo.isDeadlock;
+  };
+
+  const atualizarDeadlock = () => {
+    if (!graphRef.current) return;
+    
+    const currentMarcacao = getMarcacaoAtual();
+    const acaoAtual = currentMarcacao["acao"] as number || 0;
+    
+    const transicoesImediatas = graphRef.current
+      .nodes()
+      .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition")
+      .filter((transicaoId) =>
+        isTransicaoHabilitada(
+          transicaoId,
+          currentMarcacao,
+          playableCards,
+          graphRef.current!,
+          false
+        )
+      );
+    
+    if (transicoesImediatas.length > 0) {
+      setDeadlockDetected(false);
+      setDeadlockPermanente(false);
+      setDeadlockTemporario(false);
+      return;
+    }
+    
+    const analiseFuturo = analisarDeadlockFuturo(currentMarcacao, 3);
+    
+    if (acaoAtual === 0 && (analiseFuturo.podeRecuperarAcao || analiseFuturo.podeComprarCartas)) {
+      setDeadlockDetected(true);
+      setDeadlockTemporario(true);
+      setDeadlockPermanente(false);
+    } else if (analiseFuturo.isDeadlock) {
+      setDeadlockDetected(true);
+      setDeadlockTemporario(false);
+      setDeadlockPermanente(true);
+    } else {
+      setDeadlockDetected(false);
+      setDeadlockTemporario(false);
+      setDeadlockPermanente(false);
+    }
+  };
+
+  const isDeadlockNode = (no: NoArvore): boolean => {
+    if (!graphRef.current) return false;
+    if (!no.terminal) return false;
+    
+    const todasTransicoes = graphRef.current
+      .nodes()
+      .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition");
+    
+    const algumaTransicaoHabilitada = todasTransicoes.some((transicaoId) =>
+      isTransicaoHabilitada(
+        transicaoId,
+        no.marcacao,
+        playableCards,
+        graphRef.current!,
+        true
+      )
+    );
+    
+    return !algumaTransicaoHabilitada;
   };
 
   const handleNodeClick = (nodeLabel: string, event: React.MouseEvent) => {
@@ -644,7 +839,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           currentMarcacao,
           playableCards,
           graphRef.current,
-          modoLivre
+          analiseCompleta || modoLivre
         );
       return isHabilitada
         ? NODE_COLORS.activeTransition
@@ -694,7 +889,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
     cards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
-      // Evita adicionar nó duplicado
       if (!graph.hasNode(transitionId)) {
         graph.addNode(transitionId, {
           id: transitionId,
@@ -1013,7 +1207,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
         setNosArvore(todosNos);
         setArvore(arvoreCompleta);
-        renderArvore(arvoreCompleta);
+        renderArvore(arvoreCompleta, todosNos);
 
         if (graphRef.current) {
           const resourceNodes = graphRef.current
@@ -1113,7 +1307,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     treeContainer.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  const renderArvore = (arvore: NoArvore) => {
+  const renderArvore = (arvore: NoArvore, todosNos: NoArvore[]) => {
     if (!mostrarArvore) return;
 
     const treeContainer = document.getElementById("arvore-container");
@@ -1140,13 +1334,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       });
 
     svg.call(zoomBehavior);
-
-    const todosNos: NoArvore[] = [];
-    const coletarNos = (no: NoArvore) => {
-      todosNos.push(no);
-      no.children.forEach(coletarNos);
-    };
-    coletarNos(arvore);
 
     const links: Array<{ source: string; target: string; label: string }> = [];
     const processarLinks = (no: NoArvore) => {
@@ -1262,6 +1449,12 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       .append("circle")
       .attr("r", (d: any) => d.size)
       .attr("fill", (d: any) => {
+        const noOriginal = todosNos.find(n => n.id === d.id);
+        const isDeadlock = noOriginal && isDeadlockNode(noOriginal);
+        
+        if (isDeadlock) {
+          return CORES_NOS.deadlock;
+        }
         if (d.isInitial) return CORES_NOS.inicial;
         if (d.simulacao) {
           if (d.terminal) return CORES_NOS.terminal;
@@ -1274,8 +1467,16 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           return d.nivel === 1 ? CORES_NOS.real : CORES_NOS.realIntermediario;
         }
       })
-      .attr("stroke", "var(--text-primary)")
-      .attr("stroke-width", 2);
+      .attr("stroke", (d: any) => {
+        const noOriginal = todosNos.find(n => n.id === d.id);
+        const isDeadlock = noOriginal && isDeadlockNode(noOriginal);
+        return isDeadlock ? "#FF0000" : "var(--text-primary)";
+      })
+      .attr("stroke-width", (d: any) => {
+        const noOriginal = todosNos.find(n => n.id === d.id);
+        const isDeadlock = noOriginal && isDeadlockNode(noOriginal);
+        return isDeadlock ? 3 : 2;
+      });
 
     node
       .append("text")
@@ -1455,6 +1656,28 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               }
             />
 
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={analiseCompleta}
+                  onChange={(e) => setAnaliseCompleta(e.target.checked)}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": {
+                      color: "#9C27B0",
+                    },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                      backgroundColor: "#9C27B0",
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography sx={{ color: "var(--text-primary)", fontWeight: "500", fontSize: "0.8rem" }}>
+                  Analise Completa
+                </Typography>
+              }
+            />
+
             {modoLivre && (
               <Button
                 onClick={resetModoLivre}
@@ -1555,6 +1778,31 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
             </Button>
           </Box>
         </Box>
+
+        {deadlockDetected && !modoLivre && (
+          <Alert 
+            severity={deadlockPermanente ? "error" : "warning"} 
+            sx={{ 
+              position: "absolute", 
+              bottom: 16, 
+              right: 16, 
+              zIndex: 20,
+              backgroundColor: deadlockPermanente ? "var(--error-color)" : "var(--warning-color)",
+              color: "white",
+              "& .MuiAlert-icon": { color: "white" }
+            }}
+          >
+            <Typography variant="body2" fontWeight="bold">
+              {deadlockPermanente ? (
+                "DEADLOCK PERMANENTE! Nenhuma transicao disponivel no futuro."
+              ) : deadlockTemporario ? (
+                "DEADLOCK TEMPORARIO! Aguardando acoes ou cartas..."
+              ) : (
+                "DEADLOCK DETECTADO! Nenhuma transicao habilitada."
+              )}
+            </Typography>
+          </Alert>
+        )}
       </Paper>
 
       <Collapse in={showPerformanceWarning}>
@@ -1626,7 +1874,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           }}
         >
           <Box sx={{ p: 2, color: "var(--text-primary)" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
               <h3>Árvore de Alcançabilidade</h3>
               <Chip
                 label={`Limites: Profundidade=${MAX_DEPTH}, Expansões=${MAX_EXPANSIONS}`}
@@ -1640,6 +1888,14 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   color="primary"
                   variant="outlined"
                   size="small"
+                />
+              )}
+              {nosArvore.some(n => isDeadlockNode(n)) && (
+                <Chip
+                  label="DEADLOCK DETECTADO"
+                  color="error"
+                  size="small"
+                  sx={{ ml: 1, fontWeight: "bold", backgroundColor: "#D32F2F" }}
                 />
               )}
             </Box>
@@ -1734,6 +1990,17 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   }}
                 >
                   Tipo
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: "bold",
+                    width: "100px",
+                    backgroundColor: "#2196F3",
+                    color: "#fff",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  Deadlock
                 </TableCell>
                 <TableCell
                   sx={{
@@ -1850,6 +2117,46 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                       borderBottom: "1px solid var(--border-color)",
                     }}
                   >
+                    {isDeadlockNode(no) ? (
+                      <Chip 
+                        label="PERMANENTE" 
+                        size="small" 
+                        sx={{ 
+                          backgroundColor: "#D32F2F", 
+                          color: "white",
+                          fontWeight: "bold",
+                          fontSize: "0.7rem"
+                        }} 
+                      />
+                    ) : no.terminal && !isDeadlockNode(no) ? (
+                      <Chip 
+                        label="TEMPORARIO" 
+                        size="small" 
+                        sx={{ 
+                          backgroundColor: "#FF9800", 
+                          color: "white",
+                          fontWeight: "bold",
+                          fontSize: "0.7rem"
+                        }} 
+                      />
+                    ) : (
+                      <Chip 
+                        label="NAO" 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ 
+                          color: "var(--text-secondary)",
+                          fontSize: "0.7rem"
+                        }} 
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "var(--text-primary)",
+                      borderBottom: "1px solid var(--border-color)",
+                    }}
+                  >
                     {no.nivel}
                   </TableCell>
                   <TableCell
@@ -1881,7 +2188,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               {nosArvore.length > 100 && (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     sx={{ textAlign: "center", color: "var(--text-secondary)", py: 2 }}
                   >
                     <Typography variant="body2">
@@ -2005,6 +2312,20 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               />
               <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
                 Simulação Intermediária
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  backgroundColor: CORES_NOS.deadlock,
+                  mr: 1,
+                  border: "1px solid #FF0000",
+                }}
+              />
+              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+                Deadlock (sem transições habilitadas)
               </Typography>
             </Box>
           </Box>

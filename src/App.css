@@ -475,4 +475,90 @@
   }
 }
 
-/* Estilos antigos do overlay foram removidos – substituídos pelo banner acima */
+/* Estilos para o dropdown com grupos */
+.dropdown-group {
+  padding: 4px 0;
+}
+
+.dropdown-group-title {
+  padding: 8px 12px 4px 12px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+/* Estilos para o banner de fim de jogo com diferentes tipos */
+.game-finished-banner {
+  position: sticky;
+  top: 0;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-weight: bold;
+  z-index: 1000;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  border-radius: 0 0 8px 8px;
+  margin-bottom: 0.5rem;
+}
+
+/* Banner para vitoria por pontos */
+.game-finished-banner[data-reason="pontos"] {
+  background-color: var(--success-color, #4caf50);
+  color: white;
+}
+
+/* Banner para fim por turnos */
+.game-finished-banner[data-reason="turnos"] {
+  background-color: var(--warning-color, #ff9800);
+  color: white;
+}
+
+/* Banner para deadlock */
+.game-finished-banner[data-reason="deadlock"] {
+  background-color: var(--error-color, #f44336);
+  color: white;
+}
+
+.game-finished-banner .banner-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.reset-button {
+  background-color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.game-finished-banner[data-reason="pontos"] .reset-button {
+  color: var(--success-color, #4caf50);
+}
+
+.game-finished-banner[data-reason="turnos"] .reset-button {
+  color: var(--warning-color, #ff9800);
+}
+
+.game-finished-banner[data-reason="deadlock"] .reset-button {
+  color: var(--error-color, #f44336);
+}
+
+.reset-button:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
+}

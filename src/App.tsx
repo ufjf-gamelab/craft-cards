@@ -5,8 +5,9 @@ import {
   GameDispatchContext,
   GameReducerContext,
   setupNewGame,
-  isGameFinished,
+  checkGameFinished,
   scoreGame,
+  GameFinishReason,
 } from "./Game.ts";
 import { useContext, useRef, useState, useEffect } from "react";
 import Oferta from "./Oferta.tsx";
@@ -24,9 +25,10 @@ import {
   saveGameToFile,
   loadGameFromFile,
 } from "./persistance.ts";
-import { CartaType } from "./data/cartas";
+import { CartaType, GAME_INITIAL } from "./data/cartas";
 import PersistenceDropdown from "./PersistanceDropdown.tsx";
 import { availableModels } from "./models/index.ts";
+import TutorialModal from "./TutorialModal.tsx";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
 
@@ -38,46 +40,58 @@ function App() {
   const [isLightTheme, setIsLightTheme] = useState(false);
   const [gameFinished, setGameFinished] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [finishReason, setFinishReason] = useState<GameFinishReason>("none");
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   const [currentModelKey, setCurrentModelKey] = useState<string>(
-    "Simple v6 (deadlock)",
+    "Simple v6 (deadlock)"
   );
   const [gameModel, setGameModel] = useState<any>(null);
+  const [customModel, setCustomModel] = useState<any>(null);
+  const [isCustomModel, setIsCustomModel] = useState(false);
+  const customModelFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!currentModelKey) return;
+    if (isCustomModel || !currentModelKey) return;
+
     availableModels[currentModelKey]()
       .then((model) => {
         setGameModel(model);
+        setCustomModel(null);
+        setIsCustomModel(false);
         const newGame = setupNewGame(model);
         setGameFinished(false);
         setFinalScore(null);
+        setFinishReason("none");
         dispatch({
           type: GameActions.LOAD_GAME,
           payload: newGame,
         });
       })
       .catch(console.error);
-  }, [currentModelKey, dispatch]);
+  }, [currentModelKey, dispatch, isCustomModel]);
 
   useEffect(() => {
-    if (!gameFinished && isGameFinished(game)) {
-      const [, score] = scoreGame(game);
-      setFinalScore(score);
-      setGameFinished(true);
+    if (!gameFinished) {
+      const result = checkGameFinished(game);
+      if (result.finished) {
+        setFinalScore(result.score);
+        setFinishReason(result.reason);
+        setGameFinished(true);
+      }
     }
   }, [game, gameFinished]);
 
   useEffect(() => {
     if (isLightTheme) {
-      document.documentElement.classList.add('light-theme');
+      document.documentElement.classList.add("light-theme");
     } else {
-      document.documentElement.classList.remove('light-theme');
+      document.documentElement.classList.remove("light-theme");
     }
   }, [isLightTheme]);
 
   const toggleTheme = () => {
-    setIsLightTheme(prev => !prev);
+    setIsLightTheme((prev) => !prev);
   };
 
   function aumentaPonto() {
@@ -119,6 +133,9 @@ function App() {
       if (savedGame) {
         setGameFinished(false);
         setFinalScore(null);
+        setFinishReason("none");
+        setIsCustomModel(false);
+        setCustomModel(null);
         dispatch({
           type: GameActions.LOAD_GAME,
           payload: {
@@ -151,6 +168,9 @@ function App() {
       if (savedGame) {
         setGameFinished(false);
         setFinalScore(null);
+        setFinishReason("none");
+        setIsCustomModel(false);
+        setCustomModel(null);
         dispatch({
           type: GameActions.LOAD_GAME,
           payload: {
@@ -167,21 +187,85 @@ function App() {
 
   const handleResetGame = () => {
     clearGameState();
-    if (gameModel) {
-      const newGame = setupNewGame(gameModel);
+    const activeModel = isCustomModel ? customModel : gameModel;
+    if (activeModel) {
+      const newGame = setupNewGame(activeModel);
       setGameFinished(false);
       setFinalScore(null);
+      setFinishReason("none");
       dispatch({ type: GameActions.LOAD_GAME, payload: newGame });
     }
   };
 
   const handleNewGameWithSeed = () => {
-    if (gameModel) {
-      const newGame = setupNewGame(gameModel, seedInput || undefined);
+    const activeModel = isCustomModel ? customModel : gameModel;
+    if (activeModel) {
+      const newGame = setupNewGame(activeModel, seedInput || undefined);
       setGameFinished(false);
       setFinalScore(null);
+      setFinishReason("none");
       dispatch({ type: GameActions.LOAD_GAME, payload: newGame });
     }
+  };
+
+  const handleLoadCustomModel = () => {
+    customModelFileInputRef.current?.click();
+  };
+
+  const handleCustomModelSelected = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsedModel = JSON.parse(text);
+
+      if (
+        !parsedModel.baralho ||
+        !parsedModel.baralhoDaOferta ||
+        !parsedModel.recursos
+      ) {
+        console.error(
+          "JSON invalido: faltam campos obrigatorios (baralho, baralhoDaOferta, recursos)"
+        );
+        alert("Erro: O arquivo JSON precisa ter os campos: baralho, baralhoDaOferta, recursos");
+        return;
+      }
+
+      const fullModel = {
+        ...GAME_INITIAL,
+        baralho: parsedModel.baralho,
+        baralhoDaOferta: parsedModel.baralhoDaOferta,
+        recursos: parsedModel.recursos,
+        pontosParaVencer: parsedModel.pontosParaVencer ?? GAME_INITIAL.pontosParaVencer,
+        turnosMaximos: parsedModel.turnosMaximos ?? GAME_INITIAL.turnosMaximos,
+        ...(parsedModel.seed !== undefined && { seed: parsedModel.seed }),
+      };
+
+      setCustomModel(fullModel);
+      setIsCustomModel(true);
+
+      const newGame = setupNewGame(fullModel);
+      setGameFinished(false);
+      setFinalScore(null);
+      setFinishReason("none");
+      dispatch({ type: GameActions.LOAD_GAME, payload: newGame });
+      
+      alert(`Regras carregadas! Vitoria: ${fullModel.pontosParaVencer} pontos ou ${fullModel.turnosMaximos} turnos.`);
+    } catch (error) {
+      console.error("Erro ao ler/parsear o JSON:", error);
+      alert("Erro ao ler o arquivo JSON. Verifique se o formato esta correto.");
+    }
+
+    event.target.value = "";
+  };
+
+  const handleModelChange = (key: string) => {
+    setIsCustomModel(false);
+    setCustomModel(null);
+    setCurrentModelKey(key);
   };
 
   const playableCards = React.useMemo(() => {
@@ -194,22 +278,39 @@ function App() {
   }, [game.recursos, game.mao]);
 
   const allCards = React.useMemo(() => {
-    if (!gameModel) return [];
+    if (!gameModel && !customModel) return [];
+    const sourceModel = isCustomModel ? customModel : gameModel;
+    if (!sourceModel) return [];
     const map = new Map<string, CartaType>();
-    [...gameModel.baralho, ...gameModel.baralhoDaOferta].forEach(
+    [...sourceModel.baralho, ...sourceModel.baralhoDaOferta].forEach(
       (card: CartaType) => {
         if (!map.has(card.id)) map.set(card.id, card);
-      },
+      }
     );
     return Array.from(map.values());
-  }, [gameModel]);
+  }, [gameModel, customModel, isCustomModel]);
+
+  const getFinishMessage = () => {
+    switch (finishReason) {
+      case "pontos":
+        return `Vitoria! Voce atingiu ${finalScore} pontos!`;
+      case "turnos":
+        return `Fim dos turnos! Voce fez ${finalScore} pontos.`;
+      case "deadlock":
+        return `Jogo Travado! Sem acoes e sem cartas para jogar/comprar. Pontuacao final: ${finalScore}`;
+      default:
+        return `Fim de Jogo! Pontuacao final: ${finalScore}`;
+    }
+  };
 
   return (
     <div className="game-app">
+      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
+
       {gameFinished && (
-        <div className="game-finished-banner">
+        <div className="game-finished-banner" data-reason={finishReason}>
           <div className="banner-content">
-            <span>Fim de Jogo! Pontuação final: {finalScore}</span>
+            <span>{getFinishMessage()}</span>
             <button onClick={handleResetGame} className="reset-button">
               Novo Jogo
             </button>
@@ -230,9 +331,10 @@ function App() {
         </div>
         <div className="game-controls">
           <div className="current-seed">Seed atual: {game.seed}</div>
+
           <select
             value={currentModelKey}
-            onChange={(e) => setCurrentModelKey(e.target.value)}
+            onChange={(e) => handleModelChange(e.target.value)}
             className="control-button"
             style={{ backgroundColor: "var(--button-bg)" }}
           >
@@ -260,12 +362,13 @@ function App() {
               Novo Jogo com Seed
             </button>
           </div>
+
           <button
             className="control-button"
             onClick={diminuiAcao}
             disabled={gameFinished}
           >
-            Diminui Ação
+            Diminui Acao
           </button>
           <button
             className="control-button"
@@ -275,7 +378,7 @@ function App() {
             Aumenta Ponto
           </button>
           <button className="control-button" onClick={toggleAnalises}>
-            {game.analisesVisiveis ? "Ocultar Análises" : "Mostrar Análises"}
+            {game.analisesVisiveis ? "Ocultar Analises" : "Mostrar Analises"}
           </button>
           <button
             className="control-button primary"
@@ -284,13 +387,29 @@ function App() {
           >
             Passar Turno
           </button>
+
           <PersistenceDropdown
             onSaveGame={handleSaveGame}
             onLoadGame={handleLoadGame}
             onSaveToFile={handleSaveToFile}
             onLoadFromFile={handleLoadFromFile}
             onResetGame={handleResetGame}
+            onLoadCustomModel={handleLoadCustomModel}
           />
+
+          <button
+            className="control-button"
+            onClick={() => setTutorialOpen(true)}
+            style={{ 
+              backgroundColor: "var(--button-bg)", 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "4px" 
+            }}
+            title="Abrir tutorial sobre como usar modelos JSON"
+          >
+            ?
+          </button>
         </div>
       </div>
 
@@ -300,6 +419,14 @@ function App() {
         style={{ display: "none" }}
         ref={fileInputRef}
         onChange={handleFileSelected}
+      />
+
+      <input
+        type="file"
+        accept=".json"
+        style={{ display: "none" }}
+        ref={customModelFileInputRef}
+        onChange={handleCustomModelSelected}
       />
 
       <div className="main-content">
@@ -339,7 +466,7 @@ function App() {
                     })
                   }
                 >
-                  Histórico
+                  Historico
                 </button>
               </div>
               <div className="analises-content">

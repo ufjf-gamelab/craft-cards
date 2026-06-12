@@ -40,7 +40,7 @@ export const GAME_EX6 = {
   recursos: [
     { nome: "X", quantidade: 1 },
     { nome: "Y", quantidade: 0 }
-  ]
+  ],
+  pontosParaVencer: 999,
+  turnosMaximos: 20,
 };
-
-//Deadlock (estado terminal)

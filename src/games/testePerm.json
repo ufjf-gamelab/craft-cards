@@ -1,0 +1,41 @@
+{
+  "baralho": [
+    {
+      "id": "coletar_madeira",
+      "titulo": "Coletar Madeira",
+      "texto": "Custa 1 acao, produz 2 madeira bruta",
+      "custo": [{ "nome": "acao", "quantidade": 1 }],
+      "ganho": [{ "nome": "madeira bruta", "quantidade": 2 }]
+    },
+    {
+      "id": "fazer_tabuas",
+      "titulo": "Fazer Tabuas",
+      "texto": "Custa 1 acao + 2 madeira, produz 2 tabuas",
+      "custo": [
+        { "nome": "acao", "quantidade": 1 },
+        { "nome": "madeira bruta", "quantidade": 2 }
+      ],
+      "ganho": [{ "nome": "tabua", "quantidade": 2 }]
+    },
+    {
+      "id": "vender_tabuas",
+      "titulo": "Vender Tabuas",
+      "texto": "Vende 2 tabuas por 1 ponto",
+      "custo": [
+        { "nome": "acao", "quantidade": 1 },
+        { "nome": "tabua", "quantidade": 2 }
+      ],
+      "ganho": [{ "nome": "pontuacao", "quantidade": 1 }]
+    }
+  ],
+  "baralhoDaOferta": [],
+  "recursos": [
+    { "nome": "acao", "quantidade": 5 },
+    { "nome": "madeira bruta", "quantidade": 0 },
+    { "nome": "tabua", "quantidade": 0 },
+    { "nome": "pontuacao", "quantidade": 0 }
+  ],
+  "pontosParaVencer": 15,
+  "turnosMaximos": 25,
+  "seed": 1704067200000
+}

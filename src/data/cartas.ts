@@ -28,6 +28,8 @@ export type GameType = {
   activeTab?: "petriNet" | "graph" | "historico";
   analisesVisiveis?: boolean;
   seed: string;
+  pontosParaVencer?: number;
+  turnosMaximos?: number;
 };
 
 export type CartaType = {
@@ -44,7 +46,8 @@ export type RecursoType = {
 };
 
 export const RECURSOS_INICIAL: Array<RecursoType> = [
-  { nome: "pontuação", quantidade: 0 }
+  { nome: "pontuacao", quantidade: 0 },
+  { nome: "acao", quantidade: 5 }
 ];
 
 export const DESCARTE_INICIAL: Array<CartaType> = [];
@@ -56,71 +59,71 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     id: "m1",
     titulo: "Pegar madeira",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "madeira bruta", quantidade: 1 }],
   },
   {
     id: "a1",
-    titulo: "Pegar água",
+    titulo: "Pegar agua",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "água", quantidade: 1 }],
+    custo: [{ nome: "acao", quantidade: 1 }],
+    ganho: [{ nome: "agua", quantidade: 1 }],
   },
   {
     id: "pa1",
     titulo: "Pegar amora",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "amora", quantidade: 1 }],
   },
   {
     id: "p1",
     titulo: "Pegar pedra",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "pedra bruta", quantidade: 2 }],
   },
   {
     id: "m2",
     titulo: "Pegar madeira",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "madeira bruta", quantidade: 2 }],
   },
   {
     id: "a3",
-    titulo: "Pegar água",
+    titulo: "Pegar agua",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "água", quantidade: 2 }],
+    custo: [{ nome: "acao", quantidade: 1 }],
+    ganho: [{ nome: "agua", quantidade: 2 }],
   },
   {
     id: "pa3",
     titulo: "Pegar amora",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "amora", quantidade: 2 }],
   },
   {
     id: "p3",
     titulo: "Pegar pedra",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "pedra bruta", quantidade: 2 }],
   },
   {
     id: "b2",
-    titulo: "Beber água",
+    titulo: "Beber agua",
     texto: "",
-    custo: [{ nome: "água", quantidade: 1 }],
-    ganho: [{ nome: "ação", quantidade: 1 }],
+    custo: [{ nome: "agua", quantidade: 1 }],
+    ganho: [{ nome: "acao", quantidade: 1 }],
   },
   {
     id: "c2",
     titulo: "Comer amora",
     texto: "",
     custo: [{ nome: "amora", quantidade: 1 }],
-    ganho: [{ nome: "ação", quantidade: 1 }],
+    ganho: [{ nome: "acao", quantidade: 1 }],
   },
   {
     id: "s1",
@@ -131,7 +134,7 @@ export const BARALHO_INICIAL: Array<CartaType> = [
   },
   {
     id: "pb1",
-    titulo: "Pedreira básica",
+    titulo: "Pedreira basica",
     texto: "",
     custo: [{ nome: "pedra bruta", quantidade: 2 }],
     ganho: [{ nome: "pedra polida", quantidade: 1 }],
@@ -156,50 +159,49 @@ export const BARALHO_INICIAL: Array<CartaType> = [
     ],
     ganho: [{ nome: "picareta", quantidade: 1 }],
   },
-  //...MINECRAFT_CARDS.slice(0, 300),
 ];
 
 export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
   {
     id: "a2",
-    titulo: "Pegar água",
+    titulo: "Pegar agua",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "água", quantidade: 1 }],
+    custo: [{ nome: "acao", quantidade: 1 }],
+    ganho: [{ nome: "agua", quantidade: 1 }],
   },
   {
     id: "b1",
-    titulo: "Beber água",
+    titulo: "Beber agua",
     texto: "",
-    custo: [{ nome: "água", quantidade: 1 }],
-    ganho: [{ nome: "ação", quantidade: 1 }],
+    custo: [{ nome: "agua", quantidade: 1 }],
+    ganho: [{ nome: "acao", quantidade: 1 }],
   },
   {
     id: "c1",
     titulo: "Comer amora",
     texto: "",
     custo: [{ nome: "amora", quantidade: 1 }],
-    ganho: [{ nome: "ação", quantidade: 1 }],
+    ganho: [{ nome: "acao", quantidade: 1 }],
   },
   {
     id: "p2",
     titulo: "Pegar pedra",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "pedra bruta", quantidade: 1 }],
   },
   {
     id: "pa2",
     titulo: "Pegar amora",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "amora", quantidade: 1 }],
   },
   {
     id: "m3",
     titulo: "Pegar madeira",
     texto: "",
-    custo: [],
+    custo: [{ nome: "acao", quantidade: 1 }],
     ganho: [{ nome: "madeira bruta", quantidade: 2 }],
   },
 ];
@@ -218,4 +220,6 @@ export const GAME_INITIAL = {
   historico: [],
   showHistorico: false,
   seed: "",
+  pontosParaVencer: 10,
+  turnosMaximos: 30,
 };

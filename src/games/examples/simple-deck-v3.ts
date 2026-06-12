@@ -18,6 +18,6 @@ export const GAME_EX3 = {
     { nome: "ação", quantidade: 3 },
     ...GAME_INITIAL.recursos.filter(r => r.nome !== "pontuação" && r.nome !== "ação"),
   ],
+  pontosParaVencer: 10,
+  turnosMaximos: 20,
 };
-
-//Gargalo de produção (alto consumo, baixa produção)
