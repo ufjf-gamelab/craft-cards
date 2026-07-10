@@ -6,7 +6,6 @@ import {
   GameReducerContext,
   setupNewGame,
   checkGameFinished,
-  scoreGame,
   GameFinishReason,
 } from "./Game.ts";
 import { useContext, useRef, useState, useEffect } from "react";
@@ -408,7 +407,7 @@ function App() {
             }}
             title="Abrir tutorial sobre como usar modelos JSON"
           >
-            ?
+            Ajuda?
           </button>
         </div>
       </div>

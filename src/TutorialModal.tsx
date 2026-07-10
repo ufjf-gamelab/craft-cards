@@ -200,13 +200,13 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
   }, []);
 
   const steps = [
-    'Visao Geral',
-    'Jogabilidade',
-    'Sistema de Vitoria',
-    'Analises - Grafo',
-    'Analises - Rede de Petri',
-    'Analises - Arvore',
-    'Modelos JSON',
+    'Visão Geral',
+    'Jogabilidade (Exemplo)',
+    'Sistema de Vitória',
+    'Análise - Grafo',
+    'Análise - Rede de Petri',
+    'Análise - Árvore de Alcançabilidade',
+    'Modelos JSON Personalizados',
   ];
 
   const handleNext = () => setActiveStep((prev) => prev + 1);
@@ -218,7 +218,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
         <DialogTitle>
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Typography variant="h6" style={{ color: 'var(--text-primary)' }}>
-              Tutorial do Jogo - Guia Completo
+              Tutorial - Ferramenta de Balanceamento de Jogos de Cartas
             </Typography>
             <IconButton onClick={onClose} size="small" style={{ color: 'var(--text-primary)' }}>
               ✕
@@ -239,20 +239,26 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             {activeStep === 0 && (
               <Box>
                 <Typography variant="h5" gutterBottom style={{ color: 'var(--accent-color)' }}>
-                  Bem-vindo a Aplicacao Craft Cards!
+                  Bem-vindo à Ferramenta de Balanceamento
                 </Typography>
-                <Typography>
-                  Este e um jogo de gerenciamento de recursos onde voce usa cartas para transformar recursos,
-                  ganhar pontos e vencer o jogo. O sistema inclui analises avancadas como Grafos,
-                  Redes de Petri e Arvores de Alcantabilidade para ajudar no balanceamento.
+                <Typography paragraph>
+                  Esta é uma aplicação <strong>para designers e desenvolvedores</strong> que desejam
+                  analisar e balancear jogos de cartas baseados em recursos. A ferramenta permite
+                  carregar um modelo JSON contendo cartas, recursos e regras, e então simular partidas,
+                  visualizar métricas de rede e explorar todos os estados alcançáveis do sistema.
                 </Typography>
-                
+                <Typography paragraph>
+                  O objetivo é identificar gargalos, recursos subutilizados, cadeias de produção longas
+                  e desbalanceamentos logo no início do design, economizando tempo e melhorando a
+                  experiência do jogador.
+                </Typography>
+
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', my: 2 }}>
-                  <Chip label="Recursos" color="primary" variant="outlined" />
-                  <Chip label="Cartas" color="success" variant="outlined" />
-                  <Chip label="Grafo" color="info" variant="outlined" />
-                  <Chip label="Petri Net" color="warning" variant="outlined" />
-                  <Chip label="Arvore" color="error" variant="outlined" />
+                  <Chip label="Simulação" color="primary" variant="outlined" />
+                  <Chip label="Grafos" color="success" variant="outlined" />
+                  <Chip label="Redes de Petri" color="info" variant="outlined" />
+                  <Chip label="Árvore de Alcançabilidade" color="warning" variant="outlined" />
+                  <Chip label="Persistência" color="error" variant="outlined" />
                 </Box>
 
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -260,32 +266,41 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                 </Typography>
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography>
-                    <strong>Topo:</strong> Recursos disponiveis (acao, madeira, tabua, pontuacao)
+                    <strong>Topo:</strong> Recursos disponíveis (ação, madeira, táboa, pontuação, etc.)
+                    e o seed atual.
                   </Typography>
                   <Typography>
-                    <strong>Barra de Controles:</strong> Botoes para acoes do jogo e analises
+                    <strong>Barra de Controles:</strong> Botões para ações do jogo, alternar painel de
+                    análises, persistência e alternar tema.
                   </Typography>
                   <Typography>
-                    <strong>Area do Jogo:</strong> Cartas na mao, oferta e recursos
+                    <strong>Área do Jogo:</strong> Cartas na mão, oferta (mercado) e recursos.
                   </Typography>
                   <Typography>
-                    <strong>Area de Analises:</strong> Grafo, Rede de Petri e Arvore de Alcantabilidade
+                    <strong>Painel de Análises:</strong> Abas para Grafo, Rede de Petri, Árvore de
+                    Alcançabilidade e Histórico.
                   </Typography>
                 </Paper>
 
                 <Alert severity="info">
                   <Typography variant="body2">
-                    Dica: Use o botao "Mostrar Analises" para abrir o painel de analises e entender melhor as relacoes do jogo!
+                    Dica: Use o botão <strong>"Mostrar Análises"</strong> para abrir o painel e explorar
+                    as ferramentas de diagnóstico.
                   </Typography>
                 </Alert>
               </Box>
             )}
 
-            {/* PASSO 1 - JOGABILIDADE */}
+            {/* PASSO 1 - JOGABILIDADE (EXEMPLO) */}
             {activeStep === 1 && (
               <Box>
                 <Typography variant="h5" gutterBottom style={{ color: 'var(--success-color)' }}>
-                  Como Jogar
+                  Jogabilidade de Exemplo
+                </Typography>
+                <Typography paragraph>
+                  A ferramenta inclui um jogo de exemplo com regras fixas (disponíveis em{' '}
+                  <code>data/cards.ts</code>) para demonstrar o funcionamento. Você pode interagir com
+                  ele para entender como os recursos fluem e como as análises refletem o estado do jogo.
                 </Typography>
                 
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -293,13 +308,17 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                 </Typography>
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography>
-                    O jogo possui diversos recursos. O mais importante e a <strong>acao</strong>.
-                    Toda carta custa 1 acao para ser jogada ou comprada.
+                    <strong>Ação:</strong> Recurso principal – toda carta custa 1 ação para ser jogada
+                    ou comprada.
                   </Typography>
                   <Typography>
-                    <strong>madeira bruta e pedra bruta</strong> sao recursos basicos coletados.
-                    <strong>tabua e pedra polida</strong> sao recursos processados a partir dos basicos.
-                    <strong>pontuacao</strong> e o recurso de vitoria! Quem fizer mais pontos vence.
+                    <strong>Madeira Bruta e Pedra Bruta:</strong> Recursos básicos coletados.
+                  </Typography>
+                  <Typography>
+                    <strong>Tábua e Pedra Polida:</strong> Recursos processados a partir dos básicos.
+                  </Typography>
+                  <Typography>
+                    <strong>Pontuação:</strong> Recurso de vitória – quem fizer mais pontos vence.
                   </Typography>
                 </Paper>
 
@@ -308,85 +327,92 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                 </Typography>
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography>
-                    Cada turno comeca com 3 acoes. Jogar uma carta consome 1 acao. Comprar uma carta da oferta tambem consome 1 acao.
+                    Cada turno começa com <strong>3 ações</strong>. Jogar uma carta ou comprar da
+                    oferta consome 1 ação.
                   </Typography>
                   <Typography>
-                    O botao "Passar Turno" encerra seu turno atual, repoe 3 acoes e compra novas cartas do baralho.
-                    Os botoes "Diminuir Acao" e "Aumentar Ponto" sao botoes de debug para testes.
+                    O botão <strong>"Passar Turno"</strong> encerra o turno, repõe 3 ações e compra
+                    novas cartas do baralho. Os botões <strong>"Diminuir Ação"</strong> e{' '}
+                    <strong>"Aumentar Ponto"</strong> são ferramentas de debug para testes.
                   </Typography>
                 </Paper>
 
                 <Alert severity="warning">
                   <Typography variant="body2">
-                    Importante: Gerencie suas acoes! Se ficar sem acoes, passe o turno para recupera-las.
+                    <strong>Nota:</strong> Este é apenas um jogo de exemplo. O verdadeiro poder da
+                    ferramenta está nas análises e na possibilidade de carregar seus próprios modelos.
                   </Typography>
                 </Alert>
               </Box>
             )}
 
-            {/* PASSO 2 - SISTEMA DE VITORIA */}
+            {/* PASSO 2 - SISTEMA DE VITÓRIA */}
             {activeStep === 2 && (
               <Box>
                 <Typography variant="h5" gutterBottom style={{ color: 'var(--warning-color)' }}>
-                  Sistema de Vitoria
+                  Sistema de Vitória e Deadlocks
                 </Typography>
                 
-                <Typography>
-                  O jogo pode terminar de tres maneiras diferentes:
+                <Typography paragraph>
+                  A simulação pode terminar de três maneiras, todas configuráveis no modelo JSON:
                 </Typography>
 
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    1. Vitoria por Pontos:
+                    1. Vitória por Pontos
                   </Typography>
                   <Typography>
-                    Quando um jogador atinge a quantidade de pontos definida em <code>pontosParaVencer</code>.
-                    O padrao e 10 pontos, mas pode ser configurado no modelo JSON.
+                    Quando um jogador atinge ou ultrapassa <code>pontosParaVencer</code> (padrão: 10).
                   </Typography>
                   
                   <Divider sx={{ my: 2 }} />
                   
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    2. Limite de Turnos:
+                    2. Limite de Turnos
                   </Typography>
                   <Typography>
-                    Quando o numero de turnos ultrapassa <code>turnosMaximos</code>. O padrao e 30 turnos.
+                    Quando o número de turnos excede <code>turnosMaximos</code> (padrão: 30).
                   </Typography>
                   
                   <Divider sx={{ my: 2 }} />
                   
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    3. Deadlock:
+                    3. Deadlock
                   </Typography>
                   <Typography>
-                    Quando um jogador nao tem acoes restantes E nao pode jogar/comprar nenhuma carta.
-                    Existem dois tipos de deadlock:
+                    Ocorre quando o jogador não tem ações restantes <strong>e</strong> não pode jogar
+                    ou comprar nenhuma carta. A ferramenta distingue:
                   </Typography>
                   <Typography>
-                    <strong>Deadlock Temporario:</strong> O jogador esta sem acoes, mas pode comprar cartas que geram acao (ex: "Descansar") no futuro. Um alerta AMARELO aparece na Rede de Petri.
+                    <strong>Deadlock Temporário:</strong> O jogador está sem ações, mas pode comprar
+                    cartas que geram ação (ex: "Descansar") – alerta <strong style={{ color: '#FFC107' }}>AMARELO</strong> na Rede de Petri.
                   </Typography>
                   <Typography>
-                    <strong>Deadlock Permanente:</strong> Nao ha nenhuma carta que produza acao em lugar nenhum. O jogo nao pode continuar. Um alerta VERMELHO aparece na Rede de Petri.
+                    <strong>Deadlock Permanente:</strong> Não há nenhuma carta que produza ação em
+                    lugar algum – alerta <strong style={{ color: '#f44336' }}>VERMELHO</strong>. O jogo
+                    não pode continuar.
                   </Typography>
                 </Paper>
 
                 <Alert severity="info">
                   <Typography variant="body2">
-                    Exemplo: Se <code>pontosParaVencer: 15</code>, voce precisa de 15 pontos para vencer!
+                    Exemplo: com <code>pontosParaVencer: 15</code>, são necessários 15 pontos para
+                    vencer. Ajuste esses valores no JSON para testar diferentes cenários.
                   </Typography>
                 </Alert>
               </Box>
             )}
 
-            {/* PASSO 3 - ANALISES - GRAFO */}
+            {/* PASSO 3 - ANÁLISE - GRAFO */}
             {activeStep === 3 && (
               <Box>
                 <Typography variant="h5" gutterBottom style={{ color: '#2196F3' }}>
-                  Analise de Grafo
+                  Análise de Grafo
                 </Typography>
                 
-                <Typography>
-                  O Grafo de Recursos mostra visualmente como cartas e recursos se relacionam.
+                <Typography paragraph>
+                  O Grafo de Recursos exibe visualmente as relações entre cartas e recursos. É uma
+                  ferramenta fundamental para identificar gargalos e desbalanceamentos.
                 </Typography>
 
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
@@ -394,106 +420,121 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                     Elementos do Grafo:
                   </Typography>
                   <Typography>
-                    <strong>Nos Verdes:</strong> Representam recursos (madeira, tabua, pontuacao, etc.)
+                    <strong>Nós Verdes:</strong> Recursos (madeira, táboa, pontuação, etc.)
                   </Typography>
                   <Typography>
-                    <strong>Nos Azuis:</strong> Representam cartas
+                    <strong>Nós Azuis:</strong> Cartas (ações)
                   </Typography>
                   <Typography>
-                    <strong>Arestas Verdes (+):</strong> Indicam producao de recursos
+                    <strong>Arestas Verdes (+):</strong> Produção de recursos
                   </Typography>
                   <Typography>
-                    <strong>Arestas Vermelhas (-):</strong> Indicam consumo de recursos
+                    <strong>Arestas Vermelhas (-):</strong> Consumo de recursos
                   </Typography>
                 </Paper>
 
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Significado das Metricas:
+                    Métricas Disponíveis:
                   </Typography>
                   <Typography>
-                    <strong>Densidade:</strong> Proporcao de conexoes existentes vs possiveis. Quanto maior a densidade, mais complexo e interconectado e o sistema.
+                    <strong>Densidade:</strong> Proporção de conexões existentes vs. possíveis. Alta
+                    densidade indica sistema complexo e interconectado.
                   </Typography>
                   <Typography>
-                    <strong>Centralidade:</strong> Identifica os recursos mais importantes. Um recurso com alto grau de centralidade e muito utilizado como entrada ou saida de cartas.
+                    <strong>Centralidade:</strong> Identifica recursos mais importantes (muito usados
+                    como entrada/saída).
                   </Typography>
                   <Typography>
-                    <strong>Diametro:</strong> Maior distancia entre dois nos do grafo. Indica cadeias longas de producao - valores altos sugerem processos muito longos.
+                    <strong>Diâmetro:</strong> Maior distância entre dois nós. Valores altos sugerem
+                    cadeias de produção muito longas.
                   </Typography>
                   <Typography>
-                    <strong>Componentes:</strong> Subgrafos desconexos. Idealmente deveria ser 1, indicando que todos os recursos se conectam. Componentes multiplos indicam sistemas isolados.
+                    <strong>Componentes:</strong> Subgrafos desconexos. Idealmente deve ser 1 (todos
+                    os recursos se conectam).
                   </Typography>
                   <Typography>
-                    <strong>Producao vs Consumo:</strong> Se a producao total for maior que o consumo, recursos tendem a acumular. Se o consumo for maior, ha risco de falta de recursos.
+                    <strong>Produção vs. Consumo:</strong> Se produção &gt; consumo, recursos tendem a
+                    acumular; se consumo &gt; produção, há risco de escassez.
                   </Typography>
                 </Paper>
 
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Analise de Balanceamento:
+                    Análise de Balanceamento Automática:
                   </Typography>
                   <Typography>
-                    A ferramenta identifica automaticamente gargalos (recursos muito consumidos e pouco produzidos),
-                    recursos inuteis (produzidos mas nunca consumidos), caminhos longos (cadeias de producao extensas)
-                    e padroes recorrentes (sequencias que aparecem com frequencia no grafo).
+                    O painel de balanceamento identifica automaticamente:
+                    <ul>
+                      <li><strong>Gargalos:</strong> recursos muito consumidos e pouco produzidos.</li>
+                      <li><strong>Recursos inúteis:</strong> produzidos mas nunca consumidos.</li>
+                      <li><strong>Caminhos longos:</strong> cadeias de produção extensas.</li>
+                      <li><strong>Padrões recorrentes:</strong> sequências que aparecem com frequência.</li>
+                    </ul>
                   </Typography>
                 </Paper>
 
                 <Alert severity="success">
                   <Typography variant="body2">
-                    Use o grafo para identificar recursos com alta demanda e baixa producao (gargalos)!
+                    Use o grafo para detectar rapidamente recursos com alta demanda e baixa oferta.
                   </Typography>
                 </Alert>
               </Box>
             )}
 
-            {/* PASSO 4 - ANALISES - REDE DE PETRI */}
+            {/* PASSO 4 - ANÁLISE - REDE DE PETRI */}
             {activeStep === 4 && (
               <Box>
                 <Typography variant="h5" gutterBottom style={{ color: 'var(--warning-color)' }}>
                   Rede de Petri
                 </Typography>
                 
-                <Typography>
-                  A Rede de Petri e uma ferramenta matematica para modelar sistemas concorrentes. Neste jogo, ela mostra como recursos e transicoes interagem.
+                <Typography paragraph>
+                  A Rede de Petri é um modelo matemático para sistemas concorrentes. Nesta ferramenta,
+                  ela mostra a interação entre recursos (lugares) e cartas (transições) em tempo real.
                 </Typography>
 
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Elementos da Rede de Petri:
+                    Elementos da Rede:
                   </Typography>
                   <Typography>
-                    <strong>Lugares (Circulos Verdes):</strong> Representam recursos. O numero dentro de cada circulo e a quantidade atual daquele recurso (fichas/tokens).
+                    <strong>Lugares (Círculos Verdes):</strong> Recursos. O número dentro é a
+                    quantidade atual (tokens).
                   </Typography>
                   <Typography>
-                    <strong>Transicoes (Retangulos Azuis):</strong> Representam cartas. Quando habilitadas, ficam amarelas.
+                    <strong>Transições (Retângulos Azuis):</strong> Cartas. Ficam <strong style={{ color: '#FFC107' }}>amarelas</strong> quando habilitadas.
                   </Typography>
                   <Typography>
-                    <strong>Arcos de Entrada (Vermelhos):</strong> Indicam consumo de recursos para disparar uma transicao.
+                    <strong>Arcos de Entrada (Vermelhos):</strong> Consumo de recursos.
                   </Typography>
                   <Typography>
-                    <strong>Arcos de Saida (Verdes):</strong> Indicam producao de recursos ao disparar uma transicao.
+                    <strong>Arcos de Saída (Verdes):</strong> Produção de recursos.
                   </Typography>
                 </Paper>
 
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Botoes e Funcionalidades:
+                    Funcionalidades:
                   </Typography>
                   <Typography>
-                    <strong>Modo Livre:</strong> Permite editar recursos manualmente clicando nos lugares.
+                    <strong>Modo Livre:</strong> Permite editar manualmente os tokens clicando nos
+                    lugares (esquerdo +1, direito -1). Útil para testar cenários hipotéticos.
                   </Typography>
                   <Typography>
-                    <strong>Analise Completa:</strong> Ignora as cartas na mao do jogador e mostra todas as transicoes possiveis do sistema. Util para analisar o sistema como um todo.
+                    <strong>Análise Completa:</strong> Ignora a mão do jogador e mostra todas as
+                    transições possíveis do sistema – visão global.
                   </Typography>
                   <Typography>
-                    <strong>Resetar (no Modo Livre):</strong> Reinicia o modo livre com todos os recursos em 0.
+                    <strong>Resetar (Modo Livre):</strong> Zera todos os recursos.
                   </Typography>
                   <Typography>
-                    <strong>Slider de Expansoes:</strong> Define quantos passos a mais a arvore de alcancabilidade vai expandir a partir de estados omega.
+                    <strong>Slider de Expansões:</strong> Controla quantos passos extras a árvore de
+                    alcançabilidade irá explorar a partir de estados ω (omega).
                   </Typography>
                   <Typography>
-                    <strong>Gerar Arvore:</strong> Cria a arvore de alcancabilidade baseada na marcacao atual.
+                    <strong>Gerar Árvore:</strong> Constrói a árvore de alcançabilidade a partir da
+                    marcação atual.
                   </Typography>
                 </Paper>
 
@@ -502,55 +543,120 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                     Como usar o Modo Livre:
                   </Typography>
                   <Typography>
-                    Ative o switch "Modo Livre". Agora voce pode clicar com o botao esquerdo em um recurso (lugar) para adicionar 1 token, ou com o botao direito para remover 1 token.
+                    Ative o switch "Modo Livre". Clique com o botão <strong>esquerdo</strong> em um
+                    recurso para adicionar 1 token, com o <strong>direito</strong> para remover.
                   </Typography>
                   <Typography>
-                    Para disparar uma transicao (carta), clique nela. Se estiver habilitada (amarela), os recursos serao consumidos e produzidos conforme a regra da carta.
-                  </Typography>
-                </Paper>
-
-                <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
-                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Destaque Visual:
-                  </Typography>
-                  <Typography>
-                    Transicoes destacadas em <strong style={{ color: '#FFC107' }}>AMARELO</strong> estao habilitadas para disparo, ou seja, voce tem recursos suficientes para joga-las.
+                    Para disparar uma transição (carta), clique nela. Se estiver habilitada (amarela),
+                    os recursos serão consumidos e produzidos conforme a regra.
                   </Typography>
                 </Paper>
 
                 <Alert severity="info">
                   <Typography variant="body2">
-                    Transicoes destacadas em AMARELO estao habilitadas para disparo!
+                    Transições <strong style={{ color: '#FFC107' }}>amarelas</strong> estão
+                    habilitadas – você tem recursos suficientes para dispará-las.
                   </Typography>
                 </Alert>
               </Box>
             )}
 
-            
+            {/* PASSO 5 - ÁRVORE DE ALCANÇABILIDADE */}
+            {activeStep === 5 && (
+              <Box>
+                <Typography variant="h5" gutterBottom style={{ color: '#9C27B0' }}>
+                  Árvore de Alcançabilidade
+                </Typography>
+                
+                <Typography paragraph>
+                  A Árvore de Alcançabilidade enumera <strong>todos os estados possíveis</strong> do
+                  sistema a partir da marcação atual. É uma ferramenta poderosa para verificar se o
+                  jogo pode entrar em loops, se há estados mortos ou se recursos podem crescer
+                  infinitamente (omega).
+                </Typography>
+
+                <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    Características:
+                  </Typography>
+                  <Typography>
+                    <strong>Expansão Automática:</strong> A árvore é gerada recursivamente a partir da
+                    marcação inicial, disparando todas as transições habilitadas.
+                  </Typography>
+                  <Typography>
+                    <strong>Detecção de Omega (ω):</strong> Identifica recursos que podem crescer
+                    indefinidamente – representados como <strong>ω</strong>.
+                  </Typography>
+                  <Typography>
+                    <strong>Controle de Expansão:</strong> O slider de expansões define quantas
+                    camadas extras a árvore explorará além dos estados ω (útil para evitar explosão
+                    combinatória).
+                  </Typography>
+                  <Typography>
+                    <strong>Visualização Hierárquica:</strong> Navegue pelos estados clicando nos nós
+                    da árvore.
+                  </Typography>
+                  <Typography>
+                    <strong>Tabela Detalhada:</strong> Lista todos os estados gerados com:
+                    <ul>
+                      <li>Marcação (quantidades de cada recurso)</li>
+                      <li>Transição que levou ao estado</li>
+                      <li>Tipo: inicial, ω, cíclico, terminal, simulação</li>
+                      <li>Botão para centralizar o nó na visualização</li>
+                    </ul>
+                  </Typography>
+                </Paper>
+
+                <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    Como usar:
+                  </Typography>
+                  <Typography>
+                    1. Ajuste o slider de expansões (0‑10) para controlar a profundidade.
+                  </Typography>
+                  <Typography>
+                    2. Clique em <strong>"Gerar Árvore"</strong> – a árvore será construída com base
+                    na marcação atual (ou na marcação do jogo, se "Análise Completa" estiver ativa).
+                  </Typography>
+                  <Typography>
+                    3. Explore os estados na visualização interativa ou na tabela abaixo.
+                  </Typography>
+                </Paper>
+
+                <Alert severity="success">
+                  <Typography variant="body2">
+                    A árvore revela se o sistema pode entrar em loops infinitos ou se há estados
+                    terminais indesejados – essencial para validar o balanceamento.
+                  </Typography>
+                </Alert>
+              </Box>
+            )}
 
             {/* PASSO 6 - MODELOS JSON */}
             {activeStep === 6 && (
               <Box>
                 <Typography variant="h5" gutterBottom style={{ color: 'var(--accent-color)' }}>
-                  Criando Modelos JSON Personalizados
+                  Modelos JSON Personalizados
                 </Typography>
                 
-                <Typography>
-                  Voce pode criar seus proprios jogos carregando arquivos JSON! Esta e a forma mais poderosa de customizar a experiencia.
+                <Typography paragraph>
+                  Você pode criar seus próprios jogos carregando um arquivo JSON. Esta é a forma mais
+                  poderosa de usar a ferramenta – defina cartas, recursos, regras e simule
+                  quantas vezes quiser.
                 </Typography>
 
                 <Paper sx={{ p: 2, bgcolor: 'var(--bg-primary)', mb: 2 }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Estrutura Basica do JSON:
+                    Estrutura Básica do JSON:
                   </Typography>
                   <pre style={{ margin: 0, overflow: 'auto', fontSize: '0.7rem', color: 'var(--text-primary)' }}>
 {`{
-  "baralho": [...],        // Array de cartas iniciais do jogador
-  "baralhoDaOferta": [...], // Array de cartas disponiveis para compra
-  "recursos": [...],       // Array de recursos iniciais
-  "pontosParaVencer": 15,  // (opcional) Pontos necessarios para vencer
-  "turnosMaximos": 25,     // (opcional) Limite maximo de turnos
-  "seed": 12345           // (opcional) Semente para geracao aleatoria
+  "baralho": [...],           // Array de cartas iniciais do jogador
+  "baralhoDaOferta": [...],   // Array de cartas disponíveis para compra
+  "recursos": [...],          // Array de recursos iniciais
+  "pontosParaVencer": 15,     // (opcional) Pontos necessários para vencer
+  "turnosMaximos": 25,        // (opcional) Limite máximo de turnos
+  "seed": 12345              // (opcional) Semente para geração aleatória
 }`}
                   </pre>
                 </Paper>
@@ -561,9 +667,9 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                   </Typography>
                   <pre style={{ margin: 0, overflow: 'auto', fontSize: '0.7rem', color: 'var(--text-primary)' }}>
 {`{
-  "id": "coletar_madeira",           // Identificador unico
-  "titulo": "Coletar Madeira",        // Nome exibido na interface
-  "texto": "Descricao opcional",      // Texto descritivo
+  "id": "coletar_madeira",                     // Identificador único
+  "titulo": "Coletar Madeira",                  // Nome exibido
+  "texto": "Descrição opcional",                // Texto descritivo
   "custo": [{ "nome": "acao", "quantidade": 1 }],  // Recursos gastos
   "ganho": [{ "nome": "madeira bruta", "quantidade": 2 }]  // Recursos ganhos
 }`}
@@ -587,22 +693,23 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                     Como Carregar seu Modelo:
                   </Typography>
                   <Typography>
-                    1. Clique no botao "Persistencia" na barra de controles.
+                    1. Clique no botão <strong>"Persistência"</strong> na barra de controles.
                   </Typography>
                   <Typography>
-                    2. Selecione a opcao "Carregar regras (JSON)" no menu dropdown.
+                    2. Selecione <strong>"Carregar regras (JSON)"</strong> no menu dropdown.
                   </Typography>
                   <Typography>
-                    3. Navegue ate o arquivo .json que voce criou e selecione-o.
+                    3. Navegue até o arquivo <code>.json</code> e selecione-o.
                   </Typography>
                   <Typography>
-                    4. O jogo reiniciara automaticamente com suas regras personalizadas!
+                    4. O jogo reiniciará automaticamente com suas regras personalizadas!
                   </Typography>
                 </Paper>
 
                 <Alert severity="success">
                   <Typography variant="body2">
-                    Dica: Use "Salvar em Arquivo" no menu de persistencia para exportar seu jogo atual e editar como modelo!
+                    Dica: Use <strong>"Salvar em Arquivo"</strong> no menu de persistência para
+                    exportar seu jogo atual e editá-lo como modelo.
                   </Typography>
                 </Alert>
               </Box>
@@ -620,7 +727,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             </Button>
           ) : (
             <Button variant="contained" onClick={handleNext}>
-              Proximo
+              Próximo
             </Button>
           )}
         </DialogActions>
