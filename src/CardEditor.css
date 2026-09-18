@@ -1,0 +1,334 @@
+.card-editor {
+  width: 520px;
+  min-width: 420px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--bg-secondary);
+  border-right: 2px solid var(--accent-color);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.card-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border-strong);
+  position: sticky;
+  top: -1rem;
+  background-color: var(--bg-secondary);
+  z-index: 5;
+  padding-top: 0.5rem;
+}
+
+.card-editor-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.15rem;
+}
+
+.card-editor-close {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.card-editor-close:hover {
+  background-color: var(--button-hover);
+}
+
+.card-editor-info {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.card-editor-search {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-editor-search:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.card-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.card-editor-empty-list {
+  color: var(--text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 0.85rem;
+}
+
+.card-editor-item {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.card-editor-item.expanded {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.card-editor-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.card-editor-arrow {
+  color: var(--accent-color);
+  font-size: 0.75rem;
+  width: 12px;
+}
+
+.card-editor-item-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-editor-badges {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: white;
+}
+
+.badge-baralho {
+  background-color: var(--accent-color);
+}
+
+.badge-oferta {
+  background-color: #ffa500;
+}
+
+.card-editor-id {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.card-editor-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.card-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+}
+
+.card-editor-field > label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-editor-field input[type="text"],
+.card-editor-field textarea {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-editor-field input[type="text"]:focus,
+.card-editor-field textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.card-editor-field textarea {
+  resize: vertical;
+  min-height: 55px;
+}
+
+.card-editor-resource-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.card-editor-empty {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.card-editor-resource-row {
+  display: grid;
+  grid-template-columns: 1fr 70px 30px;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.card-editor-resource-row select,
+.card-editor-resource-row input[type="number"] {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-editor-resource-row select:focus,
+.card-editor-resource-row input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.card-editor-add-resource {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.7rem;
+  background-color: var(--button-bg);
+  color: var(--text-primary);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-start;
+  margin-top: 0.15rem;
+}
+
+.card-editor-add-resource:hover {
+  background-color: var(--button-hover);
+}
+
+.card-editor-remove {
+  background-color: var(--error-color, #f44336);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 30px;
+  height: 28px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  padding: 0;
+}
+
+.card-editor-remove:hover {
+  opacity: 0.85;
+}
+
+.card-editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  position: sticky;
+  bottom: -1rem;
+  padding-bottom: 1rem;
+  background-color: var(--bg-secondary);
+  z-index: 5;
+  margin-top: auto;
+}
+
+.card-editor-actions button {
+  flex: 1;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.card-editor-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-editor-actions .btn-primary {
+  background-color: var(--primary-button-bg);
+  color: white;
+}
+
+.card-editor-actions .btn-primary:not(:disabled):hover {
+  background-color: var(--primary-button-hover);
+}
+
+.card-editor-actions .btn-secondary {
+  background-color: var(--button-bg);
+  color: var(--text-primary);
+}
+
+.card-editor-actions .btn-secondary:not(:disabled):hover {
+  background-color: var(--button-hover);
+}
+
+@media (max-width: 900px) {
+  .card-editor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 85%;
+    min-width: unset;
+    z-index: 100;
+    box-shadow: 4px 0 12px var(--shadow-color);
+  }
+}

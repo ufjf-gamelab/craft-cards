@@ -1,5 +1,6 @@
 :root {
   --bg-primary: #1a1a2e;
+  --bg-primary-rgb: 26, 26, 46;
   --bg-secondary: #2a2a4a;
   --bg-elevated: rgba(255, 255, 255, 0.05);
   --text-primary: #f0f0f0;
@@ -23,6 +24,7 @@
 
 .light-theme {
   --bg-primary: #d1d5db;
+  --bg-primary-rgb: 209, 213, 219;
   --bg-secondary: #f0f3f3;
   --bg-elevated: #f9fafb;
   --text-primary: #111827;
@@ -70,7 +72,7 @@
   gap: 1rem;
 }
 
-/* Banner de fim de jogo (novo) */
+/* Banner de fim de jogo */
 .game-finished-banner {
   position: sticky;
   top: 0;
@@ -278,6 +280,7 @@
 
 .game-area {
   width: 100%;
+  min-width: 300px;
   height: 100%;
   overflow: auto;
   padding-right: 1rem;
@@ -495,55 +498,20 @@
   margin: 4px 0;
 }
 
-/* Estilos para o banner de fim de jogo com diferentes tipos */
-.game-finished-banner {
-  position: sticky;
-  top: 0;
-  padding: 0.75rem 1rem;
-  text-align: center;
-  font-weight: bold;
-  z-index: 1000;
-  box-shadow: 0 2px 8px var(--shadow-color);
-  border-radius: 0 0 8px 8px;
-  margin-bottom: 0.5rem;
-}
-
-/* Banner para vitoria por pontos */
+/* Banner de fim de jogo com diferentes tipos */
 .game-finished-banner[data-reason="pontos"] {
   background-color: var(--success-color, #4caf50);
   color: white;
 }
 
-/* Banner para fim por turnos */
 .game-finished-banner[data-reason="turnos"] {
   background-color: var(--warning-color, #ff9800);
   color: white;
 }
 
-/* Banner para deadlock */
 .game-finished-banner[data-reason="deadlock"] {
   background-color: var(--error-color, #f44336);
   color: white;
-}
-
-.game-finished-banner .banner-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.reset-button {
-  background-color: white;
-  border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: 0.2s;
 }
 
 .game-finished-banner[data-reason="pontos"] .reset-button {

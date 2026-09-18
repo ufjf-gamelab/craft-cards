@@ -16,12 +16,13 @@ export enum GameActions {
   SET_ACTIVE_TAB = "set active tab",
   SET_GRAPH = "set graph",
   LOAD_GAME = "load game",
+  UPDATE_CARDS = "update cards",
 }
 
-export type GameFinishReason = 
-  | "pontos" 
-  | "turnos" 
-  | "deadlock" 
+export type GameFinishReason =
+  | "pontos"
+  | "turnos"
+  | "deadlock"
   | "none";
 
 type LoadGameActionType = {
@@ -65,6 +66,11 @@ type SetGraphActionType = {
   payload: MultiDirectedGraph;
 };
 
+type UpdateCardsActionType = {
+  type: GameActions.UPDATE_CARDS;
+  cards: CartaType[];
+};
+
 type GameActionType =
   | AumentaPontoActionType
   | DiminuiAcaoActionType
@@ -74,7 +80,8 @@ type GameActionType =
   | ToggleAnalisesActionType
   | SetActiveTabActionType
   | SetGraphActionType
-  | LoadGameActionType;
+  | LoadGameActionType
+  | UpdateCardsActionType;
 
 export function gameReducer(game: GameType, action: GameActionType): GameType {
   switch (action.type) {
@@ -114,6 +121,9 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
     case GameActions.LOAD_GAME:
       return action.payload;
 
+    case GameActions.UPDATE_CARDS:
+      return atualizarCartasAction(game, action);
+
     default:
       break;
   }
@@ -125,28 +135,31 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
   return (state: GameType, action: GameActionType): GameType => {
     const estadoAntigo = structuredClone(state);
     const novoEstado = reducer(state, action);
-    
+
     if (action.type === GameActions.PASSAR_TURNO) {
       return novoEstado;
     }
 
-    if (JSON.stringify(estadoAntigo.recursos) !== JSON.stringify(novoEstado.recursos)) {
+    if (
+      JSON.stringify(estadoAntigo.recursos) !==
+      JSON.stringify(novoEstado.recursos)
+    ) {
       const gameHistoryEntry = {
         tipo: action.type,
-        recursos: novoEstado.recursos.map(recurso => ({
+        recursos: novoEstado.recursos.map((recurso) => ({
           nome: recurso.nome,
-          quantidade: recurso.quantidade
-        }))
+          quantidade: recurso.quantidade,
+        })),
       };
 
       if (!novoEstado.historico || novoEstado.historico.length === 0) {
         const newTurn = {
           turno: 1,
-          acoes: [gameHistoryEntry]
+          acoes: [gameHistoryEntry],
         };
         return {
           ...novoEstado,
-          historico: [newTurn]
+          historico: [newTurn],
         };
       }
 
@@ -154,15 +167,15 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
       const updatedHistorico = [...novoEstado.historico];
       updatedHistorico[lastIndex] = {
         ...updatedHistorico[lastIndex],
-        acoes: [...updatedHistorico[lastIndex].acoes, gameHistoryEntry]
+        acoes: [...updatedHistorico[lastIndex].acoes, gameHistoryEntry],
       };
-      
+
       return {
         ...novoEstado,
-        historico: updatedHistorico
+        historico: updatedHistorico,
       };
     }
-    
+
     return novoEstado;
   };
 }
@@ -233,12 +246,12 @@ function passarTurnoAction(game: GameType, _action: PassarTurnoActionType) {
 
   // Repoe a mao com 3 cartas do baralho
   reporMao(newGame);
-  
+
   // Repoe a oferta
   reporOferta(newGame);
 
   // Adiciona 3 acoes para o proximo turno
-  const acaoRecurso = newGame.recursos.find(r => r.nome === "acao");
+  const acaoRecurso = newGame.recursos.find((r) => r.nome === "acao");
   if (acaoRecurso) {
     acaoRecurso.quantidade = 3;
   } else {
@@ -247,18 +260,18 @@ function passarTurnoAction(game: GameType, _action: PassarTurnoActionType) {
 
   const novoTurno = {
     turno: (newGame.historico?.length || 0) + 1,
-    acoes: []
+    acoes: [],
   };
 
   return {
     ...newGame,
-    historico: [...(newGame.historico || []), novoTurno]
+    historico: [...(newGame.historico || []), novoTurno],
   };
 }
 
 function aumentaPontoAction(game: GameType, _action: AumentaPontoActionType) {
   const newGame = structuredClone(game);
-  const pontuacao = newGame.recursos.find(r => r.nome === "pontuacao");
+  const pontuacao = newGame.recursos.find((r) => r.nome === "pontuacao");
   if (pontuacao) {
     pontuacao.quantidade += 1;
   } else {
@@ -316,6 +329,25 @@ function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
   return newGame;
 }
 
+function atualizarCartasAction(
+  game: GameType,
+  action: UpdateCardsActionType
+): GameType {
+  const mapa = new Map(action.cards.map((c) => [c.id, c]));
+  const substituir = (c: CartaType) => mapa.get(c.id) ?? c;
+
+  return {
+    ...game,
+    baralho: game.baralho.map(substituir),
+    descarte: game.descarte.map(substituir),
+    baralhoDaOferta: game.baralhoDaOferta.map(substituir),
+    descarteDaOferta: game.descarteDaOferta.map(substituir),
+    mao: game.mao.map(substituir),
+    emJogo: game.emJogo.map(substituir),
+    oferta: game.oferta.map(substituir),
+  };
+}
+
 function shuffleDeck(array: Array<CartaType>, seed: string) {
   const seededRandom = new SeededRandom(seed);
   return seededRandom.shuffle(array);
@@ -324,7 +356,7 @@ function shuffleDeck(array: Array<CartaType>, seed: string) {
 export function setupNewGame(game: GameType, seed?: string): GameType {
   const newGame = structuredClone(game);
   const gameSeed = seed || Math.random().toString(36).substring(2, 15);
-  
+
   newGame.seed = gameSeed;
 
   const seededRandom = new SeededRandom(gameSeed);
@@ -335,23 +367,25 @@ export function setupNewGame(game: GameType, seed?: string): GameType {
   reporMao(newGame);
 
   // Garante que o recurso "acao" existe e tem 3 unidades
-  const acaoRecurso = newGame.recursos.find(r => r.nome === "acao");
+  const acaoRecurso = newGame.recursos.find((r) => r.nome === "acao");
   if (acaoRecurso) {
     acaoRecurso.quantidade = 3;
   } else {
     newGame.recursos.push({ nome: "acao", quantidade: 3 });
   }
 
-  if (!newGame.recursos.some(r => r.nome === "pontuacao")) {
+  if (!newGame.recursos.some((r) => r.nome === "pontuacao")) {
     newGame.recursos.push({ nome: "pontuacao", quantidade: 0 });
   }
 
   return {
     ...newGame,
-    historico: [{
-      turno: 1,
-      acoes: []
-    }],
+    historico: [
+      {
+        turno: 1,
+        acoes: [],
+      },
+    ],
     analisesVisiveis: false,
     activeTab: "graph",
     resourceGraph: undefined,
@@ -401,7 +435,7 @@ export class SeededRandom {
 }
 
 function getPontuacao(game: GameType): number {
-  const recursoPontuacao = game.recursos.find(r => r.nome === "pontuacao");
+  const recursoPontuacao = game.recursos.find((r) => r.nome === "pontuacao");
   return recursoPontuacao ? recursoPontuacao.quantidade : 0;
 }
 
@@ -411,19 +445,24 @@ function getTurnoAtual(game: GameType): number {
 
 export function canGameContinue(game: GameType): boolean {
   const temCartasNoBaralho = game.baralho.length > 0 || game.descarte.length > 0;
-  const temCartasNaOferta = game.baralhoDaOferta.length > 0 || game.descarteDaOferta.length > 0;
-  
+  const temCartasNaOferta =
+    game.baralhoDaOferta.length > 0 || game.descarteDaOferta.length > 0;
+
   if (!temCartasNoBaralho && !temCartasNaOferta && game.mao.length === 0) {
     return false;
   }
-  
+
   return true;
 }
 
-export function checkGameFinished(game: GameType): { finished: boolean; reason: GameFinishReason; score: number } {
+export function checkGameFinished(game: GameType): {
+  finished: boolean;
+  reason: GameFinishReason;
+  score: number;
+} {
   const pontosParaVencer = game.pontosParaVencer ?? 10;
   const pontosAtuais = getPontuacao(game);
-  
+
   if (pontosAtuais >= pontosParaVencer) {
     console.log("-> VENCEU POR PONTOS!");
     return { finished: true, reason: "pontos", score: pontosAtuais };
@@ -431,25 +470,25 @@ export function checkGameFinished(game: GameType): { finished: boolean; reason: 
 
   const turnosMaximos = game.turnosMaximos ?? 30;
   const turnoAtual = getTurnoAtual(game);
-  
+
   if (turnoAtual > turnosMaximos) {
     console.log("-> VENCEU POR TURNOS!");
     return { finished: true, reason: "turnos", score: pontosAtuais };
   }
 
-  const acaoRecurso = game.recursos.find(r => r.nome === "acao");
+  const acaoRecurso = game.recursos.find((r) => r.nome === "acao");
   const hasActions = acaoRecurso ? acaoRecurso.quantidade > 0 : false;
 
-  const playableCards = game.mao.filter(card =>
-    card.custo.every(cost => {
-      const resource = game.recursos.find(r => r.nome === cost.nome);
+  const playableCards = game.mao.filter((card) =>
+    card.custo.every((cost) => {
+      const resource = game.recursos.find((r) => r.nome === cost.nome);
       return resource && resource.quantidade >= cost.quantidade;
     })
   );
 
-  const buyableCards = game.oferta.filter(card =>
-    card.custo.every(cost => {
-      const resource = game.recursos.find(r => r.nome === cost.nome);
+  const buyableCards = game.oferta.filter((card) =>
+    card.custo.every((cost) => {
+      const resource = game.recursos.find((r) => r.nome === cost.nome);
       return resource && resource.quantidade >= cost.quantidade;
     })
   );
@@ -458,12 +497,14 @@ export function checkGameFinished(game: GameType): { finished: boolean; reason: 
 
   if (!hasActions && !canPlayAnyCard) {
     const podeContinuar = canGameContinue(game);
-    
+
     if (!podeContinuar) {
-      console.log("-> DEADLOCK PERMANENTE! Sem acoes, sem cartas e sem como continuar.");
+      console.log(
+        "-> DEADLOCK PERMANENTE! Sem acoes, sem cartas e sem como continuar."
+      );
       return { finished: true, reason: "deadlock", score: pontosAtuais };
     }
-    
+
     console.log("-> Sem acoes e sem cartas jogaveis, mas pode passar turno.");
     return { finished: false, reason: "none", score: pontosAtuais };
   }

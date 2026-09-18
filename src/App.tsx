@@ -28,6 +28,7 @@ import { CartaType, GAME_INITIAL } from "./data/cartas";
 import PersistenceDropdown from "./PersistanceDropdown.tsx";
 import { availableModels } from "./models/index.ts";
 import TutorialModal from "./TutorialModal.tsx";
+import CardEditor, { DeckMembership } from "./CardEditor.tsx";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
 
@@ -49,6 +50,11 @@ function App() {
   const [customModel, setCustomModel] = useState<any>(null);
   const [isCustomModel, setIsCustomModel] = useState(false);
   const customModelFileInputRef = useRef<HTMLInputElement>(null);
+
+  // ---- Estado do editor de cartas ----
+  const [cardEditorOpen, setCardEditorOpen] = useState(false);
+  // Contador usado para forçar remontagem do painel de análises (grafo, Petri net, métricas)
+  const [modelVersion, setModelVersion] = useState(0);
 
   useEffect(() => {
     if (isCustomModel || !currentModelKey) return;
@@ -135,6 +141,7 @@ function App() {
         setFinishReason("none");
         setIsCustomModel(false);
         setCustomModel(null);
+        setCardEditorOpen(false);
         dispatch({
           type: GameActions.LOAD_GAME,
           payload: {
@@ -170,6 +177,7 @@ function App() {
         setFinishReason("none");
         setIsCustomModel(false);
         setCustomModel(null);
+        setCardEditorOpen(false);
         dispatch({
           type: GameActions.LOAD_GAME,
           payload: {
@@ -229,7 +237,9 @@ function App() {
         console.error(
           "JSON invalido: faltam campos obrigatorios (baralho, baralhoDaOferta, recursos)"
         );
-        alert("Erro: O arquivo JSON precisa ter os campos: baralho, baralhoDaOferta, recursos");
+        alert(
+          "Erro: O arquivo JSON precisa ter os campos: baralho, baralhoDaOferta, recursos"
+        );
         return;
       }
 
@@ -238,21 +248,25 @@ function App() {
         baralho: parsedModel.baralho,
         baralhoDaOferta: parsedModel.baralhoDaOferta,
         recursos: parsedModel.recursos,
-        pontosParaVencer: parsedModel.pontosParaVencer ?? GAME_INITIAL.pontosParaVencer,
+        pontosParaVencer:
+          parsedModel.pontosParaVencer ?? GAME_INITIAL.pontosParaVencer,
         turnosMaximos: parsedModel.turnosMaximos ?? GAME_INITIAL.turnosMaximos,
         ...(parsedModel.seed !== undefined && { seed: parsedModel.seed }),
       };
 
       setCustomModel(fullModel);
       setIsCustomModel(true);
+      setCardEditorOpen(false);
 
       const newGame = setupNewGame(fullModel);
       setGameFinished(false);
       setFinalScore(null);
       setFinishReason("none");
       dispatch({ type: GameActions.LOAD_GAME, payload: newGame });
-      
-      alert(`Regras carregadas! Vitoria: ${fullModel.pontosParaVencer} pontos ou ${fullModel.turnosMaximos} turnos.`);
+
+      alert(
+        `Regras carregadas! Vitoria: ${fullModel.pontosParaVencer} pontos ou ${fullModel.turnosMaximos} turnos.`
+      );
     } catch (error) {
       console.error("Erro ao ler/parsear o JSON:", error);
       alert("Erro ao ler o arquivo JSON. Verifique se o formato esta correto.");
@@ -265,6 +279,7 @@ function App() {
     setIsCustomModel(false);
     setCustomModel(null);
     setCurrentModelKey(key);
+    setCardEditorOpen(false);
   };
 
   const playableCards = React.useMemo(() => {
@@ -289,6 +304,59 @@ function App() {
     return Array.from(map.values());
   }, [gameModel, customModel, isCustomModel]);
 
+  const availableResources = React.useMemo(() => {
+    const set = new Set<string>();
+    game.recursos.forEach((r) => set.add(r.nome));
+    allCards.forEach((c) => {
+      c.custo.forEach((r) => set.add(r.nome));
+      c.ganho.forEach((r) => set.add(r.nome));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [game.recursos, allCards]);
+
+  const deckMembership: DeckMembership = React.useMemo(() => {
+    const sourceModel = isCustomModel ? customModel : gameModel;
+    if (!sourceModel) return {};
+    const baralhoIds = new Set<string>(
+      sourceModel.baralho.map((c: CartaType) => c.id)
+    );
+    const ofertaIds = new Set<string>(
+      sourceModel.baralhoDaOferta.map((c: CartaType) => c.id)
+    );
+    const map: DeckMembership = {};
+    allCards.forEach((c) => {
+      map[c.id] = {
+        baralho: baralhoIds.has(c.id),
+        oferta: ofertaIds.has(c.id),
+      };
+    });
+    return map;
+  }, [allCards, gameModel, customModel, isCustomModel]);
+
+  const handleCardEditorSave = (updatedCards: CartaType[]) => {
+    const map = new Map(updatedCards.map((c) => [c.id, c]));
+
+    const patchModel = (model: any) => ({
+      ...model,
+      baralho: model.baralho.map((c: CartaType) => map.get(c.id) ?? c),
+      baralhoDaOferta: model.baralhoDaOferta.map(
+        (c: CartaType) => map.get(c.id) ?? c
+      ),
+    });
+
+    if (isCustomModel) {
+      setCustomModel((prev: any) => (prev ? patchModel(prev) : prev));
+    } else {
+      setGameModel((prev: any) => (prev ? patchModel(prev) : prev));
+    }
+
+    // Atualiza as cartas ativas no estado do jogo (mão, baralho, oferta, etc.)
+    dispatch({ type: GameActions.UPDATE_CARDS, cards: updatedCards });
+
+    // Força remontagem do painel de análises (grafo, Petri net, métricas)
+    setModelVersion((v) => v + 1);
+  };
+
   const getFinishMessage = () => {
     switch (finishReason) {
       case "pontos":
@@ -304,7 +372,10 @@ function App() {
 
   return (
     <div className="game-app">
-      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
+      <TutorialModal
+        open={tutorialOpen}
+        onClose={() => setTutorialOpen(false)}
+      />
 
       {gameFinished && (
         <div className="game-finished-banner" data-reason={finishReason}>
@@ -380,6 +451,13 @@ function App() {
             {game.analisesVisiveis ? "Ocultar Analises" : "Mostrar Analises"}
           </button>
           <button
+            className="control-button"
+            onClick={() => setCardEditorOpen((v) => !v)}
+            title="Editar cartas do modelo atual"
+          >
+            {cardEditorOpen ? "Fechar Editor" : "Editar Cartas"}
+          </button>
+          <button
             className="control-button primary"
             onClick={passarTurno}
             disabled={gameFinished}
@@ -399,11 +477,11 @@ function App() {
           <button
             className="control-button"
             onClick={() => setTutorialOpen(true)}
-            style={{ 
-              backgroundColor: "var(--button-bg)", 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "4px" 
+            style={{
+              backgroundColor: "var(--button-bg)",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
             }}
             title="Abrir tutorial sobre como usar modelos JSON"
           >
@@ -429,6 +507,17 @@ function App() {
       />
 
       <div className="main-content">
+        {cardEditorOpen && (
+          <CardEditor
+            key={`editor-${isCustomModel ? "custom" : currentModelKey}`}
+            onClose={() => setCardEditorOpen(false)}
+            cards={allCards}
+            availableResources={availableResources}
+            deckMembership={deckMembership}
+            onSave={handleCardEditorSave}
+          />
+        )}
+
         <div className="game-area">
           <div className="game-board">
             <div className="game-row top-row">
@@ -441,23 +530,32 @@ function App() {
         </div>
 
         {game.analisesVisiveis && (
-          <div className="analises-area visible">
+          <div
+            key={`analises-${modelVersion}`}
+            className="analises-area visible"
+          >
             <div className="analises-container">
               <div className="analises-tabs">
                 <button
-                  className={`tab-button ${game.activeTab === "petriNet" ? "active" : ""}`}
+                  className={`tab-button ${
+                    game.activeTab === "petriNet" ? "active" : ""
+                  }`}
                   onClick={() => setActiveTab("petriNet")}
                 >
                   Petri Net
                 </button>
                 <button
-                  className={`tab-button ${game.activeTab === "graph" ? "active" : ""}`}
+                  className={`tab-button ${
+                    game.activeTab === "graph" ? "active" : ""
+                  }`}
                   onClick={() => setActiveTab("graph")}
                 >
                   Graph
                 </button>
                 <button
-                  className={`tab-button ${game.activeTab === "historico" ? "active" : ""}`}
+                  className={`tab-button ${
+                    game.activeTab === "historico" ? "active" : ""
+                  }`}
                   onClick={() =>
                     dispatch({
                       type: GameActions.SET_ACTIVE_TAB,
