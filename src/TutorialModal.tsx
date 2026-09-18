@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -23,181 +23,128 @@ interface TutorialModalProps {
   onClose: () => void;
 }
 
-const getModalTheme = () => {
-  const isLightTheme = document.documentElement.classList.contains('light-theme');
-  
-  return createTheme({
-    palette: {
-      mode: isLightTheme ? 'light' : 'dark',
-      primary: {
-        main: isLightTheme ? '#2563eb' : '#646cff',
-      },
-      background: {
-        default: isLightTheme ? '#d1d5db' : '#1a1a2e',
-        paper: isLightTheme ? '#f0f3f3' : '#2a2a4a',
-      },
-      text: {
-        primary: isLightTheme ? '#111827' : '#f0f0f0',
-        secondary: isLightTheme ? '#374151' : '#b0b0b0',
-      },
-    },
-    components: {
-      MuiDialog: {
-        styleOverrides: {
-          paper: {
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            backgroundImage: 'none',
-          },
-        },
-      },
-      MuiDialogTitle: {
-        styleOverrides: {
-          root: {
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            borderBottom: '1px solid var(--border-color)',
-          },
-        },
-      },
-      MuiDialogContent: {
-        styleOverrides: {
-          root: {
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-          },
-        },
-      },
-      MuiDialogActions: {
-        styleOverrides: {
-          root: {
-            backgroundColor: 'var(--bg-secondary)',
-            borderTop: '1px solid var(--border-color)',
-          },
-        },
-      },
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            color: 'var(--text-primary)',
-          },
-          contained: {
-            backgroundColor: 'var(--accent-color)',
-            color: '#ffffff',
-            '&:hover': {
-              backgroundColor: 'var(--accent-hover)',
-            },
-          },
-          outlined: {
-            borderColor: 'var(--border-color)',
-            color: 'var(--text-primary)',
-            '&:hover': {
-              borderColor: 'var(--accent-color)',
-              backgroundColor: 'var(--bg-elevated)',
-            },
-          },
-        },
-      },
-      MuiStepLabel: {
-        styleOverrides: {
-          label: {
-            color: 'var(--text-primary)',
-            '&.Mui-active': {
-              color: 'var(--accent-color)',
-            },
-            '&.Mui-completed': {
-              color: 'var(--success-color)',
-            },
-          },
-        },
-      },
-      MuiStepIcon: {
-        styleOverrides: {
-          root: {
-            color: 'var(--text-secondary)',
-            '&.Mui-active': {
-              color: 'var(--accent-color)',
-            },
-            '&.Mui-completed': {
-              color: 'var(--success-color)',
-            },
-          },
-          text: {
-            fill: 'var(--text-primary)',
-          },
-        },
-      },
-      MuiPaper: {
-        styleOverrides: {
-          root: {
-            backgroundColor: 'var(--bg-elevated)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-          },
-        },
-      },
-      MuiAlert: {
-        styleOverrides: {
-          root: {
-            backgroundColor: 'var(--bg-elevated)',
-            color: 'var(--text-primary)',
-          },
-          standardInfo: {
-            backgroundColor: 'rgba(33, 150, 243, 0.1)',
-            color: 'var(--text-primary)',
-          },
-          standardWarning: {
-            backgroundColor: 'rgba(255, 152, 0, 0.1)',
-            color: 'var(--text-primary)',
-          },
-          standardSuccess: {
-            backgroundColor: 'rgba(76, 175, 80, 0.1)',
-            color: 'var(--text-primary)',
-          },
-          standardError: {
-            backgroundColor: 'rgba(244, 67, 54, 0.1)',
-            color: 'var(--text-primary)',
-          },
-        },
-      },
-      MuiTypography: {
-        styleOverrides: {
-          root: {
-            color: 'var(--text-primary)',
-          },
-          body2: {
-            color: 'var(--text-secondary)',
-          },
-        },
-      },
-      MuiChip: {
-        styleOverrides: {
-          root: {
-            backgroundColor: 'var(--chip-bg)',
-            color: 'var(--text-primary)',
-          },
-        },
-      },
-    },
-  });
-};
-
 const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
   const [activeStep, setActiveStep] = useState(0);
-  const [theme, setTheme] = useState(getModalTheme());
+  const [isLightTheme, setIsLightTheme] = useState(
+    document.documentElement.classList.contains('light-theme')
+  );
 
-  React.useEffect(() => {
+  useEffect(() => {
     const observer = new MutationObserver(() => {
-      setTheme(getModalTheme());
+      setIsLightTheme(document.documentElement.classList.contains('light-theme'));
     });
-    
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class'],
     });
-    
     return () => observer.disconnect();
   }, []);
+
+  const theme = useMemo(() => {
+    return createTheme({
+      palette: {
+        mode: isLightTheme ? 'light' : 'dark',
+        primary: {
+          main: isLightTheme ? '#2563eb' : '#646cff',
+        },
+        background: {
+          default: isLightTheme ? '#d1d5db' : '#1a1a2e',
+          paper: isLightTheme ? '#f0f3f3' : '#2a2a4a',
+        },
+        text: {
+          primary: isLightTheme ? '#111827' : '#f0f0f0',
+          secondary: isLightTheme ? '#374151' : '#b0b0b0',
+        },
+      },
+      components: {
+        MuiDialog: {
+          styleOverrides: {
+            paper: {
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              backgroundImage: 'none',
+            },
+          },
+        },
+        MuiDialogTitle: {
+          styleOverrides: {
+            root: {
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              borderBottom: '1px solid var(--border-color)',
+            },
+          },
+        },
+        MuiDialogContent: {
+          styleOverrides: {
+            root: {
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+            },
+          },
+        },
+        MuiDialogActions: {
+          styleOverrides: {
+            root: {
+              backgroundColor: 'var(--bg-secondary)',
+              borderTop: '1px solid var(--border-color)',
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              color: 'var(--text-primary)',
+            },
+            contained: {
+              backgroundColor: 'var(--accent-color)',
+              color: '#ffffff',
+              '&:hover': {
+                backgroundColor: 'var(--accent-hover)',
+              },
+            },
+            outlined: {
+              borderColor: 'var(--border-color)',
+              color: 'var(--text-primary)',
+              '&:hover': {
+                borderColor: 'var(--accent-color)',
+                backgroundColor: 'var(--bg-elevated)',
+              },
+            },
+          },
+        },
+        MuiStepLabel: {
+          styleOverrides: {
+            label: {
+              color: 'var(--text-primary)',
+              '&.Mui-active': {
+                color: 'var(--accent-color)',
+              },
+              '&.Mui-completed': {
+                color: 'var(--success-color)',
+              },
+            },
+          },
+        },
+        MuiStepIcon: {
+          styleOverrides: {
+            root: {
+              color: 'var(--text-secondary)',
+              '&.Mui-active': {
+                color: 'var(--accent-color)',
+              },
+              '&.Mui-completed': {
+                color: 'var(--success-color)',
+              },
+            },
+            text: {
+              fill: 'var(--text-primary)',
+            },
+          },
+        },
+      },
+    });
+  }, [isLightTheme]);
 
   const steps = [
     'Visão Geral',
@@ -217,10 +164,10 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
       <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
         <DialogTitle>
           <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" style={{ color: 'var(--text-primary)' }}>
+            <Typography variant="h6">
               Tutorial - Ferramenta de Balanceamento de Jogos de Cartas
             </Typography>
-            <IconButton onClick={onClose} size="small" style={{ color: 'var(--text-primary)' }}>
+            <IconButton onClick={onClose} size="small">
               ✕
             </IconButton>
           </Box>
@@ -238,7 +185,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             {/* PASSO 0 - VISÃO GERAL */}
             {activeStep === 0 && (
               <Box>
-                <Typography variant="h5" gutterBottom style={{ color: 'var(--accent-color)' }}>
+                <Typography variant="h5" gutterBottom>
                   Bem-vindo à Ferramenta de Balanceamento
                 </Typography>
                 <Typography paragraph>
@@ -294,7 +241,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             {/* PASSO 1 - JOGABILIDADE (EXEMPLO) */}
             {activeStep === 1 && (
               <Box>
-                <Typography variant="h5" gutterBottom style={{ color: 'var(--success-color)' }}>
+                <Typography variant="h5" gutterBottom>
                   Jogabilidade de Exemplo
                 </Typography>
                 <Typography paragraph>
@@ -349,7 +296,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             {/* PASSO 2 - SISTEMA DE VITÓRIA */}
             {activeStep === 2 && (
               <Box>
-                <Typography variant="h5" gutterBottom style={{ color: 'var(--warning-color)' }}>
+                <Typography variant="h5" gutterBottom>
                   Sistema de Vitória e Deadlocks
                 </Typography>
                 
@@ -385,11 +332,11 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                   </Typography>
                   <Typography>
                     <strong>Deadlock Temporário:</strong> O jogador está sem ações, mas pode comprar
-                    cartas que geram ação (ex: "Descansar") – alerta <strong style={{ color: '#FFC107' }}>AMARELO</strong> na Rede de Petri.
+                    cartas que geram ação (ex: "Descansar") – alerta <span style={{ color: '#FFC107' }}>AMARELO</span> na Rede de Petri.
                   </Typography>
                   <Typography>
                     <strong>Deadlock Permanente:</strong> Não há nenhuma carta que produza ação em
-                    lugar algum – alerta <strong style={{ color: '#f44336' }}>VERMELHO</strong>. O jogo
+                    lugar algum – alerta <span style={{ color: '#f44336' }}>VERMELHO</span>. O jogo
                     não pode continuar.
                   </Typography>
                 </Paper>
@@ -406,7 +353,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             {/* PASSO 3 - ANÁLISE - GRAFO */}
             {activeStep === 3 && (
               <Box>
-                <Typography variant="h5" gutterBottom style={{ color: '#2196F3' }}>
+                <Typography variant="h5" gutterBottom>
                   Análise de Grafo
                 </Typography>
                 
@@ -463,14 +410,17 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                     Análise de Balanceamento Automática:
                   </Typography>
-                  <Typography>
-                    O painel de balanceamento identifica automaticamente:
-                    <ul>
-                      <li><strong>Gargalos:</strong> recursos muito consumidos e pouco produzidos.</li>
-                      <li><strong>Recursos inúteis:</strong> produzidos mas nunca consumidos.</li>
-                      <li><strong>Caminhos longos:</strong> cadeias de produção extensas.</li>
-                      <li><strong>Padrões recorrentes:</strong> sequências que aparecem com frequência.</li>
-                    </ul>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Gargalos:</strong> recursos muito consumidos e pouco produzidos.
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Recursos inúteis:</strong> produzidos mas nunca consumidos.
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Caminhos longos:</strong> cadeias de produção extensas.
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    <strong>Padrões recorrentes:</strong> sequências que aparecem com frequência.
                   </Typography>
                 </Paper>
 
@@ -485,7 +435,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             {/* PASSO 4 - ANÁLISE - REDE DE PETRI */}
             {activeStep === 4 && (
               <Box>
-                <Typography variant="h5" gutterBottom style={{ color: 'var(--warning-color)' }}>
+                <Typography variant="h5" gutterBottom>
                   Rede de Petri
                 </Typography>
                 
@@ -503,7 +453,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                     quantidade atual (tokens).
                   </Typography>
                   <Typography>
-                    <strong>Transições (Retângulos Azuis):</strong> Cartas. Ficam <strong style={{ color: '#FFC107' }}>amarelas</strong> quando habilitadas.
+                    <strong>Transições (Retângulos Azuis):</strong> Cartas. Ficam <span style={{ color: '#FFC107' }}>amarelas</span> quando habilitadas.
                   </Typography>
                   <Typography>
                     <strong>Arcos de Entrada (Vermelhos):</strong> Consumo de recursos.
@@ -554,7 +504,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
 
                 <Alert severity="info">
                   <Typography variant="body2">
-                    Transições <strong style={{ color: '#FFC107' }}>amarelas</strong> estão
+                    Transições <span style={{ color: '#FFC107' }}>amarelas</span> estão
                     habilitadas – você tem recursos suficientes para dispará-las.
                   </Typography>
                 </Alert>
@@ -564,7 +514,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             {/* PASSO 5 - ÁRVORE DE ALCANÇABILIDADE */}
             {activeStep === 5 && (
               <Box>
-                <Typography variant="h5" gutterBottom style={{ color: '#9C27B0' }}>
+                <Typography variant="h5" gutterBottom>
                   Árvore de Alcançabilidade
                 </Typography>
                 
@@ -579,31 +529,37 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                     Características:
                   </Typography>
-                  <Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Expansão Automática:</strong> A árvore é gerada recursivamente a partir da
                     marcação inicial, disparando todas as transições habilitadas.
                   </Typography>
-                  <Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Detecção de Omega (ω):</strong> Identifica recursos que podem crescer
                     indefinidamente – representados como <strong>ω</strong>.
                   </Typography>
-                  <Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Controle de Expansão:</strong> O slider de expansões define quantas
                     camadas extras a árvore explorará além dos estados ω (útil para evitar explosão
                     combinatória).
                   </Typography>
-                  <Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Visualização Hierárquica:</strong> Navegue pelos estados clicando nos nós
                     da árvore.
                   </Typography>
-                  <Typography>
+                  <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Tabela Detalhada:</strong> Lista todos os estados gerados com:
-                    <ul>
-                      <li>Marcação (quantidades de cada recurso)</li>
-                      <li>Transição que levou ao estado</li>
-                      <li>Tipo: inicial, ω, cíclico, terminal, simulação</li>
-                      <li>Botão para centralizar o nó na visualização</li>
-                    </ul>
+                  </Typography>
+                  <Typography variant="body2" sx={{ ml: 2, mb: 0.5 }}>
+                    • Marcação (quantidades de cada recurso)
+                  </Typography>
+                  <Typography variant="body2" sx={{ ml: 2, mb: 0.5 }}>
+                    • Transição que levou ao estado
+                  </Typography>
+                  <Typography variant="body2" sx={{ ml: 2, mb: 0.5 }}>
+                    • Tipo: inicial, ω, cíclico, terminal, simulação
+                  </Typography>
+                  <Typography variant="body2" sx={{ ml: 2, mb: 0.5 }}>
+                    • Botão para centralizar o nó na visualização
                   </Typography>
                 </Paper>
 
@@ -635,7 +591,7 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ open, onClose }) => {
             {/* PASSO 6 - MODELOS JSON */}
             {activeStep === 6 && (
               <Box>
-                <Typography variant="h5" gutterBottom style={{ color: 'var(--accent-color)' }}>
+                <Typography variant="h5" gutterBottom>
                   Modelos JSON Personalizados
                 </Typography>
                 
