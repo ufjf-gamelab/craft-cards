@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import "./ListaDeCartas.css";
+
 type ListaDeCartasProps = {
   children: Array<ReactNode>;
   closed?: boolean;
@@ -11,9 +13,13 @@ export default function ListaDeCartas({
   closed = false,
   facedown = false,
 }: ListaDeCartasProps) {
+  const { t } = useTranslation();
+
   return (
     <div className={`listaDeCartas ${closed && "closed"} ${facedown && "facedown"}`}>
-      <div className="tamanho">{cartas.length} Cartas</div>
+      <div className="tamanho">
+        {t("game.cards", { count: cartas.length })}
+      </div>
       <div className="cartas">{cartas}</div>
     </div>
   );

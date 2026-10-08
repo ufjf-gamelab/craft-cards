@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type PersistenceDropdownProps = {
   onSaveGame: () => Promise<void> | void;
@@ -9,14 +10,15 @@ type PersistenceDropdownProps = {
   onLoadCustomModel: () => void;
 };
 
-function PersistenceDropdown({ 
-  onSaveGame, 
-  onLoadGame, 
-  onSaveToFile, 
-  onLoadFromFile, 
+function PersistenceDropdown({
+  onSaveGame,
+  onLoadGame,
+  onSaveToFile,
+  onLoadFromFile,
   onResetGame,
-  onLoadCustomModel
+  onLoadCustomModel,
 }: PersistenceDropdownProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLoadFromFile = () => {
@@ -31,48 +33,52 @@ function PersistenceDropdown({
 
   return (
     <div className="persistence-dropdown">
-      <button 
+      <button
         className="control-button dropdown-toggle"
         onClick={() => setIsOpen(!isOpen)}
       >
-        Persistencia ▼
+        {t("persistence.title")} ▼
       </button>
-      
+
       {isOpen && (
         <div className="dropdown-menu">
           <div className="dropdown-group">
-            <div className="dropdown-group-title">SALVAR/CARREGAR JOGO</div>
+            <div className="dropdown-group-title">
+              {t("persistence.save_choose")}
+            </div>
             <button className="dropdown-item" onClick={onSaveGame}>
-              Salvar no navegador
+              {t("persistence.save_browser")}
             </button>
             <button className="dropdown-item" onClick={onLoadGame}>
-              Carregar do navegador
+              {t("persistence.load_browser")}
             </button>
             <button className="dropdown-item" onClick={onSaveToFile}>
-              Exportar para arquivo
+              {t("persistence.export_file")}
             </button>
             <button className="dropdown-item" onClick={handleLoadFromFile}>
-              Importar de arquivo
+              {t("persistence.import_file")}
             </button>
           </div>
-          
+
           <div className="dropdown-divider"></div>
-          
+
           <div className="dropdown-group">
-            <div className="dropdown-group-title">CONFIGURAR JOGO</div>
-            <button 
-              className="dropdown-item" 
+            <div className="dropdown-group-title">
+              {t("persistence.config_game")}
+            </div>
+            <button
+              className="dropdown-item"
               onClick={handleLoadCustomModel}
-              title="Carrega um arquivo JSON com definicoes de cartas, recursos e regras. Inicia um novo jogo."
+              title={t("persistence.load_rules_tooltip")}
             >
-              Carregar regras (JSON)
+              {t("persistence.load_rules")}
             </button>
           </div>
-          
+
           <div className="dropdown-divider"></div>
-          
+
           <button className="dropdown-item warning" onClick={onResetGame}>
-            Novo Jogo
+            {t("persistence.new_game")}
           </button>
         </div>
       )}

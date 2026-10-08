@@ -6,7 +6,24 @@ import eccentricity from "graphology-metrics/node/eccentricity";
 import { weightedDegree } from "graphology-metrics/node/weighted-degree";
 import { connectedComponents } from "graphology-components";
 import simpleSize from "graphology-metrics/graph/simple-size";
-import { Paper, Typography, Box, Tabs, Tab, List, ListItemButton, ListItemIcon, ListItemText, ListItem, Collapse, IconButton, Tooltip, Chip, Divider } from "@mui/material";
+import {
+  Paper,
+  Typography,
+  Box,
+  Tabs,
+  Tab,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  ListItem,
+  Collapse,
+  IconButton,
+  Tooltip,
+  Chip,
+  Divider,
+} from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 export const NODE_COLORS = {
   resource: "#4CAF50",
@@ -564,6 +581,7 @@ const WarningIcon = () => <span style={{ color: "var(--warning-color)", fontWeig
 const LightbulbIcon = () => <span style={{ color: "var(--accent-color)", fontWeight: "bold" }}>💡</span>;
 
 const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"problems" | "warnings" | "suggestions">("problems");
 
   const generateProblems = (): Problem[] => {
@@ -578,10 +596,10 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
           problems.push({
             id: `unreachable-${start}-${end}`,
             type: "error",
-            message: `Recurso "${end}" não pode ser alcançado a partir de "${start}"`,
+            message: t("problems.unreachable_message", { start, end }),
             resource: end,
-            details: `Não existe caminho de produção para obter ${end} a partir de ${start}`,
-            fix: `Adicione uma carta que produza ${end} ou crie uma cadeia de produção intermediária`,
+            details: t("problems.unreachable_details", { start, end }),
+            fix: t("problems.unreachable_fix", { end }),
           });
         }
       });
@@ -592,10 +610,10 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `unused-${resource.name}`,
           type: "warning",
-          message: `Recurso "${resource.name}" é produzido mas não é consumido`,
+          message: t("problems.unused_message", { name: resource.name }),
           resource: resource.name,
-          details: `Produzido ${resource.inDegree} vezes mas nunca consumido`,
-          fix: `Adicione cartas que consumam ${resource.name} ou remova suas fontes de produção`,
+          details: t("problems.unused_details", { count: resource.inDegree }),
+          fix: t("problems.unused_fix", { name: resource.name }),
         });
       }
     });
@@ -605,22 +623,21 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `consumed-not-produced-${resource.name}`,
           type: "warning",
-          message: `Recurso "${resource.name}" é consumido mas nunca é produzido`,
+          message: t("problems.consumed_not_produced_message", { name: resource.name }),
           resource: resource.name,
-          details: `Consumido ${resource.outDegree} vezes, mas nenhuma carta o produz`,
-          fix: `Adicione uma carta que produza "${resource.name}" ou remova seu consumo`,
+          details: t("problems.consumed_not_produced_details", { count: resource.outDegree }),
+          fix: t("problems.consumed_not_produced_fix", { name: resource.name }),
         });
       }
     });
-    // ========================================================================
 
     if (!metrics.connectivity.isConnected) {
       problems.push({
         id: "disconnected-graph",
         type: "warning",
-        message: "O grafo possui componentes desconexos",
-        details: `Existem ${metrics.connectivity.stronglyConnectedComponents} subgrafos não conectados entre si`,
-        fix: "Considere adicionar cartas que conectem os diferentes subsistemas de recursos",
+        message: t("problems.disconnected_message"),
+        details: t("problems.disconnected_details", { count: metrics.connectivity.stronglyConnectedComponents }),
+        fix: t("problems.disconnected_fix"),
       });
     }
 
@@ -629,10 +646,10 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       problems.push({
         id: "high-demand",
         type: "warning",
-        message: `Recurso "${top.name}" tem alta demanda (${top.outDegree} usos)`,
+        message: t("problems.high_demand_message", { name: top.name, count: top.outDegree }),
         resource: top.name,
-        details: `É consumido por ${top.outDegree} cartas mas produzido apenas ${top.inDegree} vezes`,
-        fix: `Balanceie adicionando mais fontes de "${top.name}" ou reduzindo suas dependências`,
+        details: t("problems.high_demand_details", { count: top.outDegree, inDegree: top.inDegree }),
+        fix: t("problems.high_demand_fix", { name: top.name }),
       });
     }
 
@@ -640,9 +657,11 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       problems.push({
         id: "cycles-detected",
         type: metrics.pathAnalysis.cycleExamples.length > 2 ? "warning" : "info",
-        message: `${metrics.pathAnalysis.cycleExamples.length} ciclos de dependência detectados`,
-        details: `Exemplo: ${metrics.pathAnalysis.cycleExamples[0].join(" → ")} → ${metrics.pathAnalysis.cycleExamples[0][0]}`,
-        fix: "Ciclos podem criar loops infinitos - verifique se são intencionais",
+        message: t("problems.cycles_message", { count: metrics.pathAnalysis.cycleExamples.length }),
+        details: t("problems.cycles_details", {
+          example: `${metrics.pathAnalysis.cycleExamples[0].join(" → ")} → ${metrics.pathAnalysis.cycleExamples[0][0]}`,
+        }),
+        fix: t("problems.cycles_fix"),
       });
     }
 
@@ -650,9 +669,9 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       problems.push({
         id: "high-density",
         type: "suggestion",
-        message: "Densidade do grafo muito alta (sistema complexo)",
-        details: `Densidade atual: ${metrics.basic.density}`,
-        fix: "Considere simplificar as relações entre recursos ou dividir em subsistemas",
+        message: t("problems.high_density_message"),
+        details: t("problems.high_density_details", { density: metrics.basic.density }),
+        fix: t("problems.high_density_fix"),
       });
     }
 
@@ -663,17 +682,24 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
           problems.push({
             id: `high-demand-ratio-${resource.name}`,
             type: "suggestion",
-            message: `Recurso "${resource.name}" tem alta relação demanda/produção`,
-            details: `É consumido ${resource.outDegree} vezes mas produzido apenas ${resource.inDegree} vezes (razão ${ratio.toFixed(1)})`,
-            fix: `Considere adicionar mais fontes de "${resource.name}" ou reduzir suas dependências`,
+            message: t("problems.high_ratio_message", { name: resource.name }),
+            details: t("problems.high_ratio_details", {
+              outDegree: resource.outDegree,
+              inDegree: resource.inDegree,
+              ratio: ratio.toFixed(1),
+            }),
+            fix: t("problems.high_ratio_fix", { name: resource.name }),
           });
         } else if (ratio < 0.5) {
           problems.push({
             id: `low-demand-ratio-${resource.name}`,
             type: "suggestion",
-            message: `Recurso "${resource.name}" tem baixa utilização`,
-            details: `É produzido ${resource.inDegree} vezes mas consumido apenas ${resource.outDegree} vezes`,
-            fix: `Considere adicionar mais usos para "${resource.name}" ou reduzir sua produção`,
+            message: t("problems.low_ratio_message", { name: resource.name }),
+            details: t("problems.low_ratio_details", {
+              inDegree: resource.inDegree,
+              outDegree: resource.outDegree,
+            }),
+            fix: t("problems.low_ratio_fix", { name: resource.name }),
           });
         }
       }
@@ -685,9 +711,12 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
           problems.push({
             id: `long-path-${start}-${end}`,
             type: "suggestion",
-            message: `Caminho muito longo entre ${start} e ${end}`,
-            details: `Requer ${path.length - 1} passos: ${path.join(" → ")}`,
-            fix: `Considere adicionar um atalho direto ou recurso intermediário`,
+            message: t("problems.long_path_message", { start, end }),
+            details: t("problems.long_path_details", {
+              count: path.length - 1,
+              path: path.join(" → "),
+            }),
+            fix: t("problems.long_path_fix"),
           });
         }
       });
@@ -714,9 +743,9 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `co-occurrence-${pair}`,
           type: "suggestion",
-          message: `Recursos ${resA} e ${resB} são frequentemente usados juntos`,
-          details: `Aparecem juntos em ${count} caminhos diferentes`,
-          fix: `Considere criar um recurso composto "${resA}+${resB}" ou uma carta que os produza/consuma juntos`,
+          message: t("problems.co_occurrence_message", { a: resA, b: resB }),
+          details: t("problems.co_occurrence_details", { count }),
+          fix: t("problems.co_occurrence_fix", { a: resA, b: resB }),
         });
       }
     });
@@ -726,9 +755,9 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `pattern-${sequence}`,
           type: "suggestion",
-          message: `Padrão recorrente detectado: ${sequence.replace(/→/g, " → ")}`,
-          details: `Aparece ${count} vezes em diferentes caminhos`,
-          fix: `Considere criar uma mecânica ou carta que encapsule este padrão`,
+          message: t("problems.pattern_message", { sequence: sequence.replace(/→/g, " → ") }),
+          details: t("problems.pattern_details", { count }),
+          fix: t("problems.pattern_fix"),
         });
       }
     });
@@ -738,9 +767,9 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `underutilized-${resource.name}`,
           type: "suggestion",
-          message: `Recurso "${resource.name}" tem apenas uma fonte e um uso`,
-          details: "Pode ser um ponto desnecessário na cadeia de produção",
-          fix: `Considere remover "${resource.name}" ou dar mais utilidades a ele`,
+          message: t("problems.underutilized_message", { name: resource.name }),
+          details: t("problems.underutilized_details"),
+          fix: t("problems.underutilized_fix", { name: resource.name }),
         });
       }
     });
@@ -750,17 +779,23 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       problems.push({
         id: "global-production-excess",
         type: "suggestion",
-        message: "Produção global muito maior que consumo",
-        details: `Produção total: +${metrics.productionConsumption.totalProduction} | Consumo total: -${metrics.productionConsumption.totalConsumption}`,
-        fix: "Ajuste as quantidades para evitar acúmulo excessivo de recursos",
+        message: t("problems.global_production_excess_message"),
+        details: t("problems.global_production_excess_details", {
+          production: metrics.productionConsumption.totalProduction,
+          consumption: metrics.productionConsumption.totalConsumption,
+        }),
+        fix: t("problems.global_production_excess_fix"),
       });
     } else if (globalRatio < 0.67) {
       problems.push({
         id: "global-consumption-excess",
         type: "suggestion",
-        message: "Consumo global muito maior que produção",
-        details: `Produção total: +${metrics.productionConsumption.totalProduction} | Consumo total: -${metrics.productionConsumption.totalConsumption}`,
-        fix: "Ajuste as quantidades para evitar falta de recursos",
+        message: t("problems.global_consumption_excess_message"),
+        details: t("problems.global_consumption_excess_details", {
+          production: metrics.productionConsumption.totalProduction,
+          consumption: metrics.productionConsumption.totalConsumption,
+        }),
+        fix: t("problems.global_consumption_excess_fix"),
       });
     }
 
@@ -783,7 +818,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       }}
     >
       <Typography variant="h6" gutterBottom sx={{ color: "var(--text-primary)" }}>
-        Análise de Balanceamento
+        {t("metrics.balance.title")}
       </Typography>
 
       <Box sx={{ borderBottom: 1, borderColor: "var(--border-color)", mb: 2 }}>
@@ -806,7 +841,9 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
             label={
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <ErrorIcon />
-                <span style={{ marginLeft: 8 }}>Problemas ({errors.length})</span>
+                <span style={{ marginLeft: 8 }}>
+                  {t("metrics.balance.tab_problems")} ({errors.length})
+                </span>
               </Box>
             }
             value="problems"
@@ -815,7 +852,9 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
             label={
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <WarningIcon />
-                <span style={{ marginLeft: 8 }}>Alertas ({warnings.length})</span>
+                <span style={{ marginLeft: 8 }}>
+                  {t("metrics.balance.tab_warnings")} ({warnings.length})
+                </span>
               </Box>
             }
             value="warnings"
@@ -824,7 +863,9 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
             label={
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <LightbulbIcon />
-                <span style={{ marginLeft: 8 }}>Sugestões ({suggestions.length})</span>
+                <span style={{ marginLeft: 8 }}>
+                  {t("metrics.balance.tab_suggestions")} ({suggestions.length})
+                </span>
               </Box>
             }
             value="suggestions"
@@ -852,7 +893,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
             ))}
             {errors.length === 0 && (
               <Typography color="var(--text-secondary)" sx={{ p: 2 }}>
-                Nenhum problema crítico encontrado
+                {t("metrics.balance.no_problems")}
               </Typography>
             )}
           </List>
@@ -877,7 +918,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
             ))}
             {warnings.length === 0 && (
               <Typography color="var(--text-secondary)" sx={{ p: 2 }}>
-                Nenhum alerta encontrado
+                {t("metrics.balance.no_warnings")}
               </Typography>
             )}
           </List>
@@ -909,7 +950,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
             ))}
             {suggestions.length === 0 && (
               <Typography color="var(--text-secondary)" sx={{ p: 2 }}>
-                Nenhuma sugestão disponível
+                {t("metrics.balance.no_suggestions")}
               </Typography>
             )}
           </List>
@@ -920,6 +961,7 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
 };
 
 const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<GraphMetricsData | null>(null);
   const [hasValidGraph, setHasValidGraph] = useState(false);
   const [activeTab, setActiveTab] = useState<"metrics" | "balance">("metrics");
@@ -962,8 +1004,8 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
       >
         <Typography sx={{ color: "var(--text-primary)" }}>
           {graph && isValidGraph(graph) && graph.order === 0
-            ? "Grafo vazio (nenhum recurso encontrado)"
-            : "Aguardando construção do grafo..."}
+            ? t("metrics.empty_graph")
+            : t("metrics.loading_graph")}
         </Typography>
       </Paper>
     );
@@ -979,7 +1021,9 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
           color: "var(--text-primary)",
         }}
       >
-        <Typography sx={{ color: "var(--text-primary)" }}>Carregando métricas do grafo...</Typography>
+        <Typography sx={{ color: "var(--text-primary)" }}>
+          {t("metrics.loading_metrics")}
+        </Typography>
       </Paper>
     );
   }
@@ -995,7 +1039,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
         }}
       >
         <Typography variant="h6" gutterBottom sx={{ color: "var(--text-primary)" }}>
-          Métricas do Grafo de Recursos
+          {t("metrics.title")}
         </Typography>
 
         <Tabs
@@ -1014,131 +1058,147 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
             },
           }}
         >
-          <Tab label="Métricas" value="metrics" />
-          <Tab label="Análise de Balanceamento" value="balance" />
+          <Tab label={t("metrics.tab_metrics")} value="metrics" />
+          <Tab label={t("metrics.tab_balance")} value="balance" />
         </Tabs>
 
         {activeTab === "metrics" ? (
           <>
             <MetricSection
-              title="Informações Básicas"
-              description="Métricas fundamentais sobre a estrutura do grafo. Ajuda a entender a complexidade geral do sistema de recursos."
+              title={t("metrics.sections.basic_title")}
+              description={t("metrics.sections.basic_desc")}
               expanded={expandedSections.basic}
               onToggle={() => toggleSection("basic")}
             >
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 2 }}>
-                <MetricItem label="Nós" value={metrics.basic.order} tooltip="Total de recursos e cartas no jogo" />
-                <MetricItem label="Arestas" value={metrics.basic.size} tooltip="Número total de relações entre cartas e recursos" />
                 <MetricItem
-                  label="Densidade"
-                  value={metrics.basic.density}
-                  tooltip="Proporção de conexões existentes vs possíveis. Valores altos indicam sistema complexo."
+                  label={t("metrics.labels.nodes")}
+                  value={metrics.basic.order}
+                  tooltip={t("metrics.tooltips.nodes")}
                 />
-                <MetricItem label="Direcionado" value="Sim" tooltip="As relações têm direção definida (produção/consumo)" />
-                <MetricItem label="Multigrafo" value="Sim" tooltip="Permite múltiplas conexões entre os mesmos nós" />
+                <MetricItem
+                  label={t("metrics.labels.edges")}
+                  value={metrics.basic.size}
+                  tooltip={t("metrics.tooltips.edges")}
+                />
+                <MetricItem
+                  label={t("metrics.labels.density")}
+                  value={metrics.basic.density}
+                  tooltip={t("metrics.tooltips.density")}
+                />
+                <MetricItem
+                  label={t("metrics.labels.directed")}
+                  value={t("metrics.labels.yes")}
+                  tooltip={t("metrics.tooltips.directed")}
+                />
+                <MetricItem
+                  label={t("metrics.labels.multigraph")}
+                  value={t("metrics.labels.yes")}
+                  tooltip={t("metrics.tooltips.multigraph")}
+                />
               </Box>
             </MetricSection>
 
             <MetricSection
-              title="Centralidade"
-              description="Identifica os recursos mais importantes e conectados no sistema. Recursos centrais podem ser gargalos ou pontos estratégicos."
+              title={t("metrics.sections.centrality_title")}
+              description={t("metrics.sections.centrality_desc")}
               expanded={expandedSections.centrality}
               onToggle={() => toggleSection("centrality")}
             >
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 2 }}>
                 <MetricItem
-                  label="Grau Médio"
+                  label={t("metrics.labels.average_degree")}
                   value={metrics.centrality.averageDegree}
-                  tooltip="Média de conexões por nó. Indica o nível médio de interconexão."
+                  tooltip={t("metrics.tooltips.average_degree")}
                 />
                 <MetricItem
-                  label="Diâmetro"
+                  label={t("metrics.labels.diameter")}
                   value={metrics.connectivity.diameter}
-                  tooltip="Maior distância entre dois nós. Mostra a maior cadeia de dependências."
+                  tooltip={t("metrics.tooltips.diameter")}
                 />
                 <MetricItem
-                  label="Excentricidade Média"
+                  label={t("metrics.labels.average_eccentricity")}
                   value={metrics.connectivity.averageEccentricity}
-                  tooltip="Distância média entre os nós. Valores altos indicam caminhos longos entre recursos."
+                  tooltip={t("metrics.tooltips.average_eccentricity")}
                 />
               </Box>
             </MetricSection>
 
             <MetricSection
-              title="Conectividade"
-              description="Analisa como os recursos estão interligados. Componentes desconexos podem indicar mecânicas isoladas."
+              title={t("metrics.sections.connectivity_title")}
+              description={t("metrics.sections.connectivity_desc")}
               expanded={expandedSections.connectivity}
               onToggle={() => toggleSection("connectivity")}
             >
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 2 }}>
                 <MetricItem
-                  label="Conexo"
-                  value={metrics.connectivity.isConnected ? "Sim" : "Não"}
-                  tooltip="Se todos os nós estão conectados direta ou indiretamente"
+                  label={t("metrics.labels.connected")}
+                  value={metrics.connectivity.isConnected ? t("metrics.labels.yes") : t("metrics.labels.no")}
+                  tooltip={t("metrics.tooltips.connected")}
                 />
                 <MetricItem
-                  label="Componentes Conexos"
+                  label={t("metrics.labels.connected_components")}
                   value={metrics.connectivity.stronglyConnectedComponents}
-                  tooltip="Número de subgrafos isolados. Idealmente deveria ser 1 para um sistema coeso."
+                  tooltip={t("metrics.tooltips.connected_components")}
                 />
               </Box>
             </MetricSection>
 
             <MetricSection
-              title="Estatísticas de Nós"
-              description="Distribuição dos tipos de elementos no jogo. Ajuda a balancear quantidade de recursos vs cartas."
+              title={t("metrics.sections.node_stats_title")}
+              description={t("metrics.sections.node_stats_desc")}
               expanded={expandedSections.nodeStats}
               onToggle={() => toggleSection("nodeStats")}
             >
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 2 }}>
                 <MetricItem
-                  label="Recursos"
-                  value={`${metrics.nodeTypeStats.resource.count} nós`}
-                  tooltip="Quantidade total de recursos diferentes no jogo"
+                  label={t("metrics.labels.resources")}
+                  value={`${metrics.nodeTypeStats.resource.count} ${t("metrics.labels.nodes").toLowerCase()}`}
+                  tooltip={t("metrics.tooltips.resources")}
                 />
                 <MetricItem
-                  label="Total de Recursos"
+                  label={t("metrics.labels.total_resources")}
                   value={metrics.nodeTypeStats.resource.totalQuantity}
-                  tooltip="Soma de todas as quantidades de recursos disponíveis"
+                  tooltip={t("metrics.tooltips.total_resources")}
                 />
                 <MetricItem
-                  label="Cartas"
-                  value={`${metrics.nodeTypeStats.card.count} nós`}
-                  tooltip="Quantidade total de cartas que interagem com os recursos"
+                  label={t("metrics.labels.cards")}
+                  value={`${metrics.nodeTypeStats.card.count} ${t("metrics.labels.nodes").toLowerCase()}`}
+                  tooltip={t("metrics.tooltips.cards")}
                 />
               </Box>
             </MetricSection>
 
             <MetricSection
-              title="Estatísticas de Arestas"
-              description="Balanço entre produção e consumo de recursos. Diferenças grandes podem indicar desbalanceamento."
+              title={t("metrics.sections.edge_stats_title")}
+              description={t("metrics.sections.edge_stats_desc")}
               expanded={expandedSections.edgeStats}
               onToggle={() => toggleSection("edgeStats")}
             >
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 2 }}>
                 <MetricItem
-                  label="Ganhos"
+                  label={t("metrics.labels.gains")}
                   value={`${metrics.edgeTypeStats.gain.count} (+${metrics.edgeTypeStats.gain.totalQuantity})`}
-                  tooltip="Número total de produções de recursos e quantidade total produzida"
+                  tooltip={t("metrics.tooltips.gains")}
                 />
                 <MetricItem
-                  label="Gastos"
+                  label={t("metrics.labels.costs")}
                   value={`${metrics.edgeTypeStats.cost.count} (-${metrics.edgeTypeStats.cost.totalQuantity})`}
-                  tooltip="Número total de consumos de recursos e quantidade total consumida"
+                  tooltip={t("metrics.tooltips.costs")}
                 />
               </Box>
             </MetricSection>
 
             <MetricSection
-              title="Produção e Consumo"
-              description="Identifica os recursos mais produzidos e consumidos. Recursos com alta demanda e baixa produção podem ser problemas."
+              title={t("metrics.sections.production_title")}
+              description={t("metrics.sections.production_desc")}
               expanded={expandedSections.production}
               onToggle={() => toggleSection("production")}
             >
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                 <Box sx={{ flex: 1, minWidth: 250 }}>
                   <Typography variant="subtitle2" gutterBottom sx={{ color: "var(--accent-color)" }}>
-                    Top Produtores
+                    {t("metrics.production.top_producers")}
                   </Typography>
                   {metrics.productionConsumption.topProducers.map((res) => (
                     <ResourceChip key={res.name} resource={res} type="production" />
@@ -1146,7 +1206,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 250 }}>
                   <Typography variant="subtitle2" gutterBottom sx={{ color: "var(--accent-color)" }}>
-                    Top Consumidores
+                    {t("metrics.production.top_consumers")}
                   </Typography>
                   {metrics.productionConsumption.topConsumers.map((res) => (
                     <ResourceChip key={res.name} resource={res} type="consumption" />
@@ -1156,13 +1216,13 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
               <Divider sx={{ my: 2, backgroundColor: "var(--border-color)" }} />
               <Box sx={{ display: "flex", justifyContent: "space-around" }}>
                 <Typography sx={{ color: "var(--text-primary)" }}>
-                  <strong>Total Produzido:</strong>
+                  <strong>{t("metrics.production.total_produced")}</strong>
                   <span style={{ color: "#4CAF50", marginLeft: 8, fontWeight: "bold" }}>
                     +{metrics.productionConsumption.totalProduction}
                   </span>
                 </Typography>
                 <Typography sx={{ color: "var(--text-primary)" }}>
-                  <strong>Total Consumido:</strong>
+                  <strong>{t("metrics.production.total_consumed")}</strong>
                   <span style={{ color: "#F44336", marginLeft: 8, fontWeight: "bold" }}>
                     -{metrics.productionConsumption.totalConsumption}
                   </span>
@@ -1171,15 +1231,15 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
             </MetricSection>
 
             <MetricSection
-              title="Análise de Caminhos e Ciclos"
-              description="Mostra como os recursos estão conectados e dependentes entre si. Caminhos longos podem indicar cadeias complexas, ciclos podem criar loops infinitos."
+              title={t("metrics.sections.path_title")}
+              description={t("metrics.sections.path_desc")}
               expanded={expandedSections.pathAnalysis}
               onToggle={() => toggleSection("pathAnalysis")}
             >
               {metrics.pathAnalysis.mostDemandedResource && (
                 <>
                   <Typography variant="subtitle2" gutterBottom sx={{ color: "var(--accent-color)" }}>
-                    Recurso Mais Demandado
+                    {t("metrics.path.most_demanded")}
                   </Typography>
                   <Box
                     sx={{
@@ -1191,12 +1251,21 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                     }}
                   >
                     <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 2 }}>
-                      <MetricItem label="Recurso" value={metrics.pathAnalysis.mostDemandedResource.name} />
-                      <MetricItem label="Demanda" value={metrics.pathAnalysis.mostDemandedResource.outDegree} />
-                      <MetricItem label="Produção" value={metrics.pathAnalysis.mostDemandedResource.inDegree} />
+                      <MetricItem
+                        label={t("metrics.labels.resource")}
+                        value={metrics.pathAnalysis.mostDemandedResource.name}
+                      />
+                      <MetricItem
+                        label={t("metrics.labels.demand")}
+                        value={metrics.pathAnalysis.mostDemandedResource.outDegree}
+                      />
+                      <MetricItem
+                        label={t("metrics.labels.production")}
+                        value={metrics.pathAnalysis.mostDemandedResource.inDegree}
+                      />
                     </Box>
                     <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic", color: "var(--accent-color)" }}>
-                      Este recurso é consumido por muitas cartas mas tem poucas fontes de produção, podendo se tornar um gargalo.
+                      {t("metrics.path.most_demanded_hint")}
                     </Typography>
                   </Box>
                 </>
@@ -1205,14 +1274,15 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
               {metrics.pathAnalysis.hasCycles && (
                 <>
                   <Typography variant="subtitle2" gutterBottom sx={{ color: "var(--accent-color)" }}>
-                    Ciclos Detectados
+                    {t("metrics.path.cycles_detected")}
                   </Typography>
                   <Box sx={{ mb: 2 }}>
                     <Typography sx={{ color: "var(--text-primary)" }}>
-                      <strong>Total:</strong> {metrics.pathAnalysis.cycleExamples.length} ciclos
+                      <strong>{t("metrics.path.cycles_total")}</strong>{" "}
+                      {t("metrics.path.cycles_count", { count: metrics.pathAnalysis.cycleExamples.length })}
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 1, color: "var(--text-secondary)" }}>
-                      Ciclos podem criar loops infinitos ou combos poderosos. Verifique se são intencionais.
+                      {t("metrics.path.cycles_hint")}
                     </Typography>
                     {metrics.pathAnalysis.cycleExamples.map((cycle, i) => (
                       <Paper
@@ -1234,7 +1304,7 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
               )}
 
               <Typography variant="subtitle2" gutterBottom sx={{ color: "var(--accent-color)" }}>
-                Caminhos Mais Curtos Entre Recursos
+                {t("metrics.path.shortest_paths_title")}
               </Typography>
               {Object.keys(metrics.pathAnalysis.shortestPaths).length > 0 ? (
                 <Box sx={{ maxHeight: 500, overflow: "auto", pr: 1 }}>
@@ -1251,17 +1321,26 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                     >
                       <Typography
                         variant="subtitle1"
-                        sx={{ color: "var(--accent-color)", fontWeight: "bold", mb: 1, borderBottom: "1px solid var(--accent-color)", pb: 0.5 }}
+                        sx={{
+                          color: "var(--accent-color)",
+                          fontWeight: "bold",
+                          mb: 1,
+                          borderBottom: "1px solid var(--accent-color)",
+                          pb: 0.5,
+                        }}
                       >
-                        De: {start}
+                        {t("metrics.path.from")} {start}
                       </Typography>
                       <Box sx={{ ml: 2 }}>
                         {Object.entries(ends)
                           .sort(([a], [b]) => a.localeCompare(b))
                           .map(([end, path]) => (
                             <Box key={end} sx={{ mb: 2 }}>
-                              <Typography variant="body2" sx={{ color: "var(--text-primary)", fontWeight: "bold" }}>
-                                Para {end}:
+                              <Typography
+                                variant="body2"
+                                sx={{ color: "var(--text-primary)", fontWeight: "bold" }}
+                              >
+                                {t("metrics.path.to")} {end}:
                               </Typography>
                               <Typography
                                 variant="body2"
@@ -1270,8 +1349,11 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                               >
                                 {path.join(" → ")}
                               </Typography>
-                              <Typography variant="caption" sx={{ ml: 2, color: "var(--text-secondary)" }}>
-                                Passos: {path.length - 1}
+                              <Typography
+                                variant="caption"
+                                sx={{ ml: 2, color: "var(--text-secondary)" }}
+                              >
+                                {t("metrics.path.steps", { count: path.length - 1 })}
                               </Typography>
                             </Box>
                           ))}
@@ -1280,7 +1362,9 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                   ))}
                 </Box>
               ) : (
-                <Typography sx={{ color: "var(--text-primary)" }}>Nenhum caminho entre recursos encontrado</Typography>
+                <Typography sx={{ color: "var(--text-primary)" }}>
+                  {t("metrics.path.no_paths")}
+                </Typography>
               )}
             </MetricSection>
           </>

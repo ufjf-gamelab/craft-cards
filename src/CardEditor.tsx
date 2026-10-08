@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CartaType, RecursoType } from "./data/cartas";
 import "./CardEditor.css";
 
@@ -22,6 +23,8 @@ export default function CardEditor({
   deckMembership,
   onSave,
 }: CardEditorProps) {
+  const { t } = useTranslation();
+
   const [editableCards, setEditableCards] = useState<CartaType[]>(() =>
     JSON.parse(JSON.stringify(cards))
   );
@@ -111,14 +114,18 @@ export default function CardEditor({
     setDirty(false);
   };
 
+  const statusText = dirty
+    ? t("card_editor.dirty")
+    : t("card_editor.clean");
+
   return (
     <div className="card-editor">
       <div className="card-editor-header">
-        <h2>Editar Cartas</h2>
+        <h2>{t("card_editor.title")}</h2>
         <button
           className="card-editor-close"
           onClick={onClose}
-          title="Fechar editor"
+          title={t("card_editor.close")}
         >
           X
         </button>
@@ -126,15 +133,17 @@ export default function CardEditor({
 
       <div className="card-editor-info">
         <small>
-          {editableCards.length} carta(s) -{" "}
-          {dirty ? "alterações pendentes" : "sem alterações"}
+          {t("card_editor.card_count", {
+            count: editableCards.length,
+            status: statusText,
+          })}
         </small>
       </div>
 
       <input
         type="text"
         className="card-editor-search"
-        placeholder="Buscar por título ou id..."
+        placeholder={t("card_editor.search_placeholder")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -142,7 +151,7 @@ export default function CardEditor({
       <div className="card-editor-list">
         {filteredCards.length === 0 && (
           <div className="card-editor-empty-list">
-            Nenhuma carta corresponde à busca.
+            {t("card_editor.no_results")}
           </div>
         )}
 
@@ -164,14 +173,17 @@ export default function CardEditor({
                 <h3>{card.titulo}</h3>
                 <span className="card-editor-badges">
                   {deck?.baralho && (
-                    <span className="badge badge-baralho" title="Baralho">
+                    <span
+                      className="badge badge-baralho"
+                      title={t("card_editor.badge_deck")}
+                    >
                       B
                     </span>
                   )}
                   {deck?.oferta && (
                     <span
                       className="badge badge-oferta"
-                      title="Baralho da Oferta"
+                      title={t("card_editor.badge_offer")}
                     >
                       O
                     </span>
@@ -183,7 +195,7 @@ export default function CardEditor({
               {expanded && (
                 <div className="card-editor-item-body">
                   <div className="card-editor-field">
-                    <label>Título</label>
+                    <label>{t("card_editor.title_label")}</label>
                     <input
                       type="text"
                       value={card.titulo}
@@ -194,7 +206,7 @@ export default function CardEditor({
                   </div>
 
                   <div className="card-editor-field">
-                    <label>Texto / Descrição</label>
+                    <label>{t("card_editor.text_label")}</label>
                     <textarea
                       value={card.texto}
                       onChange={(e) =>
@@ -204,7 +216,7 @@ export default function CardEditor({
                   </div>
 
                   <ResourceSection
-                    label="Custo (consome)"
+                    label={t("card_editor.cost_label")}
                     type="custo"
                     card={card}
                     options={allResourceOptions}
@@ -216,7 +228,7 @@ export default function CardEditor({
                   />
 
                   <ResourceSection
-                    label="Ganho (produz)"
+                    label={t("card_editor.gain_label")}
                     type="ganho"
                     card={card}
                     options={allResourceOptions}
@@ -239,14 +251,14 @@ export default function CardEditor({
           onClick={handleReset}
           disabled={!dirty}
         >
-          Descartar
+          {t("card_editor.discard")}
         </button>
         <button
           className="btn-primary"
           onClick={handleSave}
           disabled={!dirty}
         >
-          Salvar Alterações
+          {t("card_editor.apply_memory")}
         </button>
       </div>
     </div>
@@ -272,12 +284,16 @@ function ResourceSection({
   onAdd,
   onRemove,
 }: ResourceSectionProps) {
+  const { t } = useTranslation();
+
   return (
     <div className={`card-editor-field card-editor-field--${type}`}>
       <label>{label}</label>
       <div className="card-editor-resource-list">
         {card[type].length === 0 && (
-          <small className="card-editor-empty">Nenhum recurso</small>
+          <small className="card-editor-empty">
+            {t("card_editor.no_resource")}
+          </small>
         )}
         {card[type].map((r, i) => (
           <div key={i} className="card-editor-resource-row">
@@ -305,14 +321,14 @@ function ResourceSection({
             <button
               className="card-editor-remove"
               onClick={() => onRemove(i)}
-              title="Remover"
+              title={t("card_editor.remove")}
             >
               -
             </button>
           </div>
         ))}
         <button className="card-editor-add-resource" onClick={onAdd}>
-          + Adicionar recurso
+          {t("card_editor.add_resource")}
         </button>
       </div>
     </div>

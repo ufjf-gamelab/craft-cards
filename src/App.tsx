@@ -29,10 +29,13 @@ import PersistenceDropdown from "./PersistanceDropdown.tsx";
 import { availableModels } from "./models/index.ts";
 import TutorialModal from "./TutorialModal.tsx";
 import CardEditor, { DeckMembership } from "./CardEditor.tsx";
+import { useTranslation } from "react-i18next";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
 
 function App() {
+  const { t, i18n } = useTranslation();
+
   const game = useContext(GameReducerContext)!;
   const dispatch = useContext(GameDispatchContext)!;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -360,13 +363,13 @@ function App() {
   const getFinishMessage = () => {
     switch (finishReason) {
       case "pontos":
-        return `Vitoria! Voce atingiu ${finalScore} pontos!`;
+        return t("finish.points", { score: finalScore });
       case "turnos":
-        return `Fim dos turnos! Voce fez ${finalScore} pontos.`;
+        return t("finish.turns", { score: finalScore });
       case "deadlock":
-        return `Jogo Travado! Sem acoes e sem cartas para jogar/comprar. Pontuacao final: ${finalScore}`;
+        return t("finish.deadlock", { score: finalScore });
       default:
-        return `Fim de Jogo! Pontuacao final: ${finalScore}`;
+        return t("finish.default", { score: finalScore });
     }
   };
 
@@ -382,7 +385,7 @@ function App() {
           <div className="banner-content">
             <span>{getFinishMessage()}</span>
             <button onClick={handleResetGame} className="reset-button">
-              Novo Jogo
+              {t("header.new_game")}
             </button>
           </div>
         </div>
@@ -393,14 +396,26 @@ function App() {
           <button
             className="theme-toggle"
             onClick={toggleTheme}
-            title="Alternar tema"
+            title={t("header.toggle_theme")}
           >
-            {isLightTheme ? "Dark" : "Light"}
+            {isLightTheme ? t("header.theme_dark") : t("header.theme_light")}
           </button>
           <ListaDeRecursos recursos={game.recursos} />
         </div>
         <div className="game-controls">
-          <div className="current-seed">Seed atual: {game.seed}</div>
+          <select
+            value={i18n.language.split("-")[0]}
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+            className="control-button"
+            style={{ backgroundColor: "var(--button-bg)" }}
+          >
+            <option value="pt">PT</option>
+            <option value="en">EN</option>
+          </select>
+
+          <div className="current-seed">
+            {t("header.seed_current", { seed: game.seed })}
+          </div>
 
           <select
             value={currentModelKey}
@@ -418,7 +433,7 @@ function App() {
           <div className="seed-controls">
             <input
               type="text"
-              placeholder="Seed do jogo"
+              placeholder={t("header.seed_placeholder")}
               value={seedInput}
               onChange={(e) => setSeedInput(e.target.value)}
               className="seed-input"
@@ -429,7 +444,7 @@ function App() {
               onClick={handleNewGameWithSeed}
               disabled={gameFinished}
             >
-              Novo Jogo com Seed
+              {t("header.new_game_seed")}
             </button>
           </div>
 
@@ -438,31 +453,35 @@ function App() {
             onClick={diminuiAcao}
             disabled={gameFinished}
           >
-            Diminui Acao
+            {t("header.decrease_action")}
           </button>
           <button
             className="control-button"
             onClick={aumentaPonto}
             disabled={gameFinished}
           >
-            Aumenta Ponto
+            {t("header.increase_point")}
           </button>
           <button className="control-button" onClick={toggleAnalises}>
-            {game.analisesVisiveis ? "Ocultar Analises" : "Mostrar Analises"}
+            {game.analisesVisiveis
+              ? t("header.hide_analysis")
+              : t("header.show_analysis")}
           </button>
           <button
             className="control-button"
             onClick={() => setCardEditorOpen((v) => !v)}
-            title="Editar cartas do modelo atual"
+            title={t("header.edit_cards_tooltip")}
           >
-            {cardEditorOpen ? "Fechar Editor" : "Editar Cartas"}
+            {cardEditorOpen
+              ? t("header.close_editor")
+              : t("header.edit_cards")}
           </button>
           <button
             className="control-button primary"
             onClick={passarTurno}
             disabled={gameFinished}
           >
-            Passar Turno
+            {t("header.pass_turn")}
           </button>
 
           <PersistenceDropdown
@@ -483,9 +502,9 @@ function App() {
               alignItems: "center",
               gap: "4px",
             }}
-            title="Abrir tutorial sobre como usar modelos JSON"
+            title={t("header.help_tooltip")}
           >
-            Ajuda?
+            {t("header.help")}
           </button>
         </div>
       </div>
@@ -542,7 +561,7 @@ function App() {
                   }`}
                   onClick={() => setActiveTab("petriNet")}
                 >
-                  Petri Net
+                  {t("analysis.petri_net")}
                 </button>
                 <button
                   className={`tab-button ${
@@ -550,7 +569,7 @@ function App() {
                   }`}
                   onClick={() => setActiveTab("graph")}
                 >
-                  Graph
+                  {t("analysis.graph")}
                 </button>
                 <button
                   className={`tab-button ${
@@ -563,7 +582,7 @@ function App() {
                     })
                   }
                 >
-                  Historico
+                  {t("analysis.history")}
                 </button>
               </div>
               <div className="analises-content">

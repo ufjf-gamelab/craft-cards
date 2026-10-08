@@ -5,6 +5,7 @@ import { GameReducerContext } from "./Game.ts";
 import { Paper, Typography, Box } from "@mui/material";
 import LegendaGrafo from "./LegendaGrafo.tsx";
 import { CartaType } from "./data/cartas";
+import { useTranslation } from "react-i18next";
 
 type ResourceGraphProps = {
   onGraphCreated?: (graph: MultiDirectedGraph) => void;

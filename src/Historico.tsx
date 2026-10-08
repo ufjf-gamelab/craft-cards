@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import { useTranslation } from "react-i18next";
 import { GameReducerContext } from "./Game";
 import "./Historico.css";
 import {
@@ -14,8 +15,10 @@ import {
 
 export const RESOURCE_COLORS: Record<string, string> = {
   ação: "#FF5733",
+  acao: "#FF5733",
   "madeira bruta": "#8B4513",
   água: "#1E90FF",
+  agua: "#1E90FF",
   amora: "#9370DB",
   "pedra bruta": "#808080",
   tabua: "#D2B48C",
@@ -25,18 +28,17 @@ export const RESOURCE_COLORS: Record<string, string> = {
 };
 
 export default function Historico() {
+  const { t } = useTranslation();
   const game = useContext(GameReducerContext);
 
-  // Prepara os dados para o gráfico
-  const chartData = game?.historico?.flatMap((turno) => 
+  const chartData = game?.historico?.flatMap((turno) =>
     turno.acoes.map((acao, index) => {
       const dataPoint: any = {
-        name: `Turno ${turno.turno} - ${acao.tipo} ${index + 1}`,
+        name: `${t("history_log.turn", { number: turno.turno })} - ${acao.tipo} ${index + 1}`,
         acao: acao.tipo,
         turno: turno.turno,
       };
 
-      // Adiciona cada recurso como uma propriedade no ponto de dados
       acao.recursos.forEach((recurso) => {
         dataPoint[recurso.nome] = recurso.quantidade;
       });
@@ -45,7 +47,6 @@ export default function Historico() {
     })
   );
 
-  // Obtém todos os tipos de recursos únicos
   const resourceTypes = Array.from(
     new Set(
       game?.historico?.flatMap((turno) =>
@@ -58,7 +59,7 @@ export default function Historico() {
 
   return (
     <div className="historico-container">
-      <h3>Histórico de Recursos</h3>
+      <h3>{t("history.title")}</h3>
       <div className="grafico-container">
         <ResponsiveContainer>
           <LineChart
@@ -74,14 +75,14 @@ export default function Historico() {
             <XAxis
               dataKey="name"
               label={{
-                value: "Turnos e Ações",
+                value: t("history.turns_and_actions"),
                 position: "insideBottomRight",
                 offset: -20,
               }}
             />
             <YAxis
               label={{
-                value: "Quantidade",
+                value: t("history.quantity"),
                 angle: -90,
                 position: "insideLeft",
               }}
