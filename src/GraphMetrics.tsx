@@ -596,10 +596,10 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
           problems.push({
             id: `unreachable-${start}-${end}`,
             type: "error",
-            message: t("problems.unreachable_message", { start, end }),
+            message: t("metrics.problems.unreachable_message", { start, end }),
             resource: end,
-            details: t("problems.unreachable_details", { start, end }),
-            fix: t("problems.unreachable_fix", { end }),
+            details: t("metrics.problems.unreachable_details", { start, end }),
+            fix: t("metrics.problems.unreachable_fix", { end }),
           });
         }
       });
@@ -610,10 +610,10 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `unused-${resource.name}`,
           type: "warning",
-          message: t("problems.unused_message", { name: resource.name }),
+          message: t("metrics.problems.unused_message", { name: resource.name }),
           resource: resource.name,
-          details: t("problems.unused_details", { count: resource.inDegree }),
-          fix: t("problems.unused_fix", { name: resource.name }),
+          details: t("metrics.problems.unused_details", { count: resource.inDegree }),
+          fix: t("metrics.problems.unused_fix", { name: resource.name }),
         });
       }
     });
@@ -623,10 +623,10 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `consumed-not-produced-${resource.name}`,
           type: "warning",
-          message: t("problems.consumed_not_produced_message", { name: resource.name }),
+          message: t("metrics.problems.consumed_not_produced_message", { name: resource.name }),
           resource: resource.name,
-          details: t("problems.consumed_not_produced_details", { count: resource.outDegree }),
-          fix: t("problems.consumed_not_produced_fix", { name: resource.name }),
+          details: t("metrics.problems.consumed_not_produced_details", { count: resource.outDegree }),
+          fix: t("metrics.problems.consumed_not_produced_fix", { name: resource.name }),
         });
       }
     });
@@ -635,9 +635,11 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       problems.push({
         id: "disconnected-graph",
         type: "warning",
-        message: t("problems.disconnected_message"),
-        details: t("problems.disconnected_details", { count: metrics.connectivity.stronglyConnectedComponents }),
-        fix: t("problems.disconnected_fix"),
+        message: t("metrics.problems.disconnected_message"),
+        details: t("metrics.problems.disconnected_details", {
+          count: metrics.connectivity.stronglyConnectedComponents,
+        }),
+        fix: t("metrics.problems.disconnected_fix"),
       });
     }
 
@@ -646,10 +648,16 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       problems.push({
         id: "high-demand",
         type: "warning",
-        message: t("problems.high_demand_message", { name: top.name, count: top.outDegree }),
+        message: t("metrics.problems.high_demand_message", {
+          name: top.name,
+          count: top.outDegree,
+        }),
         resource: top.name,
-        details: t("problems.high_demand_details", { count: top.outDegree, inDegree: top.inDegree }),
-        fix: t("problems.high_demand_fix", { name: top.name }),
+        details: t("metrics.problems.high_demand_details", {
+          count: top.outDegree,
+          inDegree: top.inDegree,
+        }),
+        fix: t("metrics.problems.high_demand_fix", { name: top.name }),
       });
     }
 
@@ -657,11 +665,13 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       problems.push({
         id: "cycles-detected",
         type: metrics.pathAnalysis.cycleExamples.length > 2 ? "warning" : "info",
-        message: t("problems.cycles_message", { count: metrics.pathAnalysis.cycleExamples.length }),
-        details: t("problems.cycles_details", {
+        message: t("metrics.problems.cycles_message", {
+          count: metrics.pathAnalysis.cycleExamples.length,
+        }),
+        details: t("metrics.problems.cycles_details", {
           example: `${metrics.pathAnalysis.cycleExamples[0].join(" → ")} → ${metrics.pathAnalysis.cycleExamples[0][0]}`,
         }),
-        fix: t("problems.cycles_fix"),
+        fix: t("metrics.problems.cycles_fix"),
       });
     }
 
@@ -669,9 +679,11 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
       problems.push({
         id: "high-density",
         type: "suggestion",
-        message: t("problems.high_density_message"),
-        details: t("problems.high_density_details", { density: metrics.basic.density }),
-        fix: t("problems.high_density_fix"),
+        message: t("metrics.problems.high_density_message"),
+        details: t("metrics.problems.high_density_details", {
+          density: metrics.basic.density,
+        }),
+        fix: t("metrics.problems.high_density_fix"),
       });
     }
 
@@ -682,24 +694,24 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
           problems.push({
             id: `high-demand-ratio-${resource.name}`,
             type: "suggestion",
-            message: t("problems.high_ratio_message", { name: resource.name }),
-            details: t("problems.high_ratio_details", {
+            message: t("metrics.problems.high_ratio_message", { name: resource.name }),
+            details: t("metrics.problems.high_ratio_details", {
               outDegree: resource.outDegree,
               inDegree: resource.inDegree,
               ratio: ratio.toFixed(1),
             }),
-            fix: t("problems.high_ratio_fix", { name: resource.name }),
+            fix: t("metrics.problems.high_ratio_fix", { name: resource.name }),
           });
         } else if (ratio < 0.5) {
           problems.push({
             id: `low-demand-ratio-${resource.name}`,
             type: "suggestion",
-            message: t("problems.low_ratio_message", { name: resource.name }),
-            details: t("problems.low_ratio_details", {
+            message: t("metrics.problems.low_ratio_message", { name: resource.name }),
+            details: t("metrics.problems.low_ratio_details", {
               inDegree: resource.inDegree,
               outDegree: resource.outDegree,
             }),
-            fix: t("problems.low_ratio_fix", { name: resource.name }),
+            fix: t("metrics.problems.low_ratio_fix", { name: resource.name }),
           });
         }
       }
@@ -711,12 +723,12 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
           problems.push({
             id: `long-path-${start}-${end}`,
             type: "suggestion",
-            message: t("problems.long_path_message", { start, end }),
-            details: t("problems.long_path_details", {
+            message: t("metrics.problems.long_path_message", { start, end }),
+            details: t("metrics.problems.long_path_details", {
               count: path.length - 1,
               path: path.join(" → "),
             }),
-            fix: t("problems.long_path_fix"),
+            fix: t("metrics.problems.long_path_fix"),
           });
         }
       });
@@ -743,9 +755,9 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `co-occurrence-${pair}`,
           type: "suggestion",
-          message: t("problems.co_occurrence_message", { a: resA, b: resB }),
-          details: t("problems.co_occurrence_details", { count }),
-          fix: t("problems.co_occurrence_fix", { a: resA, b: resB }),
+          message: t("metrics.problems.co_occurrence_message", { a: resA, b: resB }),
+          details: t("metrics.problems.co_occurrence_details", { count }),
+          fix: t("metrics.problems.co_occurrence_fix", { a: resA, b: resB }),
         });
       }
     });
@@ -755,9 +767,11 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `pattern-${sequence}`,
           type: "suggestion",
-          message: t("problems.pattern_message", { sequence: sequence.replace(/→/g, " → ") }),
-          details: t("problems.pattern_details", { count }),
-          fix: t("problems.pattern_fix"),
+          message: t("metrics.problems.pattern_message", {
+            sequence: sequence.replace(/→/g, " → "),
+          }),
+          details: t("metrics.problems.pattern_details", { count }),
+          fix: t("metrics.problems.pattern_fix"),
         });
       }
     });
@@ -767,35 +781,37 @@ const BalanceAnalysisPanel: React.FC<{ metrics: GraphMetricsData }> = ({ metrics
         problems.push({
           id: `underutilized-${resource.name}`,
           type: "suggestion",
-          message: t("problems.underutilized_message", { name: resource.name }),
-          details: t("problems.underutilized_details"),
-          fix: t("problems.underutilized_fix", { name: resource.name }),
+          message: t("metrics.problems.underutilized_message", { name: resource.name }),
+          details: t("metrics.problems.underutilized_details"),
+          fix: t("metrics.problems.underutilized_fix", { name: resource.name }),
         });
       }
     });
 
-    const globalRatio = metrics.productionConsumption.totalProduction / (metrics.productionConsumption.totalConsumption || 1);
+    const globalRatio =
+      metrics.productionConsumption.totalProduction /
+      (metrics.productionConsumption.totalConsumption || 1);
     if (globalRatio > 1.5) {
       problems.push({
         id: "global-production-excess",
         type: "suggestion",
-        message: t("problems.global_production_excess_message"),
-        details: t("problems.global_production_excess_details", {
+        message: t("metrics.problems.global_production_excess_message"),
+        details: t("metrics.problems.global_production_excess_details", {
           production: metrics.productionConsumption.totalProduction,
           consumption: metrics.productionConsumption.totalConsumption,
         }),
-        fix: t("problems.global_production_excess_fix"),
+        fix: t("metrics.problems.global_production_excess_fix"),
       });
     } else if (globalRatio < 0.67) {
       problems.push({
         id: "global-consumption-excess",
         type: "suggestion",
-        message: t("problems.global_consumption_excess_message"),
-        details: t("problems.global_consumption_excess_details", {
+        message: t("metrics.problems.global_consumption_excess_message"),
+        details: t("metrics.problems.global_consumption_excess_details", {
           production: metrics.productionConsumption.totalProduction,
           consumption: metrics.productionConsumption.totalConsumption,
         }),
-        fix: t("problems.global_consumption_excess_fix"),
+        fix: t("metrics.problems.global_consumption_excess_fix"),
       });
     }
 
@@ -1279,7 +1295,9 @@ const GraphMetrics: React.FC<GraphMetricsProps> = ({ graph }) => {
                   <Box sx={{ mb: 2 }}>
                     <Typography sx={{ color: "var(--text-primary)" }}>
                       <strong>{t("metrics.path.cycles_total")}</strong>{" "}
-                      {t("metrics.path.cycles_count", { count: metrics.pathAnalysis.cycleExamples.length })}
+                      {t("metrics.path.cycles_count", {
+                        count: metrics.pathAnalysis.cycleExamples.length,
+                      })}
                     </Typography>
                     <Typography variant="body2" sx={{ mb: 1, color: "var(--text-secondary)" }}>
                       {t("metrics.path.cycles_hint")}

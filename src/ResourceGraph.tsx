@@ -1,11 +1,11 @@
 import React, { useContext, useRef, useState, useEffect } from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
+import { useTranslation } from "react-i18next";
 import { GameReducerContext } from "./Game.ts";
 import { Paper, Typography, Box } from "@mui/material";
 import LegendaGrafo from "./LegendaGrafo.tsx";
 import { CartaType } from "./data/cartas";
-import { useTranslation } from "react-i18next";
 
 type ResourceGraphProps = {
   onGraphCreated?: (graph: MultiDirectedGraph) => void;
@@ -42,6 +42,7 @@ export const LINK_COLORS = {
 };
 
 const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards }) => {
+  const { t } = useTranslation();
   const game = useContext(GameReducerContext);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,13 +50,15 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
 
   if (!game) {
     return (
-      <Paper sx={{ 
-        p: 2, 
+      <Paper sx={{
+        p: 2,
         textAlign: "center",
         backgroundColor: "var(--bg-secondary)",
         color: "var(--text-primary)"
       }}>
-        <Typography sx={{ color: "var(--text-primary)" }}>Carregando análise de recursos...</Typography>
+        <Typography sx={{ color: "var(--text-primary)" }}>
+          {t("metrics.loading_metrics")}
+        </Typography>
       </Paper>
     );
   }
@@ -70,8 +73,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
     d3.select(svgRef.current).selectAll("*").remove();
 
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
-    
-    // Usa as cartas fornecidas via prop ou array vazio (ou você pode manter fallback)
+
     const cardsToUse = allCards ?? [];
 
     const resourceNodes = new Map<string, { nome: string, quantidade: number }>();
@@ -134,7 +136,6 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
       });
     });
 
-    // Restante do código (forças, zoom, drag, etc.) permanece idêntico ao original
     const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
     const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
@@ -264,7 +265,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
       .attr("fill", "var(--text-primary)")
       .style("font-size", "12px")
       .style("font-weight", "bold")
-      .text("Use scroll para zoom | Arraste para mover nós");
+      .text(t("metrics.graph_hint"));
 
     const adjustZoom = () => {
       const bounds = getGraphBounds(nodes, width, height);
@@ -321,13 +322,13 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [allCards]); // <-- adicionar dependência para reconstruir o grafo se as cartas mudarem
+  }, [allCards]);
 
   return (
     <div className="resource-graph-container">
-      <Paper sx={{ 
-        height: "600px", 
-        minWidth: "800px", 
+      <Paper sx={{
+        height: "600px",
+        minWidth: "800px",
         position: "relative",
         backgroundColor: "var(--bg-secondary)",
         borderRadius: "10px",
@@ -348,7 +349,6 @@ const getGraphBounds = (
   width: number,
   height: number
 ) => {
-  // (mesma implementação original)
   let minX = Infinity,
     maxX = -Infinity,
     minY = Infinity,

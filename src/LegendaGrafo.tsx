@@ -30,13 +30,13 @@ const LegendaGrafo = () => {
           paddingBottom: "4px"
         }}
       >
-        {t("legend.title")}
+        {t("metrics.legend.title")}
       </Typography>
 
-      <LegendItem color={NODE_COLORS.resource} text={t("legend.resources")} />
-      <LegendItem color={NODE_COLORS.card} text={t("legend.cards")} />
-      <LegendLine color={LINK_COLORS.cost} text={t("legend.cost")} />
-      <LegendLine color={LINK_COLORS.gain} text={t("legend.gain")} />
+      <LegendItem color={NODE_COLORS.resource} text={t("metrics.legend.resources")} />
+      <LegendItem color={NODE_COLORS.card} text={t("metrics.legend.cards")} />
+      <LegendLine color={LINK_COLORS.cost} text={t("metrics.legend.cost")} />
+      <LegendLine color={LINK_COLORS.gain} text={t("metrics.legend.gain")} />
     </Box>
   );
 };
