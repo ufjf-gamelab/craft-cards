@@ -2,26 +2,34 @@ import { CartaType } from "./data/cartas.ts";
 import "./Carta.css";
 import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
+import { useCardTranslations } from "./i18n/useCardTranslations.ts";
+
 type CartaProps = {
   carta: CartaType;
   onCartaClick: () => void;
   facedown?: boolean;
 };
+
 export default function Carta({
   carta,
   onCartaClick,
   facedown = false,
 }: CartaProps) {
+  const tr = useCardTranslations();
+
+  const titulo = tr.tituloSmart(carta);
+  const texto = tr.textoSmart(carta);
+
   const back = <h1>Craft Cards</h1>;
   const front = (
     <>
-      <h1>{carta.titulo}</h1>
+      <h1>{titulo}</h1>
       <section>
-        <p>{carta.texto}</p>
+        <p>{texto}</p>
         {carta.ganho.map((ganho) => (
           <p key={ganho.nome}>
             {ganho.quantidade > 0 ? "+" : "-"} {ganho.quantidade}{" "}
-            {ganho.nome}
+            {tr.resource(ganho.nome)}
           </p>
         ))}
       </section>
@@ -29,12 +37,13 @@ export default function Carta({
         {carta.custo.map((custo) => (
           <p key={custo.nome}>
             {custo.quantidade > 0 ? "-" : "+"} {custo.quantidade}{" "}
-            {custo.nome}
+            {tr.resource(custo.nome)}
           </p>
         ))}
       </div>
     </>
   );
+
   return (
     <AnimatePresence>
       <motion.div
@@ -44,7 +53,7 @@ export default function Carta({
         exit={{ scale: 1.0 }}
         transition={{
           duration: 1.0,
-          scale: { type: "inertia", visualDuration: 5},
+          scale: { type: "inertia", visualDuration: 5 },
         }}
         className={`carta ${facedown && "facedown"}`}
         onClick={() => {

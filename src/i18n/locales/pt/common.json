@@ -83,17 +83,17 @@
     "action_type": "Ação: {{type}}",
     "resources_after": "Recursos após ação:",
     "action_names": {
-    "aumenta ponto": "Aumenta Ponto",
-    "diminui acao": "Diminui Ação",
-    "jogar carta": "Jogar Carta",
-    "passar turno": "Passar Turno",
-    "comprar carta": "Comprar Carta",
-    "toggle analises": "Alternar Análises",
-    "set active tab": "Alterar Aba",
-    "set graph": "Atualizar Grafo",
-    "load game": "Carregar Jogo",
-    "update cards": "Atualizar Cartas"
-  }
+      "increase point": "Aumenta Ponto",
+      "decrease action": "Diminui Ação",
+      "play card": "Jogar Carta",
+      "pass turn": "Passar Turno",
+      "buy card": "Comprar Carta",
+      "toggle analyses": "Alternar Análises",
+      "set active tab": "Alterar Aba",
+      "set graph": "Atualizar Grafo",
+      "load game": "Carregar Jogo",
+      "update cards": "Atualizar Cartas"
+    }
   },
   "petri": {
     "title": "Rede de Petri",

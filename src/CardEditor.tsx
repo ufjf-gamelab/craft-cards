@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CartaType, RecursoType } from "./data/cartas";
 import "./CardEditor.css";
+import { useCardTranslations } from "./i18n/useCardTranslations";
 
 export type DeckMembership = Record<
   string,
@@ -24,6 +25,7 @@ export default function CardEditor({
   onSave,
 }: CardEditorProps) {
   const { t } = useTranslation();
+  const tr = useCardTranslations();
 
   const [editableCards, setEditableCards] = useState<CartaType[]>(() =>
     JSON.parse(JSON.stringify(cards))
@@ -44,11 +46,16 @@ export default function CardEditor({
   const filteredCards = useMemo(() => {
     if (!query.trim()) return editableCards;
     const q = query.trim().toLowerCase();
-    return editableCards.filter(
-      (c) =>
-        c.titulo.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)
-    );
-  }, [editableCards, query]);
+    return editableCards.filter((c) => {
+      // Busca pelo título exibido (traduzido ou customizado) OU pelo id interno
+      const tituloExibido = tr.tituloSmart(c).toLowerCase();
+      const tituloBruto = c.titulo.toLowerCase();
+      const id = c.id.toLowerCase();
+      return (
+        tituloExibido.includes(q) || tituloBruto.includes(q) || id.includes(q)
+      );
+    });
+  }, [editableCards, query, tr]);
 
   const updateCard = (id: string, patch: Partial<CartaType>) => {
     setDirty(true);
@@ -83,7 +90,7 @@ export default function CardEditor({
           ...c,
           [type]: [
             ...c[type],
-            { nome: allResourceOptions[0] || "acao", quantidade: 1 },
+            { nome: allResourceOptions[0] || "action", quantidade: 1 },
           ],
         };
       })
@@ -170,7 +177,7 @@ export default function CardEditor({
                 <span className="card-editor-arrow">
                   {expanded ? "▼" : "▶"}
                 </span>
-                <h3>{card.titulo}</h3>
+                <h3>{tr.tituloSmart(card)}</h3>
                 <span className="card-editor-badges">
                   {deck?.baralho && (
                     <span
@@ -199,6 +206,7 @@ export default function CardEditor({
                     <input
                       type="text"
                       value={card.titulo}
+                      placeholder={tr.titulo(card.id, card.titulo)}
                       onChange={(e) =>
                         updateCard(card.id, { titulo: e.target.value })
                       }
@@ -285,6 +293,7 @@ function ResourceSection({
   onRemove,
 }: ResourceSectionProps) {
   const { t } = useTranslation();
+  const tr = useCardTranslations();
 
   return (
     <div className={`card-editor-field card-editor-field--${type}`}>
@@ -303,11 +312,11 @@ function ResourceSection({
             >
               {options.map((opt) => (
                 <option key={opt} value={opt}>
-                  {opt}
+                  {tr.resource(opt)}
                 </option>
               ))}
               {!options.includes(r.nome) && (
-                <option value={r.nome}>{r.nome}</option>
+                <option value={r.nome}>{tr.resource(r.nome)}</option>
               )}
             </select>
             <input

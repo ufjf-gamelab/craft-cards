@@ -589,6 +589,7 @@ function App() {
                 {game.activeTab === "petriNet" && (
                   <div className="petri-net-container visible">
                     <ResourcePetriNet
+                      key={`petri-${i18n.language}-${modelVersion}`}
                       recursos={game.recursos}
                       playableCards={playableCards}
                       allCards={allCards}
@@ -598,6 +599,7 @@ function App() {
                 {game.activeTab === "graph" && (
                   <div className="graph-container visible">
                     <ResourceGraph
+                      key={`graph-${i18n.language}-${modelVersion}`}
                       onGraphCreated={(graph) =>
                         dispatch({
                           type: GameActions.SET_GRAPH,

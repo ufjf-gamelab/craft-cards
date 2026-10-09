@@ -3,10 +3,10 @@ import { CartaType, GAME_INITIAL } from "../../data/cartas";
 export const BARALHO_EX1: CartaType[] = [
   {
     id: "make_stone",
-    titulo: "Coletar Pedra",
+    titulo: "Collect Stone",
     texto: "",
     custo: [],
-    ganho: [{ nome: "pedra", quantidade: 1 }],
+    ganho: [{ nome: "stone", quantidade: 1 }],
   },
 ];
 
@@ -17,9 +17,9 @@ export const GAME_EX1 = {
   baralho: BARALHO_EX1,
   baralhoDaOferta: OFERTA_EX1,
   recursos: [
-    { nome: "pontuação", quantidade: 0 },
-    { nome: "ação", quantidade: 3 },
-    ...GAME_INITIAL.recursos.filter(r => r.nome !== "pontuação" && r.nome !== "ação"),
+    { nome: "score", quantidade: 0 },
+    { nome: "action", quantidade: 3 },
+    ...GAME_INITIAL.recursos.filter(r => r.nome !== "score" && r.nome !== "action"),
   ],
   pontosParaVencer: 5,
   turnosMaximos: 10,

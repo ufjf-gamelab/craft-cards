@@ -3,9 +3,11 @@ import { useTranslation } from "react-i18next";
 import { GameReducerContext } from "./Game";
 import "./Historico.css";
 import { RESOURCE_COLORS } from "./Historico";
+import { useCardTranslations } from "./i18n/useCardTranslations.ts";
 
 export default function HistoricoLog() {
   const { t } = useTranslation();
+  const tr = useCardTranslations();
   const game = useContext(GameReducerContext);
 
   if (!game?.historico || game.historico.length === 0) {
@@ -58,7 +60,7 @@ export default function HistoricoLog() {
                                   fontWeight: "bold",
                                 }}
                               >
-                                {recurso.nome}: {recurso.quantidade}
+                                {tr.resource(recurso.nome)}: {recurso.quantidade}
                               </span>
                             </div>
                           ))}

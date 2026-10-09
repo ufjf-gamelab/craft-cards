@@ -83,17 +83,17 @@
     "action_type": "Action: {{type}}",
     "resources_after": "Resources after action:",
     "action_names": {
-    "aumenta ponto": "Increase Point",
-    "diminui acao": "Decrease Action",
-    "jogar carta": "Play Card",
-    "passar turno": "Pass Turn",
-    "comprar carta": "Buy Card",
-    "toggle analises": "Toggle Analyses",
-    "set active tab": "Change Tab",
-    "set graph": "Update Graph",
-    "load game": "Load Game",
-    "update cards": "Update Cards"
-  }
+      "aumenta ponto": "Increase Point",
+      "diminui acao": "Decrease Action",
+      "jogar carta": "Play Card",
+      "passar turno": "Pass Turn",
+      "comprar carta": "Buy Card",
+      "toggle analises": "Toggle Analyses",
+      "set active tab": "Change Tab",
+      "set graph": "Update Graph",
+      "load game": "Load Game",
+      "update cards": "Update Cards"
+    }
   },
   "petri": {
     "title": "Petri Net",

@@ -12,23 +12,25 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useCardTranslations } from "./i18n/useCardTranslations";
 
 export const RESOURCE_COLORS: Record<string, string> = {
-  ação: "#FF5733",
-  acao: "#FF5733",
-  "madeira bruta": "#8B4513",
-  água: "#1E90FF",
-  agua: "#1E90FF",
-  amora: "#9370DB",
-  "pedra bruta": "#808080",
-  tabua: "#D2B48C",
-  "pedra polida": "#B0B0B0",
-  picareta: "#696969",
-  machado: "#C0C0C0",
+  action: "#FF5733",
+  score: "#FFD700",
+  "raw wood": "#8B4513",
+  wood: "#A0522D",
+  water: "#1E90FF",
+  "raw stone": "#808080",
+  stone: "#696969",
+  plank: "#D2B48C",
+  "polished stone": "#B0B0B0",
+  blade: "#C0C0C0",
+  gold: "#FFD700",
 };
 
 export default function Historico() {
   const { t } = useTranslation();
+  const tr = useCardTranslations();
   const game = useContext(GameReducerContext);
 
   const chartData = game?.historico?.flatMap((turno) =>
@@ -40,6 +42,7 @@ export default function Historico() {
       };
 
       acao.recursos.forEach((recurso) => {
+        // dataKey mantém o nome interno (inglês)
         dataPoint[recurso.nome] = recurso.quantidade;
       });
 
@@ -88,7 +91,10 @@ export default function Historico() {
               }}
             />
             <Tooltip
-              formatter={(value, name) => [`${value}`, name]}
+              formatter={(value, name) => [
+                `${value}`,
+                tr.resource(String(name)),
+              ]}
               contentStyle={{
                 backgroundColor: "#333",
                 borderColor: "#666",
@@ -97,12 +103,13 @@ export default function Historico() {
                 padding: "10px",
               }}
             />
-            <Legend />
+            <Legend formatter={(value) => tr.resource(String(value))} />
             {resourceTypes.map((tipo) => (
               <Line
                 key={tipo}
                 type="monotone"
                 dataKey={tipo}
+                name={tr.resource(tipo)}
                 stroke={RESOURCE_COLORS[tipo] || "#8884d8"}
                 strokeWidth={2}
                 activeDot={{ r: 6 }}

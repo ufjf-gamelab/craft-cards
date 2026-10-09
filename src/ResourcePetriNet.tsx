@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
 import {
@@ -20,7 +20,12 @@ import {
   LinearProgress,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { BARALHO_INICIAL, BARALHO_OFERTA_INICIAL, CartaType } from "./data/cartas.ts";
+import {
+  BARALHO_INICIAL,
+  BARALHO_OFERTA_INICIAL,
+  CartaType,
+} from "./data/cartas.ts";
+import { useCardTranslations } from "./i18n/useCardTranslations";
 
 const OMEGA = "ω";
 
@@ -435,7 +440,9 @@ const expandirArvoreComLimites = (
 
       const transicoesHabilitadas = graph
         .nodes()
-        .filter((node) => graph.getNodeAttribute(node, "type") === "transition")
+        .filter(
+          (node) => graph.getNodeAttribute(node, "type") === "transition"
+        )
         .filter((transicaoId) =>
           isTransicaoHabilitada(
             transicaoId,
@@ -521,12 +528,14 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   playableCards,
   allCards,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const tr = useCardTranslations();
 
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<any>(null);
-  const graphRef = useRef<MultiDirectedGraph<NodeAttributes, LinkAttributes> | null>(null);
+  const graphRef =
+    useRef<MultiDirectedGraph<NodeAttributes, LinkAttributes> | null>(null);
   const nodeGroupsRef = useRef<any>(null);
   const initializedRef = useRef(false);
 
@@ -547,8 +556,25 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   const [mostrarArvore, setMostrarArvore] = useState(false);
   const [nosArvore, setNosArvore] = useState<NoArvore[]>([]);
   const [numeroExpansoes, setNumeroExpansoes] = useState<number>(0);
-  const [caminhosEncontrados, setCaminhosEncontrados] = useState<string[][]>([]);
+  const [caminhosEncontrados, setCaminhosEncontrados] = useState<string[][]>(
+    []
+  );
   const [showPerformanceWarning, setShowPerformanceWarning] = useState(false);
+
+  // ── Mapa de cartas por id (para resolver título na árvore) ──
+  const cardsById = useMemo(() => {
+    const m = new Map<string, CartaType>();
+    const source = allCards ?? [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
+    source.forEach((c) => m.set(c.id, c));
+    return m;
+  }, [allCards]);
+
+  // ── Helper: dado um id de carta, retorna o título correto ──
+  const labelDaCarta = (id: string): string => {
+    const carta = cardsById.get(id);
+    if (!carta) return id;
+    return tr.tituloSmart(carta);
+  };
 
   useEffect(() => {
     marcacaoModoLivreRef.current = marcacaoModoLivre;
@@ -565,7 +591,15 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       atualizarVisualizacao();
       atualizarDeadlock();
     }
-  }, [marcacaoModoLivre, recursos, playableCards, modoLivre, allCards, analiseCompleta]);
+  }, [
+    marcacaoModoLivre,
+    recursos,
+    playableCards,
+    modoLivre,
+    allCards,
+    analiseCompleta,
+    i18n.language,
+  ]);
 
   const getMarcacaoAtual = () => {
     return modoLivre ? marcacaoModoLivre : recursosParaMarcacao(recursos);
@@ -574,52 +608,70 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   const analisarDeadlockFuturo = (
     marcacaoInicial: Marcacao,
     profundidadeMaxima: number = 3
-  ): { isDeadlock: boolean; podeRecuperarAcao: boolean; podeComprarCartas: boolean } => {
-    if (!graphRef.current) return { isDeadlock: false, podeRecuperarAcao: false, podeComprarCartas: false };
-    
+  ): {
+    isDeadlock: boolean;
+    podeRecuperarAcao: boolean;
+    podeComprarCartas: boolean;
+  } => {
+    if (!graphRef.current)
+      return {
+        isDeadlock: false,
+        podeRecuperarAcao: false,
+        podeComprarCartas: false,
+      };
+
     const visitados = new Set<string>();
     const fila: { marcacao: Marcacao; profundidade: number }[] = [
-      { marcacao: marcacaoInicial, profundidade: 0 }
+      { marcacao: marcacaoInicial, profundidade: 0 },
     ];
-    
+
     let podeRecuperarAcao = false;
     let podeComprarCartas = false;
     let encontrouTransicao = false;
-    
+
     const serializarMarcacao = (marcacao: Marcacao): string => {
       return Object.entries(marcacao)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([k, v]) => `${k}:${v}`)
         .join("|");
     };
-    
+
     const cartasQueProduzemAcao = graphRef.current
       .nodes()
-      .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition")
+      .filter(
+        (node) =>
+          graphRef.current?.getNodeAttribute(node, "type") === "transition"
+      )
       .some((transicaoId) => {
         const arcosSaida = graphRef.current!.outEdges(transicaoId) || [];
-        return arcosSaida.some(arcoId => {
+        return arcosSaida.some((arcoId) => {
           const lugarId = graphRef.current!.target(arcoId);
-          const recursoNome = graphRef.current!.getNodeAttribute(lugarId, "label");
-          return recursoNome === "acao";
+          const recursoNome = graphRef.current!.getNodeAttribute(
+            lugarId,
+            "label"
+          );
+          return recursoNome === "action" || recursoNome === "action";
         });
       });
-    
+
     while (fila.length > 0) {
       const { marcacao, profundidade } = fila.shift()!;
       const key = serializarMarcacao(marcacao);
-      
+
       if (visitados.has(key)) continue;
       visitados.add(key);
-      
-      const acaoAtual = marcacao["acao"] as number || 0;
+
+      const acaoAtual = (marcacao["action"] as number) || 0;
       if (acaoAtual > 0) {
         podeRecuperarAcao = true;
       }
-      
+
       const transicoesHabilitadas = graphRef.current
         .nodes()
-        .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition")
+        .filter(
+          (node) =>
+            graphRef.current?.getNodeAttribute(node, "type") === "transition"
+        )
         .filter((transicaoId) =>
           isTransicaoHabilitada(
             transicaoId,
@@ -629,50 +681,64 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
             true
           )
         );
-      
+
       if (transicoesHabilitadas.length > 0) {
         encontrouTransicao = true;
-        
+
         for (const transicaoId of transicoesHabilitadas) {
           const arcosSaida = graphRef.current!.outEdges(transicaoId) || [];
-          const produzAcao = arcosSaida.some(arcoId => {
+          const produzAcao = arcosSaida.some((arcoId) => {
             const lugarId = graphRef.current!.target(arcoId);
-            const recursoNome = graphRef.current!.getNodeAttribute(lugarId, "label");
-            return recursoNome === "acao";
+            const recursoNome = graphRef.current!.getNodeAttribute(
+              lugarId,
+              "label"
+            );
+            return recursoNome === "action";
           });
           if (produzAcao) {
             podeRecuperarAcao = true;
           }
         }
-        
+
         if (profundidade < profundidadeMaxima) {
           for (const transicaoId of transicoesHabilitadas.slice(0, 5)) {
-            const novaMarcacao = dispararTransicao(transicaoId, marcacao, graphRef.current!);
-            fila.push({ marcacao: novaMarcacao, profundidade: profundidade + 1 });
+            const novaMarcacao = dispararTransicao(
+              transicaoId,
+              marcacao,
+              graphRef.current!
+            );
+            fila.push({
+              marcacao: novaMarcacao,
+              profundidade: profundidade + 1,
+            });
           }
         }
       }
     }
-    
+
     const temCartasCompravel = playableCards.length > 0;
     const temCartasQueProduzemAcaoNoBaralho = cartasQueProduzemAcao;
-    
+
     podeComprarCartas = temCartasCompravel || temCartasQueProduzemAcaoNoBaralho;
-    
-    const isDeadlock = !encontrouTransicao && !podeRecuperarAcao && !podeComprarCartas;
-    
+
+    const isDeadlock =
+      !encontrouTransicao && !podeRecuperarAcao && !podeComprarCartas;
+
     return { isDeadlock, podeRecuperarAcao, podeComprarCartas };
   };
 
   const verificarDeadlockSistema = () => {
     if (!graphRef.current) return false;
-    
+
     const currentMarcacao = getMarcacaoAtual();
-    const acaoAtual = currentMarcacao["acao"] as number || 0;
-    
+    const acaoAtual = (currentMarcacao["action"] as number) || 0;
+
     const transicoesImediatas = graphRef.current
       .nodes()
-      .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition")
+      .filter(
+        (node) =>
+          graphRef.current?.getNodeAttribute(node, "type") === "transition"
+      )
       .filter((transicaoId) =>
         isTransicaoHabilitada(
           transicaoId,
@@ -682,29 +748,35 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           false
         )
       );
-    
+
     if (transicoesImediatas.length > 0) {
       return false;
     }
-    
+
     const analiseFuturo = analisarDeadlockFuturo(currentMarcacao, 3);
-    
-    if (acaoAtual === 0 && (analiseFuturo.podeRecuperarAcao || analiseFuturo.podeComprarCartas)) {
+
+    if (
+      acaoAtual === 0 &&
+      (analiseFuturo.podeRecuperarAcao || analiseFuturo.podeComprarCartas)
+    ) {
       return false;
     }
-    
+
     return analiseFuturo.isDeadlock;
   };
 
   const atualizarDeadlock = () => {
     if (!graphRef.current) return;
-    
+
     const currentMarcacao = getMarcacaoAtual();
-    const acaoAtual = currentMarcacao["acao"] as number || 0;
-    
+    const acaoAtual = (currentMarcacao["action"] as number) || 0;
+
     const transicoesImediatas = graphRef.current
       .nodes()
-      .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition")
+      .filter(
+        (node) =>
+          graphRef.current?.getNodeAttribute(node, "type") === "transition"
+      )
       .filter((transicaoId) =>
         isTransicaoHabilitada(
           transicaoId,
@@ -714,17 +786,20 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           false
         )
       );
-    
+
     if (transicoesImediatas.length > 0) {
       setDeadlockDetected(false);
       setDeadlockPermanente(false);
       setDeadlockTemporario(false);
       return;
     }
-    
+
     const analiseFuturo = analisarDeadlockFuturo(currentMarcacao, 3);
-    
-    if (acaoAtual === 0 && (analiseFuturo.podeRecuperarAcao || analiseFuturo.podeComprarCartas)) {
+
+    if (
+      acaoAtual === 0 &&
+      (analiseFuturo.podeRecuperarAcao || analiseFuturo.podeComprarCartas)
+    ) {
       setDeadlockDetected(true);
       setDeadlockTemporario(true);
       setDeadlockPermanente(false);
@@ -742,11 +817,14 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   const isDeadlockNode = (no: NoArvore): boolean => {
     if (!graphRef.current) return false;
     if (!no.terminal) return false;
-    
+
     const todasTransicoes = graphRef.current
       .nodes()
-      .filter((node) => graphRef.current?.getNodeAttribute(node, "type") === "transition");
-    
+      .filter(
+        (node) =>
+          graphRef.current?.getNodeAttribute(node, "type") === "transition"
+      );
+
     const algumaTransicaoHabilitada = todasTransicoes.some((transicaoId) =>
       isTransicaoHabilitada(
         transicaoId,
@@ -756,7 +834,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
         true
       )
     );
-    
+
     return !algumaTransicaoHabilitada;
   };
 
@@ -848,7 +926,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     });
   };
 
-  const handleModoLivreChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleModoLivreChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const novoModoLivre = event.target.checked;
     setModoLivre(novoModoLivre);
 
@@ -886,14 +966,16 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
     graphRef.current = graph;
 
-    const cards = allCards ?? [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
+    const cards =
+      allCards ?? [...BARALHO_INICIAL, ...BARALHO_OFERTA_INICIAL];
 
     cards.forEach((carta) => {
       const transitionId = `transition_${carta.id}`;
       if (!graph.hasNode(transitionId)) {
         graph.addNode(transitionId, {
           id: transitionId,
-          label: carta.titulo,
+          // ── AQUI: tituloSmart respeita edições do usuário ──
+          label: tr.tituloSmart(carta),
           type: "transition",
           size: 10,
           color: NODE_COLORS.transition,
@@ -911,7 +993,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     allResources.forEach((nome) => {
       graph.addNode(`place_${nome}`, {
         id: `place_${nome}`,
-        label: nome,
+        label: nome, // nome interno em inglês (usado como chave)
         type: "place",
         tokens: 0,
         size: 15,
@@ -1016,7 +1098,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           .on("end", dragended)
       );
 
-    nodeGroupsRef.current.each(function (this: SVGGElement, d: NodeAttributes) {
+    nodeGroupsRef.current.each(function (
+      this: SVGGElement,
+      d: NodeAttributes
+    ) {
       const nodeGroup = d3.select<SVGGElement, NodeAttributes>(this);
 
       if (d.type === "place") {
@@ -1054,7 +1139,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           .attr("text-anchor", "middle")
           .attr("fill", "var(--text-primary)")
           .style("font-size", "10px")
-          .text(d.label);
+          .text(tr.resource(d.label));
       } else {
         nodeGroup
           .append("rect")
@@ -1154,7 +1239,11 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
   };
 
   function isValidGraph(graph: any): graph is MultiDirectedGraph {
-    return graph && typeof graph.filterNodes === 'function' && typeof graph.forEachNode === 'function';
+    return (
+      graph &&
+      typeof graph.filterNodes === "function" &&
+      typeof graph.forEachNode === "function"
+    );
   }
 
   const gerarArvoreAlcancabilidade = () => {
@@ -1163,13 +1252,13 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     }
 
     if (numeroExpansoes < 0 || numeroExpansoes > 10) {
-      console.warn("Número de expansões deve estar entre 0 e 10");
+      console.warn("Number of expansions must be between 0 and 10");
       setNumeroExpansoes(Math.max(0, Math.min(10, numeroExpansoes)));
       return;
     }
 
     if (!graphRef.current || !isValidGraph(graphRef.current)) {
-      console.error('Grafo inválido ou não inicializado');
+      console.error("Invalid or uninitialized graph");
       setExpandindoArvore(false);
       return;
     }
@@ -1218,7 +1307,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               (node) =>
                 graphRef.current!.getNodeAttribute(node, "type") === "place"
             )
-            .map((node) => graphRef.current!.getNodeAttribute(node, "label"));
+            .map((node) =>
+              graphRef.current!.getNodeAttribute(node, "label")
+            );
 
           if (resourceNodes.length >= 2) {
             const start = resourceNodes[0];
@@ -1233,7 +1324,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           }
         }
       } catch (error) {
-        console.error("Erro ao gerar árvore:", error);
+        console.error("Error generating tree:", error);
       } finally {
         setExpandindoArvore(false);
       }
@@ -1242,7 +1333,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
   const formatarMarcacao = (marcacao: Marcacao): string => {
     return Object.entries(marcacao)
-      .map(([recurso, quantidade]) => `${recurso}:${quantidade}`)
+      .map(([recurso, quantidade]) => `${tr.resource(recurso)}:${quantidade}`)
       .join(", ");
   };
 
@@ -1267,7 +1358,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     if (pai) {
       for (const filho of pai.children) {
         if (filho.id === no.id) {
-          return filho.transicaoDisparada || t("petri.unknown_transition");
+          const id = filho.transicaoDisparada || "";
+          // ── AQUI: labelDaCarta resolve o título atual (respeita edições) ──
+          return labelDaCarta(id) || t("petri.unknown_transition");
         }
       }
     }
@@ -1286,7 +1379,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
     const g = svg.select("g");
 
-    g.selectAll("circle").attr("stroke-width", 2).attr("stroke", "var(--text-primary)");
+    g.selectAll("circle")
+      .attr("stroke-width", 2)
+      .attr("stroke", "var(--text-primary)");
 
     const node = g.selectAll(".node").filter((d: any) => d.id === nodeId);
 
@@ -1304,7 +1399,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
     g.transition().duration(750).attr("transform", transform.toString());
 
-    node.select("circle").attr("stroke-width", 4).attr("stroke", "var(--accent-color)");
+    node
+      .select("circle")
+      .attr("stroke-width", 4)
+      .attr("stroke", "var(--accent-color)");
 
     treeContainer.scrollIntoView({ behavior: "smooth", block: "center" });
   };
@@ -1343,7 +1441,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
         links.push({
           source: no.id,
           target: filho.id,
-          label: filho.transicaoDisparada || "",
+          // ── AQUI: labelDaCarta resolve o título atual ──
+          label: filho.transicaoDisparada
+            ? labelDaCarta(filho.transicaoDisparada)
+            : "",
         });
         processarLinks(filho);
       });
@@ -1451,9 +1552,9 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       .append("circle")
       .attr("r", (d: any) => d.size)
       .attr("fill", (d: any) => {
-        const noOriginal = todosNos.find(n => n.id === d.id);
+        const noOriginal = todosNos.find((n) => n.id === d.id);
         const isDeadlock = noOriginal && isDeadlockNode(noOriginal);
-        
+
         if (isDeadlock) {
           return CORES_NOS.deadlock;
         }
@@ -1470,12 +1571,12 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
         }
       })
       .attr("stroke", (d: any) => {
-        const noOriginal = todosNos.find(n => n.id === d.id);
+        const noOriginal = todosNos.find((n) => n.id === d.id);
         const isDeadlock = noOriginal && isDeadlockNode(noOriginal);
         return isDeadlock ? "#FF0000" : "var(--text-primary)";
       })
       .attr("stroke-width", (d: any) => {
-        const noOriginal = todosNos.find(n => n.id === d.id);
+        const noOriginal = todosNos.find((n) => n.id === d.id);
         const isDeadlock = noOriginal && isDeadlockNode(noOriginal);
         return isDeadlock ? 3 : 2;
       });
@@ -1491,7 +1592,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
 
     node.append("title").text((d: any) => {
       const marcacaoStr = Object.entries(d.marcacao)
-        .map(([key, value]) => `${key}: ${value}`)
+        .map(([key, value]) => `${tr.resource(key)}: ${value}`)
         .join("\n");
       const tipo = d.isInitial
         ? t("petri.tooltip_initial")
@@ -1631,15 +1732,18 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                     "& .MuiSwitch-switchBase.Mui-checked": {
                       color: "#4CAF50",
                     },
-                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                      backgroundColor: "#4CAF50",
-                    },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                      {
+                        backgroundColor: "#4CAF50",
+                      },
                   }}
                 />
               }
               label={
                 <Box sx={{ display: "flex", alignItems: "center" }}>
-                  <Typography sx={{ color: "var(--text-primary)", fontWeight: "500" }}>
+                  <Typography
+                    sx={{ color: "var(--text-primary)", fontWeight: "500" }}
+                  >
                     {t("petri.free_mode")}
                   </Typography>
                   {modoLivre && (
@@ -1755,22 +1859,26 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                 boxShadow: "0 2px 8px rgba(33, 150, 243, 0.3)",
               }}
             >
-              {expandindoArvore ? t("petri.expanding") : t("petri.generate_tree")}
+              {expandindoArvore
+                ? t("petri.expanding")
+                : t("petri.generate_tree")}
             </Button>
           </Box>
         </Box>
 
         {deadlockDetected && !modoLivre && (
-          <Alert 
-            severity={deadlockPermanente ? "error" : "warning"} 
-            sx={{ 
-              position: "absolute", 
-              bottom: 16, 
-              right: 16, 
+          <Alert
+            severity={deadlockPermanente ? "error" : "warning"}
+            sx={{
+              position: "absolute",
+              bottom: 16,
+              right: 16,
               zIndex: 20,
-              backgroundColor: deadlockPermanente ? "var(--error-color)" : "var(--warning-color)",
+              backgroundColor: deadlockPermanente
+                ? "var(--error-color)"
+                : "var(--warning-color)",
               color: "white",
-              "& .MuiAlert-icon": { color: "white" }
+              "& .MuiAlert-icon": { color: "white" },
             }}
           >
             <Typography variant="body2" fontWeight="bold">
@@ -1792,7 +1900,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
             mb: 2,
             backgroundColor: "var(--bg-secondary)",
             color: "var(--text-primary)",
-            "& .MuiAlert-icon": { color: "var(--warning-color)" }
+            "& .MuiAlert-icon": { color: "var(--warning-color)" },
           }}
         >
           <Typography variant="body2">
@@ -1811,7 +1919,12 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           <LinearProgress />
           <Typography
             variant="caption"
-            sx={{ color: "var(--text-primary)", textAlign: "center", display: "block", mt: 1 }}
+            sx={{
+              color: "var(--text-primary)",
+              textAlign: "center",
+              display: "block",
+              mt: 1,
+            }}
           >
             {t("petri.expanding_progress")}
           </Typography>
@@ -1819,12 +1932,23 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       )}
 
       {caminhosEncontrados.length > 0 && (
-        <Paper sx={{ p: 2, backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }}>
+        <Paper
+          sx={{
+            p: 2,
+            backgroundColor: "var(--bg-secondary)",
+            color: "var(--text-primary)",
+          }}
+        >
           <Typography variant="h6" gutterBottom>
             {t("petri.paths_found_title")}
           </Typography>
-          <Typography variant="body2" sx={{ mb: 2, color: "var(--text-secondary)" }}>
-            {t("petri.paths_found_desc", { count: caminhosEncontrados.length })}
+          <Typography
+            variant="body2"
+            sx={{ mb: 2, color: "var(--text-secondary)" }}
+          >
+            {t("petri.paths_found_desc", {
+              count: caminhosEncontrados.length,
+            })}
           </Typography>
           {caminhosEncontrados.slice(0, 3).map((caminho, idx) => (
             <Box
@@ -1837,7 +1961,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               }}
             >
               <Typography variant="body2" fontFamily="monospace">
-                {caminho.join(" → ")}
+                {caminho.map((n) => tr.resource(n)).join(" → ")}
               </Typography>
             </Box>
           ))}
@@ -1855,7 +1979,14 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           }}
         >
           <Box sx={{ p: 2, color: "var(--text-primary)" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                flexWrap: "wrap",
+              }}
+            >
               <h3>{t("petri.reachability_tree")}</h3>
               <Chip
                 label={t("petri.limits_chip", {
@@ -1868,18 +1999,24 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               />
               {numeroExpansoes > 0 && (
                 <Chip
-                  label={t("petri.simulated_expansions_chip", { count: numeroExpansoes })}
+                  label={t("petri.simulated_expansions_chip", {
+                    count: numeroExpansoes,
+                  })}
                   color="primary"
                   variant="outlined"
                   size="small"
                 />
               )}
-              {nosArvore.some(n => isDeadlockNode(n)) && (
+              {nosArvore.some((n) => isDeadlockNode(n)) && (
                 <Chip
                   label={t("petri.deadlock_detected_chip")}
                   color="error"
                   size="small"
-                  sx={{ ml: 1, fontWeight: "bold", backgroundColor: "#D32F2F" }}
+                  sx={{
+                    ml: 1,
+                    fontWeight: "bold",
+                    backgroundColor: "#D32F2F",
+                  }}
                 />
               )}
             </Box>
@@ -1910,18 +2047,26 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           <Typography
             variant="h6"
             gutterBottom
-            sx={{ color: "var(--text-primary)", borderBottom: "2px solid var(--accent-color)", pb: 1 }}
+            sx={{
+              color: "var(--text-primary)",
+              borderBottom: "2px solid var(--accent-color)",
+              pb: 1,
+            }}
           >
             {t("petri.states_table_title")}
             <Chip
-              label={t("petri.nodes_generated_chip", { count: nosArvore.length })}
+              label={t("petri.nodes_generated_chip", {
+                count: nosArvore.length,
+              })}
               color="info"
               size="small"
               sx={{ ml: 2 }}
             />
             {numeroExpansoes > 0 && (
               <Chip
-                label={t("petri.simulation_chip", { count: numeroExpansoes })}
+                label={t("petri.simulation_chip", {
+                  count: numeroExpansoes,
+                })}
                 color="secondary"
                 size="small"
                 sx={{ ml: 2 }}
@@ -2102,36 +2247,36 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                     }}
                   >
                     {isDeadlockNode(no) ? (
-                      <Chip 
+                      <Chip
                         label={t("petri.deadlock_permanent_chip")}
-                        size="small" 
-                        sx={{ 
-                          backgroundColor: "#D32F2F", 
+                        size="small"
+                        sx={{
+                          backgroundColor: "#D32F2F",
                           color: "white",
                           fontWeight: "bold",
-                          fontSize: "0.7rem"
-                        }} 
+                          fontSize: "0.7rem",
+                        }}
                       />
                     ) : no.terminal && !isDeadlockNode(no) ? (
-                      <Chip 
+                      <Chip
                         label={t("petri.deadlock_temporary_chip")}
-                        size="small" 
-                        sx={{ 
-                          backgroundColor: "#FF9800", 
+                        size="small"
+                        sx={{
+                          backgroundColor: "#FF9800",
                           color: "white",
                           fontWeight: "bold",
-                          fontSize: "0.7rem"
-                        }} 
+                          fontSize: "0.7rem",
+                        }}
                       />
                     ) : (
-                      <Chip 
+                      <Chip
                         label={t("petri.deadlock_no_chip")}
-                        size="small" 
+                        size="small"
                         variant="outlined"
-                        sx={{ 
+                        sx={{
                           color: "var(--text-secondary)",
-                          fontSize: "0.7rem"
-                        }} 
+                          fontSize: "0.7rem",
+                        }}
                       />
                     )}
                   </TableCell>
@@ -2173,10 +2318,16 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    sx={{ textAlign: "center", color: "var(--text-secondary)", py: 2 }}
+                    sx={{
+                      textAlign: "center",
+                      color: "var(--text-secondary)",
+                      py: 2,
+                    }}
                   >
                     <Typography variant="body2">
-                      {t("petri.more_nodes", { count: nosArvore.length - 100 })}
+                      {t("petri.more_nodes", {
+                        count: nosArvore.length - 100,
+                      })}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -2195,7 +2346,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_initial")}
               </Typography>
             </Box>
@@ -2209,7 +2363,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_intermediate")}
               </Typography>
             </Box>
@@ -2223,7 +2380,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_intermediate_advanced")}
               </Typography>
             </Box>
@@ -2237,7 +2397,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_omega")}
               </Typography>
             </Box>
@@ -2251,7 +2414,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_cyclic")}
               </Typography>
             </Box>
@@ -2265,7 +2431,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_terminal")}
               </Typography>
             </Box>
@@ -2279,7 +2448,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_simulation")}
               </Typography>
             </Box>
@@ -2293,7 +2465,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid var(--text-primary)",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_simulation_intermediate")}
               </Typography>
             </Box>
@@ -2307,7 +2482,10 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                   border: "1px solid #FF0000",
                 }}
               />
-              <Typography variant="body2" sx={{ color: "var(--text-primary)" }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "var(--text-primary)" }}
+              >
                 {t("petri.legend_deadlock")}
               </Typography>
             </Box>
