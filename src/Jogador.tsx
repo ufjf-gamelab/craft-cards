@@ -27,7 +27,7 @@ export default function Jogador() {
         <ListaDeCartas>
           {game.mao.map((item) => (
             <Carta
-              key={item.id}
+              key={item._instanceId ?? item.id}
               carta={item}
               onCartaClick={() => {
                 onCartaClick(item);
@@ -40,7 +40,11 @@ export default function Jogador() {
         <h2>{t("game.in_play")}</h2>
         <ListaDeCartas>
           {game.emJogo.map((item) => (
-            <Carta key={item.id} carta={item} onCartaClick={() => {}} />
+            <Carta
+              key={item._instanceId ?? item.id}
+              carta={item}
+              onCartaClick={() => {}}
+            />
           ))}
         </ListaDeCartas>
       </div>

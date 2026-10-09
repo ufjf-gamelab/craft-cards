@@ -60,7 +60,9 @@
     "discard": "Descartar",
     "apply_memory": "Aplicar em memória",
     "badge_deck": "Baralho",
-    "badge_offer": "Baralho da Oferta"
+    "badge_offer": "Baralho da Oferta",
+    "deck_count": "Baralho",
+  "offer_count": "Oferta"
   },
   "game": {
     "hand": "Mão",

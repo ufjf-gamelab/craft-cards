@@ -6,7 +6,17 @@ import { useCardTranslations } from "./i18n/useCardTranslations";
 
 export type DeckMembership = Record<
   string,
-  { baralho: boolean; oferta: boolean }
+  {
+    baralho: boolean;
+    oferta: boolean;
+    baralhoCount: number;
+    ofertaCount: number;
+  }
+>;
+
+export type DeckQuantities = Record<
+  string,
+  { baralho: number; oferta: number }
 >;
 
 type CardEditorProps = {
@@ -14,7 +24,7 @@ type CardEditorProps = {
   cards: CartaType[];
   availableResources: string[];
   deckMembership?: DeckMembership;
-  onSave: (cards: CartaType[]) => void;
+  onSave: (cards: CartaType[], quantities: DeckQuantities) => void;
 };
 
 export default function CardEditor({
@@ -29,6 +39,22 @@ export default function CardEditor({
 
   const [editableCards, setEditableCards] = useState<CartaType[]>(() =>
     JSON.parse(JSON.stringify(cards))
+  );
+
+  const buildInitialQuantities = (): DeckQuantities => {
+    const q: DeckQuantities = {};
+    cards.forEach((c) => {
+      const m = deckMembership?.[c.id];
+      q[c.id] = {
+        baralho: m?.baralhoCount ?? 0,
+        oferta: m?.ofertaCount ?? 0,
+      };
+    });
+    return q;
+  };
+
+  const [quantities, setQuantities] = useState<DeckQuantities>(
+    buildInitialQuantities
   );
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -47,7 +73,6 @@ export default function CardEditor({
     if (!query.trim()) return editableCards;
     const q = query.trim().toLowerCase();
     return editableCards.filter((c) => {
-      // Busca pelo título exibido (traduzido ou customizado) OU pelo id interno
       const tituloExibido = tr.tituloSmart(c).toLowerCase();
       const tituloBruto = c.titulo.toLowerCase();
       const id = c.id.toLowerCase();
@@ -62,6 +87,19 @@ export default function CardEditor({
     setEditableCards((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...patch } : c))
     );
+  };
+
+  const updateQuantity = (
+    id: string,
+    key: "baralho" | "oferta",
+    value: number
+  ) => {
+    setDirty(true);
+    const safe = Math.max(0, Math.min(99, Math.floor(value) || 0));
+    setQuantities((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], [key]: safe },
+    }));
   };
 
   const updateResource = (
@@ -112,12 +150,13 @@ export default function CardEditor({
   };
 
   const handleSave = () => {
-    onSave(editableCards);
+    onSave(editableCards, quantities);
     setDirty(false);
   };
 
   const handleReset = () => {
     setEditableCards(JSON.parse(JSON.stringify(cards)));
+    setQuantities(buildInitialQuantities());
     setDirty(false);
   };
 
@@ -164,38 +203,68 @@ export default function CardEditor({
 
         {filteredCards.map((card) => {
           const expanded = expandedId === card.id;
-          const deck = deckMembership?.[card.id];
+          const q = quantities[card.id] ?? { baralho: 0, oferta: 0 };
           return (
             <div
               key={card.id}
               className={`card-editor-item ${expanded ? "expanded" : ""}`}
             >
-              <div
-                className="card-editor-item-header"
-                onClick={() => setExpandedId(expanded ? null : card.id)}
-              >
-                <span className="card-editor-arrow">
+              <div className="card-editor-item-header">
+                <span
+                  className="card-editor-arrow"
+                  onClick={() => setExpandedId(expanded ? null : card.id)}
+                >
                   {expanded ? "▼" : "▶"}
                 </span>
-                <h3>{tr.tituloSmart(card)}</h3>
-                <span className="card-editor-badges">
-                  {deck?.baralho && (
-                    <span
-                      className="badge badge-baralho"
-                      title={t("card_editor.badge_deck")}
-                    >
-                      B
+                <h3
+                  onClick={() => setExpandedId(expanded ? null : card.id)}
+                  style={{ cursor: "pointer" }}
+                >
+                  {tr.tituloSmart(card)}
+                </h3>
+
+                <span
+                  className="card-editor-quantity"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <label>
+                    <span className="q-label">
+                      {t("card_editor.deck_count")}
                     </span>
-                  )}
-                  {deck?.oferta && (
-                    <span
-                      className="badge badge-oferta"
-                      title={t("card_editor.badge_offer")}
-                    >
-                      O
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      value={q.baralho}
+                      onChange={(e) =>
+                        updateQuantity(
+                          card.id,
+                          "baralho",
+                          parseInt(e.target.value)
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span className="q-label">
+                      {t("card_editor.offer_count")}
                     </span>
-                  )}
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      value={q.oferta}
+                      onChange={(e) =>
+                        updateQuantity(
+                          card.id,
+                          "oferta",
+                          parseInt(e.target.value)
+                        )
+                      }
+                    />
+                  </label>
                 </span>
+
                 <span className="card-editor-id">#{card.id}</span>
               </div>
 

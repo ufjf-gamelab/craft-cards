@@ -38,6 +38,8 @@ export type CartaType = {
   texto: string;
   custo: Array<RecursoType>;
   ganho: Array<RecursoType>;
+  /** Identificador único por cópia física. Gerado em setupNewGame. */
+  _instanceId?: string;
 };
 
 export type RecursoType = {

@@ -20,6 +20,9 @@ export default function Carta({
   const titulo = tr.tituloSmart(carta);
   const texto = tr.textoSmart(carta);
 
+  // Identidade da cópia física. Fallback para id (compat. com saves antigos).
+  const instanceKey = carta._instanceId ?? carta.id;
+
   const back = <h1>Craft Cards</h1>;
   const front = (
     <>
@@ -47,7 +50,7 @@ export default function Carta({
   return (
     <AnimatePresence>
       <motion.div
-        layoutId={carta.id}
+        layoutId={instanceKey}
         initial={{ scale: 1.0 }}
         animate={{ scale: 1.0 }}
         exit={{ scale: 1.0 }}

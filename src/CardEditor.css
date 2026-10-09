@@ -332,3 +332,51 @@
     box-shadow: 4px 0 12px var(--shadow-color);
   }
 }
+
+.card-editor-quantity {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-right: 0.5rem;
+}
+
+.card-editor-quantity label {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.card-editor-quantity .q-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.card-editor-quantity input {
+  width: 45px;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.75rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  text-align: center;
+  font-family: inherit;
+}
+
+.card-editor-quantity input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.card-editor-item-header {
+  cursor: default;
+}
+
+.card-editor-item-header h3,
+.card-editor-arrow {
+  cursor: pointer;
+}

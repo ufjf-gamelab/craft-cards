@@ -60,7 +60,9 @@
     "discard": "Discard",
     "apply_memory": "Apply in memory",
     "badge_deck": "Deck",
-    "badge_offer": "Offer Deck"
+    "badge_offer": "Offer Deck",
+    "deck_count": "Deck",
+    "offer_count": "Offer"
   },
   "game": {
     "hand": "Hand",

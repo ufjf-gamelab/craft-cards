@@ -37,7 +37,7 @@ export default function Oferta() {
         <ListaDeCartas>
           {game.oferta.map((item) => (
             <Carta
-              key={item.id}
+              key={item._instanceId ?? item.id}
               carta={item}
               onCartaClick={() => {
                 onCompraCartaClick(item);

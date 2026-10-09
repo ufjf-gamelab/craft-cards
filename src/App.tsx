@@ -28,7 +28,7 @@ import { CartaType, GAME_INITIAL } from "./data/cartas";
 import PersistenceDropdown from "./PersistanceDropdown.tsx";
 import { availableModels } from "./models/index.ts";
 import TutorialModal from "./TutorialModal.tsx";
-import CardEditor, { DeckMembership } from "./CardEditor.tsx";
+import CardEditor, { DeckMembership, DeckQuantities } from "./CardEditor.tsx";
 import { useTranslation } from "react-i18next";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
@@ -318,47 +318,103 @@ function App() {
   }, [game.recursos, allCards]);
 
   const deckMembership: DeckMembership = React.useMemo(() => {
-    const sourceModel = isCustomModel ? customModel : gameModel;
-    if (!sourceModel) return {};
-    const baralhoIds = new Set<string>(
-      sourceModel.baralho.map((c: CartaType) => c.id)
-    );
-    const ofertaIds = new Set<string>(
-      sourceModel.baralhoDaOferta.map((c: CartaType) => c.id)
-    );
-    const map: DeckMembership = {};
-    allCards.forEach((c) => {
-      map[c.id] = {
-        baralho: baralhoIds.has(c.id),
-        oferta: ofertaIds.has(c.id),
-      };
+  const sourceModel = isCustomModel ? customModel : gameModel;
+  if (!sourceModel) return {};
+
+  const baralhoCount = new Map<string, number>();
+  const ofertaCount = new Map<string, number>();
+
+  sourceModel.baralho.forEach((c: CartaType) => {
+    baralhoCount.set(c.id, (baralhoCount.get(c.id) || 0) + 1);
+  });
+  sourceModel.baralhoDaOferta.forEach((c: CartaType) => {
+    ofertaCount.set(c.id, (ofertaCount.get(c.id) || 0) + 1);
+  });
+
+  const map: DeckMembership = {};
+  allCards.forEach((c) => {
+    const b = baralhoCount.get(c.id) || 0;
+    const o = ofertaCount.get(c.id) || 0;
+    map[c.id] = {
+      baralho: b > 0,
+      oferta: o > 0,
+      baralhoCount: b,
+      ofertaCount: o,
+    };
+  });
+  return map;
+}, [allCards, gameModel, customModel, isCustomModel]);
+
+const handleCardEditorSave = (
+  updatedCards: CartaType[],
+  quantities: DeckQuantities
+) => {
+  const map = new Map(updatedCards.map((c) => [c.id, c]));
+
+  const rebuildFromQuantities = (
+    originalDeck: CartaType[],
+    key: "baralho" | "oferta"
+  ): CartaType[] => {
+    const result: CartaType[] = [];
+    const seen = new Set<string>();
+
+    // Manter a ordem de primeira aparição do deck original
+    originalDeck.forEach((c) => {
+      if (seen.has(c.id)) return;
+      seen.add(c.id);
+      const q = quantities[c.id]?.[key] ?? 0;
+      const carta = map.get(c.id) ?? c;
+      for (let i = 0; i < q; i++) result.push(carta);
     });
-    return map;
-  }, [allCards, gameModel, customModel, isCustomModel]);
 
-  const handleCardEditorSave = (updatedCards: CartaType[]) => {
-    const map = new Map(updatedCards.map((c) => [c.id, c]));
-
-    const patchModel = (model: any) => ({
-      ...model,
-      baralho: model.baralho.map((c: CartaType) => map.get(c.id) ?? c),
-      baralhoDaOferta: model.baralhoDaOferta.map(
-        (c: CartaType) => map.get(c.id) ?? c
-      ),
+    // Adicionar cartas que não estavam no original mas agora têm quantidade
+    Object.entries(quantities).forEach(([id, q]) => {
+      if (!seen.has(id) && q[key] > 0) {
+        const carta = map.get(id);
+        if (carta) {
+          for (let i = 0; i < q[key]; i++) result.push(carta);
+        }
+      }
     });
 
-    if (isCustomModel) {
-      setCustomModel((prev: any) => (prev ? patchModel(prev) : prev));
-    } else {
-      setGameModel((prev: any) => (prev ? patchModel(prev) : prev));
-    }
-
-    // Atualiza as cartas ativas no estado do jogo (mão, baralho, oferta, etc.)
-    dispatch({ type: GameActions.UPDATE_CARDS, cards: updatedCards });
-
-    // Força remontagem do painel de análises (grafo, Petri net, métricas)
-    setModelVersion((v) => v + 1);
+    return result;
   };
+
+  const buildPatchedModel = (model: any) => ({
+    ...model,
+    baralho: rebuildFromQuantities(model.baralho, "baralho"),
+    baralhoDaOferta: rebuildFromQuantities(model.baralhoDaOferta, "oferta"),
+  });
+
+  const currentModel = isCustomModel ? customModel : gameModel;
+  if (!currentModel) return;
+
+  const patched = buildPatchedModel(currentModel);
+
+  if (isCustomModel) {
+    setCustomModel(patched);
+  } else {
+    setGameModel(patched);
+  }
+
+  dispatch({ type: GameActions.UPDATE_CARDS, cards: updatedCards });
+
+  const newGame = setupNewGame(patched);
+
+  // ── Preserva o painel de análises aberto e a aba ativa ──
+  const newGameWithUI = {
+    ...newGame,
+    analisesVisiveis: game.analisesVisiveis,
+    activeTab: game.activeTab,
+  };
+
+  setGameFinished(false);
+  setFinalScore(null);
+  setFinishReason("none");
+  dispatch({ type: GameActions.LOAD_GAME, payload: newGameWithUI });
+
+  setModelVersion((v) => v + 1);
+};
 
   const getFinishMessage = () => {
     switch (finishReason) {
