@@ -97,6 +97,7 @@
   },
   "petri": {
     "title": "Petri Net",
+    "full_analysis": "Full Analysis",
     "free_mode": "Free Mode",
     "reset": "Reset",
     "mode": "Mode:",

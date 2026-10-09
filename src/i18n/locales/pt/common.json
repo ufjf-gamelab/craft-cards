@@ -97,6 +97,7 @@
   },
   "petri": {
     "title": "Rede de Petri",
+    "full_analysis": "Análise Completa",
     "free_mode": "Modo Livre",
     "reset": "Resetar",
     "mode": "Modo:",
