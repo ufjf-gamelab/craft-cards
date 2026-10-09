@@ -727,44 +727,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
     return { isDeadlock, podeRecuperarAcao, podeComprarCartas };
   };
 
-  const verificarDeadlockSistema = () => {
-    if (!graphRef.current) return false;
-
-    const currentMarcacao = getMarcacaoAtual();
-    const acaoAtual = (currentMarcacao["action"] as number) || 0;
-
-    const transicoesImediatas = graphRef.current
-      .nodes()
-      .filter(
-        (node) =>
-          graphRef.current?.getNodeAttribute(node, "type") === "transition"
-      )
-      .filter((transicaoId) =>
-        isTransicaoHabilitada(
-          transicaoId,
-          currentMarcacao,
-          playableCards,
-          graphRef.current!,
-          false
-        )
-      );
-
-    if (transicoesImediatas.length > 0) {
-      return false;
-    }
-
-    const analiseFuturo = analisarDeadlockFuturo(currentMarcacao, 3);
-
-    if (
-      acaoAtual === 0 &&
-      (analiseFuturo.podeRecuperarAcao || analiseFuturo.podeComprarCartas)
-    ) {
-      return false;
-    }
-
-    return analiseFuturo.isDeadlock;
-  };
-
   const atualizarDeadlock = () => {
     if (!graphRef.current) return;
 
@@ -974,7 +936,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       if (!graph.hasNode(transitionId)) {
         graph.addNode(transitionId, {
           id: transitionId,
-          // ── AQUI: tituloSmart respeita edições do usuário ──
           label: tr.tituloSmart(carta),
           type: "transition",
           size: 10,
@@ -1359,7 +1320,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
       for (const filho of pai.children) {
         if (filho.id === no.id) {
           const id = filho.transicaoDisparada || "";
-          // ── AQUI: labelDaCarta resolve o título atual (respeita edições) ──
           return labelDaCarta(id) || t("petri.unknown_transition");
         }
       }
@@ -1441,7 +1401,6 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
         links.push({
           source: no.id,
           target: filho.id,
-          // ── AQUI: labelDaCarta resolve o título atual ──
           label: filho.transicaoDisparada
             ? labelDaCarta(filho.transicaoDisparada)
             : "",
@@ -1759,6 +1718,35 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
                     />
                   )}
                 </Box>
+              }
+            />
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={analiseCompleta}
+                  onChange={(e) => setAnaliseCompleta(e.target.checked)}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": {
+                      color: "#9C27B0",
+                    },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                      {
+                        backgroundColor: "#9C27B0",
+                      },
+                  }}
+                />
+              }
+              label={
+                <Typography
+                  sx={{
+                    color: "var(--text-primary)",
+                    fontWeight: "500",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  {t("petri.full_analysis")}
+                </Typography>
               }
             />
 
