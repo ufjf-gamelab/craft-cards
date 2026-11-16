@@ -2,33 +2,37 @@ import { CartaType, GAME_INITIAL } from "../../data/cartas";
 
 export const BARALHO_EX8: CartaType[] = [
   {
-    id: "preparar",
-    titulo: "Preparar",
-    texto: "Prepara o reagente",
-    custo: [{ nome: "ação", quantidade: 1 }],
-    ganho: [{ nome: "reagente", quantidade: 1 }],
+    id: "prepare",
+    titulo: "Prepare",
+    texto: "Prepares the reagent",
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "reagent", quantidade: 1 }],
   },
   {
-    id: "sintetizar",
-    titulo: "Sintetizar",
-    texto: "Reagente + Catalisador → Pontos",
+    id: "synthesize",
+    titulo: "Synthesize",
+    texto: "Reagent + Catalyst → Score",
     custo: [
-      { nome: "ação", quantidade: 1 },
-      { nome: "reagente", quantidade: 1 },
-      { nome: "catalisador", quantidade: 1 },
+      { nome: "action", quantidade: 1 },
+      { nome: "reagent", quantidade: 1 },
+      { nome: "catalyst", quantidade: 1 },
     ],
-    ganho: [{ nome: "pontuação", quantidade: 5 }],
+    ganho: [{ nome: "score", quantidade: 5 }],
   },
 ];
+
+export const OFERTA_EX8: CartaType[] = [];
 
 export const GAME_EX8 = {
   ...GAME_INITIAL,
   baralho: BARALHO_EX8,
-  baralhoDaOferta: [],
+  baralhoDaOferta: OFERTA_EX8,
   recursos: [
-    { nome: "pontuação", quantidade: 0 },
-    { nome: "ação", quantidade: 2 },
-    { nome: "reagente", quantidade: 0 },
-    { nome: "catalisador", quantidade: 1 },
+    { nome: "score", quantidade: 0 },
+    { nome: "action", quantidade: 2 },
+    { nome: "reagent", quantidade: 0 },
+    { nome: "catalyst", quantidade: 1 },
   ],
+  pontosParaVencer: 20,
+  turnosMaximos: 15,
 };

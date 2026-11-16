@@ -28,6 +28,8 @@ export type GameType = {
   activeTab?: "petriNet" | "graph" | "historico";
   analisesVisiveis?: boolean;
   seed: string;
+  pontosParaVencer?: number;
+  turnosMaximos?: number;
 };
 
 export type CartaType = {
@@ -36,6 +38,8 @@ export type CartaType = {
   texto: string;
   custo: Array<RecursoType>;
   ganho: Array<RecursoType>;
+  /** Identificador único por cópia física. Gerado em setupNewGame. */
+  _instanceId?: string;
 };
 
 export type RecursoType = {
@@ -44,7 +48,8 @@ export type RecursoType = {
 };
 
 export const RECURSOS_INICIAL: Array<RecursoType> = [
-  { nome: "pontuação", quantidade: 0 }
+  { nome: "score", quantidade: 0 },
+  { nome: "action", quantidade: 5 },
 ];
 
 export const DESCARTE_INICIAL: Array<CartaType> = [];
@@ -54,153 +59,152 @@ export const MAO_INICIAL: Array<CartaType> = [];
 export const BARALHO_INICIAL: Array<CartaType> = [
   {
     id: "m1",
-    titulo: "Pegar madeira",
+    titulo: "Collect Wood",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "madeira bruta", quantidade: 1 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "raw wood", quantidade: 1 }],
   },
   {
     id: "a1",
-    titulo: "Pegar água",
+    titulo: "Collect Water",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "água", quantidade: 1 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "water", quantidade: 1 }],
   },
   {
     id: "pa1",
-    titulo: "Pegar amora",
+    titulo: "Collect Blackberry",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "amora", quantidade: 1 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "blackberry", quantidade: 1 }],
   },
   {
     id: "p1",
-    titulo: "Pegar pedra",
+    titulo: "Collect Stone",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "pedra bruta", quantidade: 2 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "raw stone", quantidade: 2 }],
   },
   {
     id: "m2",
-    titulo: "Pegar madeira",
+    titulo: "Collect Wood",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "madeira bruta", quantidade: 2 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "raw wood", quantidade: 2 }],
   },
   {
     id: "a3",
-    titulo: "Pegar água",
+    titulo: "Collect Water",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "água", quantidade: 2 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "water", quantidade: 2 }],
   },
   {
     id: "pa3",
-    titulo: "Pegar amora",
+    titulo: "Collect Blackberry",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "amora", quantidade: 2 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "blackberry", quantidade: 2 }],
   },
   {
     id: "p3",
-    titulo: "Pegar pedra",
+    titulo: "Collect Stone",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "pedra bruta", quantidade: 2 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "raw stone", quantidade: 2 }],
   },
   {
     id: "b2",
-    titulo: "Beber água",
+    titulo: "Drink Water",
     texto: "",
-    custo: [{ nome: "água", quantidade: 1 }],
-    ganho: [{ nome: "ação", quantidade: 1 }],
+    custo: [{ nome: "water", quantidade: 1 }],
+    ganho: [{ nome: "action", quantidade: 1 }],
   },
   {
     id: "c2",
-    titulo: "Comer amora",
+    titulo: "Eat Blackberry",
     texto: "",
-    custo: [{ nome: "amora", quantidade: 1 }],
-    ganho: [{ nome: "ação", quantidade: 1 }],
+    custo: [{ nome: "blackberry", quantidade: 1 }],
+    ganho: [{ nome: "action", quantidade: 1 }],
   },
   {
     id: "s1",
-    titulo: "Serralheria basica",
+    titulo: "Basic Sawmill",
     texto: "",
-    custo: [{ nome: "madeira bruta", quantidade: 2 }],
-    ganho: [{ nome: "tabua", quantidade: 1 }],
+    custo: [{ nome: "raw wood", quantidade: 2 }],
+    ganho: [{ nome: "plank", quantidade: 1 }],
   },
   {
     id: "pb1",
-    titulo: "Pedreira básica",
+    titulo: "Basic Quarry",
     texto: "",
-    custo: [{ nome: "pedra bruta", quantidade: 2 }],
-    ganho: [{ nome: "pedra polida", quantidade: 1 }],
+    custo: [{ nome: "raw stone", quantidade: 2 }],
+    ganho: [{ nome: "polished stone", quantidade: 1 }],
   },
   {
     id: "f1",
-    titulo: "Fabricar machado",
+    titulo: "Craft Axe",
     texto: "",
     custo: [
-      { nome: "tabua", quantidade: 1 },
-      { nome: "pedra polida", quantidade: 1 },
+      { nome: "plank", quantidade: 1 },
+      { nome: "polished stone", quantidade: 1 },
     ],
-    ganho: [{ nome: "machado", quantidade: 1 }],
+    ganho: [{ nome: "axe", quantidade: 1 }],
   },
   {
     id: "f2",
-    titulo: "Fabricar picareta",
+    titulo: "Craft Pickaxe",
     texto: "",
     custo: [
-      { nome: "tabua", quantidade: 1 },
-      { nome: "pedra polida", quantidade: 1 },
+      { nome: "plank", quantidade: 1 },
+      { nome: "polished stone", quantidade: 1 },
     ],
-    ganho: [{ nome: "picareta", quantidade: 1 }],
+    ganho: [{ nome: "pickaxe", quantidade: 1 }],
   },
-  //...MINECRAFT_CARDS.slice(0, 300),
 ];
 
 export const BARALHO_OFERTA_INICIAL: Array<CartaType> = [
   {
     id: "a2",
-    titulo: "Pegar água",
+    titulo: "Collect Water",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "água", quantidade: 1 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "water", quantidade: 1 }],
   },
   {
     id: "b1",
-    titulo: "Beber água",
+    titulo: "Drink Water",
     texto: "",
-    custo: [{ nome: "água", quantidade: 1 }],
-    ganho: [{ nome: "ação", quantidade: 1 }],
+    custo: [{ nome: "water", quantidade: 1 }],
+    ganho: [{ nome: "action", quantidade: 1 }],
   },
   {
     id: "c1",
-    titulo: "Comer amora",
+    titulo: "Eat Blackberry",
     texto: "",
-    custo: [{ nome: "amora", quantidade: 1 }],
-    ganho: [{ nome: "ação", quantidade: 1 }],
+    custo: [{ nome: "blackberry", quantidade: 1 }],
+    ganho: [{ nome: "action", quantidade: 1 }],
   },
   {
     id: "p2",
-    titulo: "Pegar pedra",
+    titulo: "Collect Stone",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "pedra bruta", quantidade: 1 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "raw stone", quantidade: 1 }],
   },
   {
     id: "pa2",
-    titulo: "Pegar amora",
+    titulo: "Collect Blackberry",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "amora", quantidade: 1 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "blackberry", quantidade: 1 }],
   },
   {
     id: "m3",
-    titulo: "Pegar madeira",
+    titulo: "Collect Wood",
     texto: "",
-    custo: [],
-    ganho: [{ nome: "madeira bruta", quantidade: 2 }],
+    custo: [{ nome: "action", quantidade: 1 }],
+    ganho: [{ nome: "raw wood", quantidade: 2 }],
   },
 ];
 
@@ -218,4 +222,6 @@ export const GAME_INITIAL = {
   historico: [],
   showHistorico: false,
   seed: "",
+  pontosParaVencer: 10,
+  turnosMaximos: 30,
 };

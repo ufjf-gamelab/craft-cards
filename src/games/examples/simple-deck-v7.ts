@@ -2,11 +2,11 @@ import { CartaType, GAME_INITIAL } from "../../data/cartas";
 
 export const BARALHO_EX7: CartaType[] = [
   {
-    id: "magic_well",
-    titulo: "Poço Mágico",
-    texto: "",
-    custo: [{ nome: "água", quantidade: 1 }],
-    ganho: [{ nome: "água", quantidade: 2 }],
+    id: "produce_infinite",
+    titulo: "Produce Infinitely",
+    texto: "Produces resources infinitely",
+    custo: [],
+    ganho: [{ nome: "infinite resource", quantidade: 1 }],
   },
 ];
 
@@ -17,11 +17,12 @@ export const GAME_EX7 = {
   baralho: BARALHO_EX7,
   baralhoDaOferta: OFERTA_EX7,
   recursos: [
-    { nome: "pontuação", quantidade: 0 },
-    { nome: "ação", quantidade: 3 },
-    { nome: "água", quantidade: 1 }, // recurso inicial para disparar o ciclo
-    ...GAME_INITIAL.recursos.filter(r => r.nome !== "pontuação" && r.nome !== "ação" && r.nome !== "água"),
+    { nome: "score", quantidade: 0 },
+    { nome: "action", quantidade: 3 },
+    { nome: "infinite resource", quantidade: 0 },
   ],
+  pontosParaVencer: 100,
+  turnosMaximos: 50,
 };
 
-// Crescimento ilimitado (potencial ω)
+// Unlimited growth (potential ω)

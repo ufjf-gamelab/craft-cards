@@ -1,10 +1,12 @@
 import React, { useContext, useRef, useState, useEffect } from "react";
 import { MultiDirectedGraph } from "graphology";
 import * as d3 from "d3";
+import { useTranslation } from "react-i18next";
 import { GameReducerContext } from "./Game.ts";
 import { Paper, Typography, Box } from "@mui/material";
 import LegendaGrafo from "./LegendaGrafo.tsx";
 import { CartaType } from "./data/cartas";
+import { useCardTranslations } from "./i18n/useCardTranslations";
 
 type ResourceGraphProps = {
   onGraphCreated?: (graph: MultiDirectedGraph) => void;
@@ -40,7 +42,12 @@ export const LINK_COLORS = {
   cost: "#F44336",
 };
 
-const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards }) => {
+const ResourceGraph: React.FC<ResourceGraphProps> = ({
+  onGraphCreated,
+  allCards,
+}) => {
+  const { t, i18n } = useTranslation();
+  const tr = useCardTranslations();
   const game = useContext(GameReducerContext);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,13 +55,17 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
 
   if (!game) {
     return (
-      <Paper sx={{ 
-        p: 2, 
-        textAlign: "center",
-        backgroundColor: "var(--bg-secondary)",
-        color: "var(--text-primary)"
-      }}>
-        <Typography sx={{ color: "var(--text-primary)" }}>Carregando análise de recursos...</Typography>
+      <Paper
+        sx={{
+          p: 2,
+          textAlign: "center",
+          backgroundColor: "var(--bg-secondary)",
+          color: "var(--text-primary)",
+        }}
+      >
+        <Typography sx={{ color: "var(--text-primary)" }}>
+          {t("metrics.loading_metrics")}
+        </Typography>
       </Paper>
     );
   }
@@ -69,11 +80,13 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
     d3.select(svgRef.current).selectAll("*").remove();
 
     const graph = new MultiDirectedGraph<NodeAttributes, LinkAttributes>();
-    
-    // Usa as cartas fornecidas via prop ou array vazio (ou você pode manter fallback)
+
     const cardsToUse = allCards ?? [];
 
-    const resourceNodes = new Map<string, { nome: string, quantidade: number }>();
+    const resourceNodes = new Map<
+      string,
+      { nome: string; quantidade: number }
+    >();
 
     cardsToUse.forEach((carta) => {
       carta.ganho.forEach((ganho) => {
@@ -92,7 +105,7 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
     resourceNodes.forEach((recurso) => {
       graph.addNode(recurso.nome, {
         id: recurso.nome,
-        label: recurso.nome,
+        label: tr.resource(recurso.nome),
         type: "resource",
         quantity: recurso.quantidade,
         size: Math.log(recurso.quantidade + 1) * 5 + 10,
@@ -104,7 +117,8 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
       const cardId = `card_${carta.id}`;
       graph.addNode(cardId, {
         id: cardId,
-        label: carta.titulo,
+        // ── AQUI: usa tituloSmart para respeitar edições do usuário ──
+        label: tr.tituloSmart(carta),
         type: "card",
         size: 8,
         color: NODE_COLORS.card,
@@ -133,16 +147,17 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
       });
     });
 
-    // Restante do código (forças, zoom, drag, etc.) permanece idêntico ao original
     const nodes = graph.mapNodes((node) => graph.getNodeAttributes(node));
     const links = graph.mapEdges((edge) => graph.getEdgeAttributes(edge));
 
-    const svg = d3.select(svgRef.current)
+    const svg = d3
+      .select(svgRef.current)
       .attr("width", width)
       .attr("height", height)
       .style("background-color", "var(--bg-secondary)");
 
-    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+    const zoomBehavior = d3
+      .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
       .on("zoom", (event) => g.attr("transform", event.transform));
 
@@ -150,16 +165,24 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
 
     const g = svg.append("g");
 
-    const simulation = d3.forceSimulation(nodes)
+    const simulation = d3
+      .forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-200))
-      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(80))
+      .force(
+        "link",
+        d3
+          .forceLink(links)
+          .id((d: any) => d.id)
+          .distance(80)
+      )
       .force("center", d3.forceCenter(width / 2, height / 2))
       .alphaDecay(0.05)
       .velocityDecay(0.4);
 
     const defs = svg.append("defs");
     Object.values(LINK_COLORS).forEach((color) => {
-      defs.append("marker")
+      defs
+        .append("marker")
         .attr("id", `arrowhead-${color.replace("#", "")}`)
         .attr("viewBox", "0 -5 10 10")
         .attr("refX", 15)
@@ -172,36 +195,46 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
         .attr("fill", color);
     });
 
-    const link = g.append("g")
+    const link = g
+      .append("g")
       .selectAll("line")
       .data(links)
       .enter()
       .append("line")
       .attr("stroke", (d) => d.color)
       .attr("stroke-width", 2)
-      .attr("marker-end", (d) => `url(#arrowhead-${d.color.replace("#", "")}`);
+      .attr(
+        "marker-end",
+        (d) => `url(#arrowhead-${d.color.replace("#", "")}`
+      );
 
-    const node = g.append("g")
+    const node = g
+      .append("g")
       .selectAll("g")
       .data(nodes)
       .enter()
       .append("g")
       .call(
-        d3.drag<SVGGElement, NodeAttributes>()
+        d3
+          .drag<SVGGElement, NodeAttributes>()
           .on("start", dragstarted)
           .on("drag", dragged)
           .on("end", dragended)
       );
 
-    node.append("circle")
+    node
+      .append("circle")
       .attr("r", (d) => d.size)
       .attr("fill", (d) => d.color)
       .attr("stroke", "var(--text-primary)")
       .attr("stroke-width", 2)
       .style("filter", "drop-shadow(0 2px 4px var(--shadow-color))");
 
-    node.append("text")
-      .text((d) => d.type === "resource" ? `${d.label} (${d.quantity})` : d.label)
+    node
+      .append("text")
+      .text((d) =>
+        d.type === "resource" ? `${d.label} (${d.quantity})` : d.label
+      )
       .attr("dy", (d) => d.size + 15)
       .attr("text-anchor", "middle")
       .attr("fill", "var(--text-primary)")
@@ -209,7 +242,8 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
       .style("font-weight", "bold")
       .style("text-shadow", "0 1px 2px rgba(0,0,0,0.8)");
 
-    const linkLabels = g.append("g")
+    const linkLabels = g
+      .append("g")
       .selectAll("text")
       .data(links)
       .enter()
@@ -238,7 +272,8 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
       if (!event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
-      d3.select(this).select("circle")
+      d3.select(this)
+        .select("circle")
         .attr("stroke-width", 4)
         .attr("stroke", "var(--accent-color)");
     }
@@ -252,18 +287,20 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
       if (!event.active) simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;
-      d3.select(this).select("circle")
+      d3.select(this)
+        .select("circle")
         .attr("stroke-width", 2)
         .attr("stroke", "var(--text-primary)");
     }
 
-    svg.append("text")
+    svg
+      .append("text")
       .attr("x", 10)
       .attr("y", 20)
       .attr("fill", "var(--text-primary)")
       .style("font-size", "12px")
       .style("font-weight", "bold")
-      .text("Use scroll para zoom | Arraste para mover nós");
+      .text(t("metrics.graph_hint"));
 
     const adjustZoom = () => {
       const bounds = getGraphBounds(nodes, width, height);
@@ -311,28 +348,30 @@ const ResourceGraph: React.FC<ResourceGraphProps> = ({ onGraphCreated, allCards 
       }, 250);
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
       clearTimeout(resizeTimer);
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [allCards]); // <-- adicionar dependência para reconstruir o grafo se as cartas mudarem
+  }, [allCards, i18n.language]);
 
   return (
     <div className="resource-graph-container">
-      <Paper sx={{ 
-        height: "600px", 
-        minWidth: "800px", 
-        position: "relative",
-        backgroundColor: "var(--bg-secondary)",
-        borderRadius: "10px",
-        boxShadow: "0 2px 10px var(--shadow-color)",
-        overflow: "hidden"
-      }}>
+      <Paper
+        sx={{
+          height: "600px",
+          minWidth: "800px",
+          position: "relative",
+          backgroundColor: "var(--bg-secondary)",
+          borderRadius: "10px",
+          boxShadow: "0 2px 10px var(--shadow-color)",
+          overflow: "hidden",
+        }}
+      >
         <Box ref={containerRef} sx={{ width: "100%", height: "100%" }}>
           <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
         </Box>
@@ -347,7 +386,6 @@ const getGraphBounds = (
   width: number,
   height: number
 ) => {
-  // (mesma implementação original)
   let minX = Infinity,
     maxX = -Infinity,
     minY = Infinity,

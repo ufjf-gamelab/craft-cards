@@ -1,5 +1,6 @@
 :root {
   --bg-primary: #1a1a2e;
+  --bg-primary-rgb: 26, 26, 46;
   --bg-secondary: #2a2a4a;
   --bg-elevated: rgba(255, 255, 255, 0.05);
   --text-primary: #f0f0f0;
@@ -23,6 +24,7 @@
 
 .light-theme {
   --bg-primary: #d1d5db;
+  --bg-primary-rgb: 209, 213, 219;
   --bg-secondary: #f0f3f3;
   --bg-elevated: #f9fafb;
   --text-primary: #111827;
@@ -70,7 +72,7 @@
   gap: 1rem;
 }
 
-/* Banner de fim de jogo (novo) */
+/* Banner de fim de jogo */
 .game-finished-banner {
   position: sticky;
   top: 0;
@@ -126,7 +128,9 @@
   display: flex;
   align-items: center;
   gap: 2rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .status-item {
@@ -134,11 +138,18 @@
   font-weight: 500;
 }
 
+/* ─── Barra de recursos com scroll horizontal ─── */
 .recursos {
   display: flex;
   gap: 1rem;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0.35rem 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 0;
+  flex: 1;
+  scroll-behavior: smooth;
 }
 
 .recursos div {
@@ -147,6 +158,34 @@
   background: var(--chip-bg);
   padding: 0.3rem 0.8rem;
   border-radius: 1rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Scrollbar customizada — Webkit (Chrome, Edge, Safari) */
+.recursos::-webkit-scrollbar {
+  height: 6px;
+}
+
+.recursos::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3px;
+}
+
+.recursos::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.recursos::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-color);
+}
+
+/* Scrollbar customizada — Firefox */
+.recursos {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) var(--bg-secondary);
 }
 
 .game-controls {
@@ -196,6 +235,7 @@
   transition: 0.2s;
   color: var(--text-primary);
   padding: 0;
+  flex-shrink: 0;
 }
 
 .theme-toggle:hover {
@@ -278,6 +318,7 @@
 
 .game-area {
   width: 100%;
+  min-width: 300px;
   height: 100%;
   overflow: auto;
   padding-right: 1rem;
@@ -475,4 +516,55 @@
   }
 }
 
-/* Estilos antigos do overlay foram removidos – substituídos pelo banner acima */
+/* Estilos para o dropdown com grupos */
+.dropdown-group {
+  padding: 4px 0;
+}
+
+.dropdown-group-title {
+  padding: 8px 12px 4px 12px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+/* Banner de fim de jogo com diferentes tipos */
+.game-finished-banner[data-reason="pontos"] {
+  background-color: var(--success-color, #4caf50);
+  color: white;
+}
+
+.game-finished-banner[data-reason="turnos"] {
+  background-color: var(--warning-color, #ff9800);
+  color: white;
+}
+
+.game-finished-banner[data-reason="deadlock"] {
+  background-color: var(--error-color, #f44336);
+  color: white;
+}
+
+.game-finished-banner[data-reason="pontos"] .reset-button {
+  color: var(--success-color, #4caf50);
+}
+
+.game-finished-banner[data-reason="turnos"] .reset-button {
+  color: var(--warning-color, #ff9800);
+}
+
+.game-finished-banner[data-reason="deadlock"] .reset-button {
+  color: var(--error-color, #f44336);
+}
+
+.reset-button:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
+}

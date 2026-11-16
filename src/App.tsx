@@ -5,8 +5,8 @@ import {
   GameDispatchContext,
   GameReducerContext,
   setupNewGame,
-  isGameFinished,
-  scoreGame,
+  checkGameFinished,
+  GameFinishReason,
 } from "./Game.ts";
 import { useContext, useRef, useState, useEffect } from "react";
 import Oferta from "./Oferta.tsx";
@@ -24,13 +24,18 @@ import {
   saveGameToFile,
   loadGameFromFile,
 } from "./persistance.ts";
-import { CartaType } from "./data/cartas";
+import { CartaType, GAME_INITIAL } from "./data/cartas";
 import PersistenceDropdown from "./PersistanceDropdown.tsx";
 import { availableModels } from "./models/index.ts";
+import TutorialModal from "./TutorialModal.tsx";
+import CardEditor, { DeckMembership, DeckQuantities } from "./CardEditor.tsx";
+import { useTranslation } from "react-i18next";
 
 type AnalysisTab = "petriNet" | "graph" | "historico";
 
 function App() {
+  const { t, i18n } = useTranslation();
+
   const game = useContext(GameReducerContext)!;
   const dispatch = useContext(GameDispatchContext)!;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,46 +43,63 @@ function App() {
   const [isLightTheme, setIsLightTheme] = useState(false);
   const [gameFinished, setGameFinished] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [finishReason, setFinishReason] = useState<GameFinishReason>("none");
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   const [currentModelKey, setCurrentModelKey] = useState<string>(
-    "Simple v6 (deadlock)",
+    "Simple v6 (deadlock)"
   );
   const [gameModel, setGameModel] = useState<any>(null);
+  const [customModel, setCustomModel] = useState<any>(null);
+  const [isCustomModel, setIsCustomModel] = useState(false);
+  const customModelFileInputRef = useRef<HTMLInputElement>(null);
+
+  // ---- Estado do editor de cartas ----
+  const [cardEditorOpen, setCardEditorOpen] = useState(false);
+  // Contador usado para forçar remontagem do painel de análises (grafo, Petri net, métricas)
+  const [modelVersion, setModelVersion] = useState(0);
 
   useEffect(() => {
-    if (!currentModelKey) return;
+    if (isCustomModel || !currentModelKey) return;
+
     availableModels[currentModelKey]()
       .then((model) => {
         setGameModel(model);
+        setCustomModel(null);
+        setIsCustomModel(false);
         const newGame = setupNewGame(model);
         setGameFinished(false);
         setFinalScore(null);
+        setFinishReason("none");
         dispatch({
           type: GameActions.LOAD_GAME,
           payload: newGame,
         });
       })
       .catch(console.error);
-  }, [currentModelKey, dispatch]);
+  }, [currentModelKey, dispatch, isCustomModel]);
 
   useEffect(() => {
-    if (!gameFinished && isGameFinished(game)) {
-      const [, score] = scoreGame(game);
-      setFinalScore(score);
-      setGameFinished(true);
+    if (!gameFinished) {
+      const result = checkGameFinished(game);
+      if (result.finished) {
+        setFinalScore(result.score);
+        setFinishReason(result.reason);
+        setGameFinished(true);
+      }
     }
   }, [game, gameFinished]);
 
   useEffect(() => {
     if (isLightTheme) {
-      document.documentElement.classList.add('light-theme');
+      document.documentElement.classList.add("light-theme");
     } else {
-      document.documentElement.classList.remove('light-theme');
+      document.documentElement.classList.remove("light-theme");
     }
   }, [isLightTheme]);
 
   const toggleTheme = () => {
-    setIsLightTheme(prev => !prev);
+    setIsLightTheme((prev) => !prev);
   };
 
   function aumentaPonto() {
@@ -119,6 +141,10 @@ function App() {
       if (savedGame) {
         setGameFinished(false);
         setFinalScore(null);
+        setFinishReason("none");
+        setIsCustomModel(false);
+        setCustomModel(null);
+        setCardEditorOpen(false);
         dispatch({
           type: GameActions.LOAD_GAME,
           payload: {
@@ -151,6 +177,10 @@ function App() {
       if (savedGame) {
         setGameFinished(false);
         setFinalScore(null);
+        setFinishReason("none");
+        setIsCustomModel(false);
+        setCustomModel(null);
+        setCardEditorOpen(false);
         dispatch({
           type: GameActions.LOAD_GAME,
           payload: {
@@ -167,21 +197,92 @@ function App() {
 
   const handleResetGame = () => {
     clearGameState();
-    if (gameModel) {
-      const newGame = setupNewGame(gameModel);
+    const activeModel = isCustomModel ? customModel : gameModel;
+    if (activeModel) {
+      const newGame = setupNewGame(activeModel);
       setGameFinished(false);
       setFinalScore(null);
+      setFinishReason("none");
       dispatch({ type: GameActions.LOAD_GAME, payload: newGame });
     }
   };
 
   const handleNewGameWithSeed = () => {
-    if (gameModel) {
-      const newGame = setupNewGame(gameModel, seedInput || undefined);
+    const activeModel = isCustomModel ? customModel : gameModel;
+    if (activeModel) {
+      const newGame = setupNewGame(activeModel, seedInput || undefined);
       setGameFinished(false);
       setFinalScore(null);
+      setFinishReason("none");
       dispatch({ type: GameActions.LOAD_GAME, payload: newGame });
     }
+  };
+
+  const handleLoadCustomModel = () => {
+    customModelFileInputRef.current?.click();
+  };
+
+  const handleCustomModelSelected = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsedModel = JSON.parse(text);
+
+      if (
+        !parsedModel.baralho ||
+        !parsedModel.baralhoDaOferta ||
+        !parsedModel.recursos
+      ) {
+        console.error(
+          "JSON invalido: faltam campos obrigatorios (baralho, baralhoDaOferta, recursos)"
+        );
+        alert(
+          "Erro: O arquivo JSON precisa ter os campos: baralho, baralhoDaOferta, recursos"
+        );
+        return;
+      }
+
+      const fullModel = {
+        ...GAME_INITIAL,
+        baralho: parsedModel.baralho,
+        baralhoDaOferta: parsedModel.baralhoDaOferta,
+        recursos: parsedModel.recursos,
+        pontosParaVencer:
+          parsedModel.pontosParaVencer ?? GAME_INITIAL.pontosParaVencer,
+        turnosMaximos: parsedModel.turnosMaximos ?? GAME_INITIAL.turnosMaximos,
+        ...(parsedModel.seed !== undefined && { seed: parsedModel.seed }),
+      };
+
+      setCustomModel(fullModel);
+      setIsCustomModel(true);
+      setCardEditorOpen(false);
+
+      const newGame = setupNewGame(fullModel);
+      setGameFinished(false);
+      setFinalScore(null);
+      setFinishReason("none");
+      dispatch({ type: GameActions.LOAD_GAME, payload: newGame });
+
+      alert(
+        `Regras carregadas! Vitoria: ${fullModel.pontosParaVencer} pontos ou ${fullModel.turnosMaximos} turnos.`
+      );
+    } catch (error) {
+      console.error("Erro ao ler/parsear o JSON:", error);
+      alert("Erro ao ler o arquivo JSON. Verifique se o formato esta correto.");
+    }
+
+    event.target.value = "";
+  };
+
+  const handleModelChange = (key: string) => {
+    setIsCustomModel(false);
+    setCustomModel(null);
+    setCurrentModelKey(key);
+    setCardEditorOpen(false);
   };
 
   const playableCards = React.useMemo(() => {
@@ -194,24 +295,153 @@ function App() {
   }, [game.recursos, game.mao]);
 
   const allCards = React.useMemo(() => {
-    if (!gameModel) return [];
+    if (!gameModel && !customModel) return [];
+    const sourceModel = isCustomModel ? customModel : gameModel;
+    if (!sourceModel) return [];
     const map = new Map<string, CartaType>();
-    [...gameModel.baralho, ...gameModel.baralhoDaOferta].forEach(
+    [...sourceModel.baralho, ...sourceModel.baralhoDaOferta].forEach(
       (card: CartaType) => {
         if (!map.has(card.id)) map.set(card.id, card);
-      },
+      }
     );
     return Array.from(map.values());
-  }, [gameModel]);
+  }, [gameModel, customModel, isCustomModel]);
+
+  const availableResources = React.useMemo(() => {
+    const set = new Set<string>();
+    game.recursos.forEach((r) => set.add(r.nome));
+    allCards.forEach((c) => {
+      c.custo.forEach((r) => set.add(r.nome));
+      c.ganho.forEach((r) => set.add(r.nome));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [game.recursos, allCards]);
+
+  const deckMembership: DeckMembership = React.useMemo(() => {
+  const sourceModel = isCustomModel ? customModel : gameModel;
+  if (!sourceModel) return {};
+
+  const baralhoCount = new Map<string, number>();
+  const ofertaCount = new Map<string, number>();
+
+  sourceModel.baralho.forEach((c: CartaType) => {
+    baralhoCount.set(c.id, (baralhoCount.get(c.id) || 0) + 1);
+  });
+  sourceModel.baralhoDaOferta.forEach((c: CartaType) => {
+    ofertaCount.set(c.id, (ofertaCount.get(c.id) || 0) + 1);
+  });
+
+  const map: DeckMembership = {};
+  allCards.forEach((c) => {
+    const b = baralhoCount.get(c.id) || 0;
+    const o = ofertaCount.get(c.id) || 0;
+    map[c.id] = {
+      baralho: b > 0,
+      oferta: o > 0,
+      baralhoCount: b,
+      ofertaCount: o,
+    };
+  });
+  return map;
+}, [allCards, gameModel, customModel, isCustomModel]);
+
+const handleCardEditorSave = (
+  updatedCards: CartaType[],
+  quantities: DeckQuantities
+) => {
+  const map = new Map(updatedCards.map((c) => [c.id, c]));
+
+  const rebuildFromQuantities = (
+    originalDeck: CartaType[],
+    key: "baralho" | "oferta"
+  ): CartaType[] => {
+    const result: CartaType[] = [];
+    const seen = new Set<string>();
+
+    // Manter a ordem de primeira aparição do deck original
+    originalDeck.forEach((c) => {
+      if (seen.has(c.id)) return;
+      seen.add(c.id);
+      const q = quantities[c.id]?.[key] ?? 0;
+      const carta = map.get(c.id) ?? c;
+      for (let i = 0; i < q; i++) result.push(carta);
+    });
+
+    // Adicionar cartas que não estavam no original mas agora têm quantidade
+    Object.entries(quantities).forEach(([id, q]) => {
+      if (!seen.has(id) && q[key] > 0) {
+        const carta = map.get(id);
+        if (carta) {
+          for (let i = 0; i < q[key]; i++) result.push(carta);
+        }
+      }
+    });
+
+    return result;
+  };
+
+  const buildPatchedModel = (model: any) => ({
+    ...model,
+    baralho: rebuildFromQuantities(model.baralho, "baralho"),
+    baralhoDaOferta: rebuildFromQuantities(model.baralhoDaOferta, "oferta"),
+  });
+
+  const currentModel = isCustomModel ? customModel : gameModel;
+  if (!currentModel) return;
+
+  const patched = buildPatchedModel(currentModel);
+
+  if (isCustomModel) {
+    setCustomModel(patched);
+  } else {
+    setGameModel(patched);
+  }
+
+  dispatch({ type: GameActions.UPDATE_CARDS, cards: updatedCards });
+
+  const newGame = setupNewGame(patched);
+
+  // ── Preserva o painel de análises aberto e a aba ativa ──
+  const newGameWithUI = {
+    ...newGame,
+    analisesVisiveis: game.analisesVisiveis,
+    activeTab: game.activeTab,
+  };
+
+  setGameFinished(false);
+  setFinalScore(null);
+  setFinishReason("none");
+  dispatch({ type: GameActions.LOAD_GAME, payload: newGameWithUI });
+
+  setModelVersion((v) => v + 1);
+};
+
+  const getFinishMessage = () => {
+    switch (finishReason) {
+      case "pontos":
+        return t("finish.points", { score: finalScore });
+      case "turnos":
+        return t("finish.turns", { score: finalScore });
+      case "deadlock":
+        return t("finish.deadlock", { score: finalScore });
+      default:
+        return t("finish.default", { score: finalScore });
+    }
+  };
 
   return (
     <div className="game-app">
+      <TutorialModal
+        open={tutorialOpen}
+        onClose={() => setTutorialOpen(false)}
+      />
+
       {gameFinished && (
-        <div className="game-finished-banner">
+        <div className="game-finished-banner" data-reason={finishReason}>
           <div className="banner-content">
-            <span>Fim de Jogo! Pontuação final: {finalScore}</span>
+            <span>{getFinishMessage()}</span>
             <button onClick={handleResetGame} className="reset-button">
-              Novo Jogo
+              {t("header.new_game")}
             </button>
           </div>
         </div>
@@ -222,17 +452,30 @@ function App() {
           <button
             className="theme-toggle"
             onClick={toggleTheme}
-            title="Alternar tema"
+            title={t("header.toggle_theme")}
           >
-            {isLightTheme ? "Dark" : "Light"}
+            {isLightTheme ? t("header.theme_dark") : t("header.theme_light")}
           </button>
           <ListaDeRecursos recursos={game.recursos} />
         </div>
         <div className="game-controls">
-          <div className="current-seed">Seed atual: {game.seed}</div>
+          <select
+            value={i18n.language.split("-")[0]}
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+            className="control-button"
+            style={{ backgroundColor: "var(--button-bg)" }}
+          >
+            <option value="pt">PT</option>
+            <option value="en">EN</option>
+          </select>
+
+          <div className="current-seed">
+            {t("header.seed_current", { seed: game.seed })}
+          </div>
+
           <select
             value={currentModelKey}
-            onChange={(e) => setCurrentModelKey(e.target.value)}
+            onChange={(e) => handleModelChange(e.target.value)}
             className="control-button"
             style={{ backgroundColor: "var(--button-bg)" }}
           >
@@ -246,7 +489,7 @@ function App() {
           <div className="seed-controls">
             <input
               type="text"
-              placeholder="Seed do jogo"
+              placeholder={t("header.seed_placeholder")}
               value={seedInput}
               onChange={(e) => setSeedInput(e.target.value)}
               className="seed-input"
@@ -257,40 +500,68 @@ function App() {
               onClick={handleNewGameWithSeed}
               disabled={gameFinished}
             >
-              Novo Jogo com Seed
+              {t("header.new_game_seed")}
             </button>
           </div>
+
           <button
             className="control-button"
             onClick={diminuiAcao}
             disabled={gameFinished}
           >
-            Diminui Ação
+            {t("header.decrease_action")}
           </button>
           <button
             className="control-button"
             onClick={aumentaPonto}
             disabled={gameFinished}
           >
-            Aumenta Ponto
+            {t("header.increase_point")}
           </button>
           <button className="control-button" onClick={toggleAnalises}>
-            {game.analisesVisiveis ? "Ocultar Análises" : "Mostrar Análises"}
+            {game.analisesVisiveis
+              ? t("header.hide_analysis")
+              : t("header.show_analysis")}
+          </button>
+          <button
+            className="control-button"
+            onClick={() => setCardEditorOpen((v) => !v)}
+            title={t("header.edit_cards_tooltip")}
+          >
+            {cardEditorOpen
+              ? t("header.close_editor")
+              : t("header.edit_cards")}
           </button>
           <button
             className="control-button primary"
             onClick={passarTurno}
             disabled={gameFinished}
           >
-            Passar Turno
+            {t("header.pass_turn")}
           </button>
+
           <PersistenceDropdown
             onSaveGame={handleSaveGame}
             onLoadGame={handleLoadGame}
             onSaveToFile={handleSaveToFile}
             onLoadFromFile={handleLoadFromFile}
             onResetGame={handleResetGame}
+            onLoadCustomModel={handleLoadCustomModel}
           />
+
+          <button
+            className="control-button"
+            onClick={() => setTutorialOpen(true)}
+            style={{
+              backgroundColor: "var(--button-bg)",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+            title={t("header.help_tooltip")}
+          >
+            {t("header.help")}
+          </button>
         </div>
       </div>
 
@@ -302,7 +573,26 @@ function App() {
         onChange={handleFileSelected}
       />
 
+      <input
+        type="file"
+        accept=".json"
+        style={{ display: "none" }}
+        ref={customModelFileInputRef}
+        onChange={handleCustomModelSelected}
+      />
+
       <div className="main-content">
+        {cardEditorOpen && (
+          <CardEditor
+            key={`editor-${isCustomModel ? "custom" : currentModelKey}`}
+            onClose={() => setCardEditorOpen(false)}
+            cards={allCards}
+            availableResources={availableResources}
+            deckMembership={deckMembership}
+            onSave={handleCardEditorSave}
+          />
+        )}
+
         <div className="game-area">
           <div className="game-board">
             <div className="game-row top-row">
@@ -315,23 +605,32 @@ function App() {
         </div>
 
         {game.analisesVisiveis && (
-          <div className="analises-area visible">
+          <div
+            key={`analises-${modelVersion}`}
+            className="analises-area visible"
+          >
             <div className="analises-container">
               <div className="analises-tabs">
                 <button
-                  className={`tab-button ${game.activeTab === "petriNet" ? "active" : ""}`}
+                  className={`tab-button ${
+                    game.activeTab === "petriNet" ? "active" : ""
+                  }`}
                   onClick={() => setActiveTab("petriNet")}
                 >
-                  Petri Net
+                  {t("analysis.petri_net")}
                 </button>
                 <button
-                  className={`tab-button ${game.activeTab === "graph" ? "active" : ""}`}
+                  className={`tab-button ${
+                    game.activeTab === "graph" ? "active" : ""
+                  }`}
                   onClick={() => setActiveTab("graph")}
                 >
-                  Graph
+                  {t("analysis.graph")}
                 </button>
                 <button
-                  className={`tab-button ${game.activeTab === "historico" ? "active" : ""}`}
+                  className={`tab-button ${
+                    game.activeTab === "historico" ? "active" : ""
+                  }`}
                   onClick={() =>
                     dispatch({
                       type: GameActions.SET_ACTIVE_TAB,
@@ -339,13 +638,14 @@ function App() {
                     })
                   }
                 >
-                  Histórico
+                  {t("analysis.history")}
                 </button>
               </div>
               <div className="analises-content">
                 {game.activeTab === "petriNet" && (
                   <div className="petri-net-container visible">
                     <ResourcePetriNet
+                      key={`petri-${i18n.language}-${modelVersion}`}
                       recursos={game.recursos}
                       playableCards={playableCards}
                       allCards={allCards}
@@ -355,6 +655,7 @@ function App() {
                 {game.activeTab === "graph" && (
                   <div className="graph-container visible">
                     <ResourceGraph
+                      key={`graph-${i18n.language}-${modelVersion}`}
                       onGraphCreated={(graph) =>
                         dispatch({
                           type: GameActions.SET_GRAPH,

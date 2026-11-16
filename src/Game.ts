@@ -7,16 +7,23 @@ export const GameDispatchContext =
   createContext<Dispatch<GameActionType> | null>(null);
 
 export enum GameActions {
-  AUMENTA_PONTO = "aumenta ponto",
-  DIMINUI_ACAO = "diminui ação",
-  JOGAR_CARTA = "jogar carta",
-  PASSAR_TURNO = "passar turno",
-  COMPRAR_CARTA = "comprar carta",
-  TOGGLE_ANALISES = "toggle analises",
+  AUMENTA_PONTO = "increase point",
+  DIMINUI_ACAO = "decrease action",
+  JOGAR_CARTA = "play card",
+  PASSAR_TURNO = "pass turn",
+  COMPRAR_CARTA = "buy card",
+  TOGGLE_ANALISES = "toggle analyses",
   SET_ACTIVE_TAB = "set active tab",
   SET_GRAPH = "set graph",
   LOAD_GAME = "load game",
+  UPDATE_CARDS = "update cards",
 }
+
+export type GameFinishReason =
+  | "pontos"
+  | "turnos"
+  | "deadlock"
+  | "none";
 
 type LoadGameActionType = {
   type: GameActions.LOAD_GAME;
@@ -59,6 +66,11 @@ type SetGraphActionType = {
   payload: MultiDirectedGraph;
 };
 
+type UpdateCardsActionType = {
+  type: GameActions.UPDATE_CARDS;
+  cards: CartaType[];
+};
+
 type GameActionType =
   | AumentaPontoActionType
   | DiminuiAcaoActionType
@@ -68,8 +80,58 @@ type GameActionType =
   | ToggleAnalisesActionType
   | SetActiveTabActionType
   | SetGraphActionType
-  | LoadGameActionType;
+  | LoadGameActionType
+  | UpdateCardsActionType;
 
+// ============================================================
+// SeededRandom — declarado antes de setupNewGame para evitar
+// "Class used before its declaration"
+// ============================================================
+export class SeededRandom {
+  private seed: number;
+
+  constructor(seed: string) {
+    this.seed = this.hashString(seed);
+  }
+
+  private hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  }
+
+  private mulberry32(): number {
+    let t = (this.seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  random(): number {
+    return this.mulberry32();
+  }
+
+  randomInt(min: number, max: number): number {
+    return Math.floor(this.random() * (max - min + 1)) + min;
+  }
+
+  shuffle<T>(array: T[]): T[] {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = this.randomInt(0, i);
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }
+}
+
+// ============================================================
+// Reducer
+// ============================================================
 export function gameReducer(game: GameType, action: GameActionType): GameType {
   switch (action.type) {
     case GameActions.AUMENTA_PONTO:
@@ -108,6 +170,9 @@ export function gameReducer(game: GameType, action: GameActionType): GameType {
     case GameActions.LOAD_GAME:
       return action.payload;
 
+    case GameActions.UPDATE_CARDS:
+      return atualizarCartasAction(game, action);
+
     default:
       break;
   }
@@ -119,28 +184,31 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
   return (state: GameType, action: GameActionType): GameType => {
     const estadoAntigo = structuredClone(state);
     const novoEstado = reducer(state, action);
-    
+
     if (action.type === GameActions.PASSAR_TURNO) {
       return novoEstado;
     }
 
-    if (JSON.stringify(estadoAntigo.recursos) !== JSON.stringify(novoEstado.recursos)) {
+    if (
+      JSON.stringify(estadoAntigo.recursos) !==
+      JSON.stringify(novoEstado.recursos)
+    ) {
       const gameHistoryEntry = {
         tipo: action.type,
-        recursos: novoEstado.recursos.map(recurso => ({
+        recursos: novoEstado.recursos.map((recurso) => ({
           nome: recurso.nome,
-          quantidade: recurso.quantidade
-        }))
+          quantidade: recurso.quantidade,
+        })),
       };
 
       if (!novoEstado.historico || novoEstado.historico.length === 0) {
         const newTurn = {
           turno: 1,
-          acoes: [gameHistoryEntry]
+          acoes: [gameHistoryEntry],
         };
         return {
           ...novoEstado,
-          historico: [newTurn]
+          historico: [newTurn],
         };
       }
 
@@ -148,19 +216,22 @@ export function logHistory(reducer: typeof gameReducer): typeof gameReducer {
       const updatedHistorico = [...novoEstado.historico];
       updatedHistorico[lastIndex] = {
         ...updatedHistorico[lastIndex],
-        acoes: [...updatedHistorico[lastIndex].acoes, gameHistoryEntry]
+        acoes: [...updatedHistorico[lastIndex].acoes, gameHistoryEntry],
       };
-      
+
       return {
         ...novoEstado,
-        historico: updatedHistorico
+        historico: updatedHistorico,
       };
     }
-    
+
     return novoEstado;
   };
 }
 
+// ============================================================
+// Actions
+// ============================================================
 function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
   const carta = action.carta;
   const newGame = structuredClone(game);
@@ -177,7 +248,9 @@ function comprarCartaAction(game: GameType, action: ComprarCartaActionType) {
     return game;
   }
 
-  const index = newGame.oferta.findIndex((c) => c.id === carta.id);
+  const index = newGame.oferta.findIndex(
+    (c) => (c._instanceId ?? c.id) === (carta._instanceId ?? carta.id)
+  );
   if (index === -1) {
     return game;
   }
@@ -225,25 +298,33 @@ function passarTurnoAction(game: GameType, _action: PassarTurnoActionType) {
   newGame.descarte.push(...newGame.emJogo.splice(0));
 
   reporMao(newGame);
+  reporOferta(newGame);
+
+  const acaoRecurso = newGame.recursos.find((r) => r.nome === "action");
+  if (acaoRecurso) {
+    acaoRecurso.quantidade = 3;
+  } else {
+    newGame.recursos.push({ nome: "action", quantidade: 3 });
+  }
 
   const novoTurno = {
     turno: (newGame.historico?.length || 0) + 1,
-    acoes: []
+    acoes: [],
   };
 
   return {
     ...newGame,
-    historico: [...(newGame.historico || []), novoTurno]
+    historico: [...(newGame.historico || []), novoTurno],
   };
 }
 
 function aumentaPontoAction(game: GameType, _action: AumentaPontoActionType) {
   const newGame = structuredClone(game);
-  const pontuacao = newGame.recursos.find(r => r.nome === "pontuação");
+  const pontuacao = newGame.recursos.find((r) => r.nome === "score");
   if (pontuacao) {
     pontuacao.quantidade += 1;
   } else {
-    newGame.recursos.push({ nome: "pontuação", quantidade: 1 });
+    newGame.recursos.push({ nome: "score", quantidade: 1 });
   }
   return newGame;
 }
@@ -251,8 +332,8 @@ function aumentaPontoAction(game: GameType, _action: AumentaPontoActionType) {
 function diminuiAcaoAction(game: GameType, _action: DiminuiAcaoActionType) {
   const newGame = structuredClone(game);
   newGame.recursos = newGame.recursos.map((r) => {
-    if (r.nome === "ação") {
-      return { ...r, quantidade: r.quantidade - 1 };
+    if (r.nome === "action") {
+      return { ...r, quantidade: Math.max(0, r.quantidade - 1) };
     } else {
       return r;
     }
@@ -291,14 +372,47 @@ function jogarCartaAction(game: GameType, action: JogarCartaActionType) {
     }
   });
 
-  const index = newGame.mao.findIndex((c) => c.id === carta.id);
-
+  // Usa _instanceId quando disponível para evitar ambiguidade entre cópias
+  const index = newGame.mao.findIndex(
+    (c) => (c._instanceId ?? c.id) === (carta._instanceId ?? carta.id)
+  );
+  if (index === -1) {
+    return game;
+  }
   newGame.emJogo.push(...newGame.mao.splice(index, 1));
 
   return newGame;
 }
 
-function shuffleDeck(array: Array<CartaType>, seed: string) {
+function atualizarCartasAction(
+  game: GameType,
+  action: UpdateCardsActionType
+): GameType {
+  const mapa = new Map(action.cards.map((c) => [c.id, c]));
+
+  // Preserva o _instanceId de cada cópia física ao substituir o conteúdo da carta
+  const substituir = (c: CartaType): CartaType => {
+    const novaCarta = mapa.get(c.id);
+    if (!novaCarta) return c;
+    return { ...novaCarta, _instanceId: c._instanceId };
+  };
+
+  return {
+    ...game,
+    baralho: game.baralho.map(substituir),
+    descarte: game.descarte.map(substituir),
+    baralhoDaOferta: game.baralhoDaOferta.map(substituir),
+    descarteDaOferta: game.descarteDaOferta.map(substituir),
+    mao: game.mao.map(substituir),
+    emJogo: game.emJogo.map(substituir),
+    oferta: game.oferta.map(substituir),
+  };
+}
+
+// ============================================================
+// Setup
+// ============================================================
+function shuffleDeck(array: Array<CartaType>, seed: string): CartaType[] {
   const seededRandom = new SeededRandom(seed);
   return seededRandom.shuffle(array);
 }
@@ -306,99 +420,112 @@ function shuffleDeck(array: Array<CartaType>, seed: string) {
 export function setupNewGame(game: GameType, seed?: string): GameType {
   const newGame = structuredClone(game);
   const gameSeed = seed || Math.random().toString(36).substring(2, 15);
-  
+
   newGame.seed = gameSeed;
 
   const seededRandom = new SeededRandom(gameSeed);
-  newGame.baralhoDaOferta = seededRandom.shuffle(newGame.baralhoDaOferta);
-  newGame.baralho = seededRandom.shuffle(newGame.baralho);
+
+  // Atribui _instanceId único a cada cópia física do baralho e da oferta.
+  newGame.baralhoDaOferta = seededRandom
+    .shuffle(newGame.baralhoDaOferta)
+    .map((c, i) => ({
+      ...c,
+      _instanceId: `offer-${gameSeed}-${i}`,
+    }));
+
+  newGame.baralho = seededRandom.shuffle(newGame.baralho).map((c, i) => ({
+    ...c,
+    _instanceId: `deck-${gameSeed}-${i}`,
+  }));
 
   reporOferta(newGame);
   reporMao(newGame);
 
-  if (!newGame.recursos.some(r => r.nome === "pontuação")) {
-    newGame.recursos.push({ nome: "pontuação", quantidade: 0 });
+  // Garante que o recurso "action" existe e tem 3 unidades
+  const acaoRecurso = newGame.recursos.find((r) => r.nome === "action");
+  if (acaoRecurso) {
+    acaoRecurso.quantidade = 3;
+  } else {
+    newGame.recursos.push({ nome: "action", quantidade: 3 });
+  }
+
+  // Garante que o recurso "score" existe
+  if (!newGame.recursos.some((r) => r.nome === "score")) {
+    newGame.recursos.push({ nome: "score", quantidade: 0 });
   }
 
   return {
     ...newGame,
-    historico: [{
-      turno: 1,
-      acoes: []
-    }],
+    historico: [
+      {
+        turno: 1,
+        acoes: [],
+      },
+    ],
     analisesVisiveis: false,
     activeTab: "graph",
     resourceGraph: undefined,
   };
 }
 
-export class SeededRandom {
-  private seed: number;
-
-  constructor(seed: string) {
-    this.seed = this.hashString(seed);
-  }
-
-  private hashString(str: string): number {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
-  }
-
-  private mulberry32(): number {
-    let t = (this.seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  }
-
-  random(): number {
-    return this.mulberry32();
-  }
-
-  randomInt(min: number, max: number): number {
-    return Math.floor(this.random() * (max - min + 1)) + min;
-  }
-
-  shuffle<T>(array: T[]): T[] {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = this.randomInt(0, i);
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-  }
-}
-
+// ============================================================
+// Helpers de estado do jogo
+// ============================================================
 function getPontuacao(game: GameType): number {
-  const recursoPontuacao = game.recursos.find(r => r.nome === "pontuação");
+  const recursoPontuacao = game.recursos.find((r) => r.nome === "score");
   return recursoPontuacao ? recursoPontuacao.quantidade : 0;
 }
 
-export function isGameFinished(game: GameType): boolean {
-  const PONTOS_VITORIA = 10;
+function getTurnoAtual(game: GameType): number {
+  return game.historico?.length || 1;
+}
 
-  if (getPontuacao(game) >= PONTOS_VITORIA) {
-    return true;
+export function canGameContinue(game: GameType): boolean {
+  const temCartasNoBaralho = game.baralho.length > 0 || game.descarte.length > 0;
+  const temCartasNaOferta =
+    game.baralhoDaOferta.length > 0 || game.descarteDaOferta.length > 0;
+
+  if (!temCartasNoBaralho && !temCartasNaOferta && game.mao.length === 0) {
+    return false;
   }
 
-  const acaoRecurso = game.recursos.find(r => r.nome === "ação");
+  return true;
+}
+
+export function checkGameFinished(game: GameType): {
+  finished: boolean;
+  reason: GameFinishReason;
+  score: number;
+} {
+  const pontosParaVencer = game.pontosParaVencer ?? 10;
+  const pontosAtuais = getPontuacao(game);
+
+  if (pontosAtuais >= pontosParaVencer) {
+    console.log("-> Victory by points!");
+    return { finished: true, reason: "pontos", score: pontosAtuais };
+  }
+
+  const turnosMaximos = game.turnosMaximos ?? 30;
+  const turnoAtual = getTurnoAtual(game);
+
+  if (turnoAtual > turnosMaximos) {
+    console.log("-> Victory by turns!");
+    return { finished: true, reason: "turnos", score: pontosAtuais };
+  }
+
+  const acaoRecurso = game.recursos.find((r) => r.nome === "action");
   const hasActions = acaoRecurso ? acaoRecurso.quantidade > 0 : false;
 
-  const playableCards = game.mao.filter(card =>
-    card.custo.every(cost => {
-      const resource = game.recursos.find(r => r.nome === cost.nome);
+  const playableCards = game.mao.filter((card) =>
+    card.custo.every((cost) => {
+      const resource = game.recursos.find((r) => r.nome === cost.nome);
       return resource && resource.quantidade >= cost.quantidade;
     })
   );
 
-  const buyableCards = game.oferta.filter(card =>
-    card.custo.every(cost => {
-      const resource = game.recursos.find(r => r.nome === cost.nome);
+  const buyableCards = game.oferta.filter((card) =>
+    card.custo.every((cost) => {
+      const resource = game.recursos.find((r) => r.nome === cost.nome);
       return resource && resource.quantidade >= cost.quantidade;
     })
   );
@@ -406,10 +533,25 @@ export function isGameFinished(game: GameType): boolean {
   const canPlayAnyCard = playableCards.length > 0 || buyableCards.length > 0;
 
   if (!hasActions && !canPlayAnyCard) {
-    return true;
+    const podeContinuar = canGameContinue(game);
+
+    if (!podeContinuar) {
+      console.log(
+        "-> PERMANENT DEADLOCK! No actions, no cards, and no way to continue."
+      );
+      return { finished: true, reason: "deadlock", score: pontosAtuais };
+    }
+
+    console.log("-> No actions and no playable cards, but can pass turn.");
+    return { finished: false, reason: "none", score: pontosAtuais };
   }
 
-  return false;
+  console.log("-> GAME CONTINUES");
+  return { finished: false, reason: "none", score: pontosAtuais };
+}
+
+export function isGameFinished(game: GameType): boolean {
+  return checkGameFinished(game).finished;
 }
 
 export function scoreGame(game: GameType): [string, number] {
