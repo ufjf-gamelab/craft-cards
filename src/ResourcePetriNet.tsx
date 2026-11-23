@@ -82,7 +82,7 @@ type NoArvore = {
 };
 
 const MAX_DEPTH = 4;
-const MAX_EXPANSIONS = 50;
+const MAX_EXPANSIONS = 500; // Aumentado para suportar a Análise Completa
 const MAX_CHILDREN_PER_NODE = 20;
 const MAX_PATHS_TO_FIND = 10;
 
@@ -305,6 +305,7 @@ const encontrarCaminhosBFS = (
   return paths;
 };
 
+// ── EXPANSÃO DA ÁRVORE COM BFS E LIMITE DINÂMICO ──
 const expandirArvoreComLimites = (
   raiz: NoArvore,
   graph: MultiDirectedGraph<NodeAttributes, LinkAttributes>,
@@ -312,32 +313,30 @@ const expandirArvoreComLimites = (
   numeroExpansoes: number,
   ignorarMao: boolean
 ): NoArvore => {
-  const contadorNos = { count: 0 };
-  const contadorSimulacao = { count: 0 };
+  let totalNodes = 0;
+  // Aumenta o limite quando a análise completa está ativa
+  const maxNodes = ignorarMao ? 500 : 150; 
+  
+  const queue: Array<{ no: NoArvore; caminhoAncestrais: NoArvore[]; depth: number }> = [
+    { no: raiz, caminhoAncestrais: [], depth: 0 }
+  ];
 
-  const expandirNormalmente = (
-    no: NoArvore,
-    caminhoAncestrais: NoArvore[] = [],
-    depth: number = 0
-  ): NoArvore => {
-    if (
-      no.terminal ||
-      no.ciclico ||
-      depth >= MAX_DEPTH ||
-      contadorNos.count >= MAX_EXPANSIONS
-    ) {
+  // ── FASE 1: Expansão Normal via BFS (Busca em Largura) ──
+  while (queue.length > 0 && totalNodes < maxNodes) {
+    const { no, caminhoAncestrais, depth } = queue.shift()!;
+
+    if (no.terminal || no.ciclico || depth >= MAX_DEPTH) {
       no.terminal = true;
-      return no;
+      continue;
     }
 
     const noExistente = caminhoAncestrais.find((n) =>
       compararMarcacoes(n.marcacao, no.marcacao)
     );
-
-    if (noExistente && noExistente !== no) {
+    if (noExistente) {
       no.ciclico = true;
       no.terminal = true;
-      return no;
+      continue;
     }
 
     const novoCaminho = [...caminhoAncestrais, no];
@@ -346,22 +345,18 @@ const expandirArvoreComLimites = (
       .nodes()
       .filter((node) => graph.getNodeAttribute(node, "type") === "transition")
       .filter((transicaoId) =>
-        isTransicaoHabilitada(
-          transicaoId,
-          no.marcacao,
-          playableCards,
-          graph,
-          ignorarMao
-        )
+        isTransicaoHabilitada(transicaoId, no.marcacao, playableCards, graph, ignorarMao)
       )
       .slice(0, MAX_CHILDREN_PER_NODE);
 
     if (transicoesHabilitadas.length === 0) {
       no.terminal = true;
-      return no;
+      continue;
     }
 
     for (const transicaoId of transicoesHabilitadas) {
+      if (totalNodes >= maxNodes) break;
+
       const novaMarcacao = dispararTransicao(transicaoId, no.marcacao, graph);
 
       let precisaOmega = false;
@@ -371,7 +366,6 @@ const expandirArvoreComLimites = (
           Object.keys(novaMarcacao).forEach((chave) => {
             const valorAtual = novaMarcacao[chave];
             const valorAncestral = ancestral.marcacao[chave] || 0;
-
             if (
               valorAtual !== OMEGA &&
               valorAncestral !== OMEGA &&
@@ -384,9 +378,9 @@ const expandirArvoreComLimites = (
         }
       }
 
-      contadorNos.count++;
+      totalNodes++;
       const novoNo: NoArvore = {
-        id: `n${contadorNos.count}`,
+        id: `n${totalNodes}`,
         marcacao: novaMarcacao,
         transicaoDisparada: transicaoId.replace("transition_", ""),
         paiId: no.id,
@@ -401,56 +395,44 @@ const expandirArvoreComLimites = (
       no.children.push(novoNo);
 
       if (!precisaOmega) {
-        expandirNormalmente(novoNo, novoCaminho, depth + 1);
+        queue.push({ no: novoNo, caminhoAncestrais: novoCaminho, depth: depth + 1 });
       } else {
         novoNo.terminal = numeroExpansoes === 0;
       }
     }
 
     no.expandido = true;
-    return no;
-  };
+  }
 
-  let arvoreExpandida = expandirNormalmente(raiz);
-
+  // ── FASE 2: Expansão de nós Omega (mantém a lógica original) ──
   if (numeroExpansoes > 0) {
     const nosOmega: NoArvore[] = [];
-
     const coletarNosOmega = (no: NoArvore) => {
       if (no.omega && !no.terminal && !no.simulacao) {
         nosOmega.push(no);
       }
       no.children.forEach(coletarNosOmega);
     };
-    coletarNosOmega(arvoreExpandida);
+    coletarNosOmega(raiz);
+
+    let omegaNodeCount = 0;
+    const MAX_OMEGA_NODES = 200;
 
     const expandirOmegaRecursivo = (
       no: NoArvore,
       expansoesRestantes: number,
       profundidade: number = 0
     ): void => {
-      if (
-        expansoesRestantes <= 0 ||
-        profundidade > 50 ||
-        contadorNos.count > 200
-      ) {
+      if (expansoesRestantes <= 0 || profundidade > 50 || omegaNodeCount >= MAX_OMEGA_NODES) {
         no.terminal = true;
         return;
       }
 
       const transicoesHabilitadas = graph
         .nodes()
-        .filter(
-          (node) => graph.getNodeAttribute(node, "type") === "transition"
-        )
+        .filter((node) => graph.getNodeAttribute(node, "type") === "transition")
         .filter((transicaoId) =>
-          isTransicaoHabilitada(
-            transicaoId,
-            no.marcacao,
-            playableCards,
-            graph,
-            ignorarMao
-          )
+          isTransicaoHabilitada(transicaoId, no.marcacao, playableCards, graph, ignorarMao)
         )
         .slice(0, MAX_CHILDREN_PER_NODE);
 
@@ -460,8 +442,9 @@ const expandirArvoreComLimites = (
       }
 
       for (const transicaoId of transicoesHabilitadas) {
-        const novaMarcacao = { ...no.marcacao };
+        if (omegaNodeCount >= MAX_OMEGA_NODES) break;
 
+        const novaMarcacao = { ...no.marcacao };
         const arcosEntrada = graph.inEdges(transicaoId) || [];
         const arcosSaida = graph.outEdges(transicaoId) || [];
 
@@ -470,28 +453,25 @@ const expandirArvoreComLimites = (
           const lugarId = graph.source(arcoId);
           const recursoNome = graph.getNodeAttribute(lugarId, "label");
           const peso = arcoAttr.weight || 0;
-
           if (novaMarcacao[recursoNome] !== OMEGA) {
             const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
             novaMarcacao[recursoNome] = Math.max(0, quantidadeAtual - peso);
           }
         }
-
         for (const arcoId of arcosSaida) {
           const arcoAttr = graph.getEdgeAttributes(arcoId);
           const lugarId = graph.target(arcoId);
           const recursoNome = graph.getNodeAttribute(lugarId, "label");
           const peso = arcoAttr.weight || 0;
-
           if (novaMarcacao[recursoNome] !== OMEGA) {
             const quantidadeAtual = (novaMarcacao[recursoNome] as number) || 0;
             novaMarcacao[recursoNome] = quantidadeAtual + peso;
           }
         }
 
-        contadorSimulacao.count++;
+        omegaNodeCount++;
         const novoNo: NoArvore = {
-          id: `s${contadorSimulacao.count}`,
+          id: `s${omegaNodeCount}`,
           marcacao: novaMarcacao,
           transicaoDisparada: transicaoId.replace("transition_", ""),
           paiId: no.id,
@@ -504,14 +484,8 @@ const expandirArvoreComLimites = (
         };
 
         no.children.push(novoNo);
-
-        expandirOmegaRecursivo(
-          novoNo,
-          expansoesRestantes - 1,
-          profundidade + 1
-        );
+        expandirOmegaRecursivo(novoNo, expansoesRestantes - 1, profundidade + 1);
       }
-
       no.expandido = true;
     };
 
@@ -520,7 +494,7 @@ const expandirArvoreComLimites = (
     });
   }
 
-  return arvoreExpandida;
+  return raiz;
 };
 
 const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
@@ -1896,7 +1870,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
             {t("petri.performance_warning_body")}{" "}
             {t("petri.performance_limits", {
               depth: MAX_DEPTH,
-              expansions: MAX_EXPANSIONS,
+              expansions: analiseCompleta ? 500 : 150,
             })}
           </Typography>
         </Alert>
@@ -1979,7 +1953,7 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
               <Chip
                 label={t("petri.limits_chip", {
                   depth: MAX_DEPTH,
-                  expansions: MAX_EXPANSIONS,
+                  expansions: analiseCompleta ? 500 : 150,
                 })}
                 color="info"
                 size="small"
