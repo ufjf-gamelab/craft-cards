@@ -1498,8 +1498,8 @@ const ResourcePetriNet: React.FC<ResourcePetriNetProps> = ({
           return CORES_NOS.simulacaoIntermediario;
         } else {
           if (d.omega) return CORES_NOS.omega;
-          if (d.terminal) return CORES_NOS.terminal;
           if (d.ciclico) return CORES_NOS.ciclico;
+          if (d.terminal) return CORES_NOS.terminal;
           return d.nivel === 1 ? CORES_NOS.real : CORES_NOS.realIntermediario;
         }
       })

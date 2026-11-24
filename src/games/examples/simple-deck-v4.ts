@@ -24,7 +24,8 @@ export const GAME_EX4 = {
   baralho: BARALHO_EX4,
   baralhoDaOferta: OFERTA_EX4,
   recursos: [
-    { nome: "score", quantidade: 0 },
+    { nome: "B", quantidade: 1 },
+    { nome: "A", quantidade: 1 },
     { nome: "action", quantidade: 3 },
     ...GAME_INITIAL.recursos.filter(r => r.nome !== "score" && r.nome !== "action"),
   ],
